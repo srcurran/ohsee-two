@@ -1,65 +1,95 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import type { Project } from "@/lib/types";
+import NewProjectOverlay from "@/components/NewProjectOverlay";
 
 export default function Home() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showNewProject, setShowNewProject] = useState(false);
+
+  const loadProjects = async () => {
+    const res = await fetch("/api/projects");
+    if (res.ok) {
+      setProjects(await res.json());
+    }
+  };
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="px-[140px] py-[56px]">
+      <div className="flex items-center justify-between">
+        <h1 className="text-[32px] font-normal text-black">Projects</h1>
+        <button
+          onClick={() => setShowNewProject(true)}
+          className="rounded-[12px] bg-accent-green px-[40px] py-[10px] text-[20px] font-bold text-black"
+        >
+          New Project
+        </button>
+      </div>
+
+      <div className="mt-[40px] flex flex-col gap-[24px]">
+        {projects.map((project) => (
+          <Link
+            key={project.id}
+            href={`/projects/${project.id}`}
+            className="flex items-center justify-between rounded-[4px] bg-surface-primary p-[16px] shadow-[0px_0px_1px_0px_rgba(0,0,0,0.05),0px_1px_1px_0px_rgba(0,0,0,0.04),0px_3px_2px_0px_rgba(0,0,0,0.03),0px_5px_2px_0px_rgba(0,0,0,0.01),0px_8px_2px_0px_rgba(0,0,0,0)]"
+          >
+            <div className="flex items-center gap-[40px] text-black">
+              <div className="flex w-[240px] flex-col">
+                <span className="text-[14px]">URL</span>
+                <span className="text-[20px] font-bold">
+                  {project.prodUrl.replace(/^https?:\/\//, "")}
+                </span>
+              </div>
+              <div className="flex w-[240px] flex-col">
+                <span className="text-[14px]">Last Diff</span>
+                <span className="text-[20px]">
+                  {project.lastDiffAt
+                    ? new Date(project.lastDiffAt).toLocaleString()
+                    : "Never"}
+                </span>
+              </div>
+              <div className="flex w-[240px] flex-col">
+                <span className="text-[14px]">Pages</span>
+                <span className="text-[20px]">{project.pages.length}</span>
+              </div>
+            </div>
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+        ))}
+
+        {projects.length === 0 && (
+          <p className="text-center text-[16px] text-black/50">
+            No projects yet. Create one to get started.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        )}
+      </div>
+
+      {showNewProject && (
+        <NewProjectOverlay
+          onClose={() => setShowNewProject(false)}
+          onCreated={() => {
+            setShowNewProject(false);
+            loadProjects();
+          }}
+        />
+      )}
     </div>
   );
 }
