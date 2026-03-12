@@ -1,11 +1,17 @@
 export default function ChangeBadge({ count }: { count: number }) {
-  const bg = count > 0 ? "bg-accent-yellow" : "bg-accent-green";
+  const label = count > 50 ? "50+" : String(count);
+
+  // Yellow for changes, green for zero — matches Figma tokens
+  const style =
+    count > 0
+      ? "bg-accent-yellow text-black"
+      : "bg-accent-green text-black";
 
   return (
     <div
-      className={`${bg} flex h-[24px] min-w-[24px] items-center justify-center rounded-full px-[4px]`}
+      className={`${style} inline-flex size-[24px] items-center justify-center rounded-full`}
     >
-      <span className="text-[14px] font-bold leading-none text-black">{count}</span>
+      <span className="text-[14px] font-bold leading-none">{label}</span>
     </div>
   );
 }

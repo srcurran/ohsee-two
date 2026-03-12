@@ -1,10 +1,14 @@
 import { chromium, type Browser } from "playwright";
 import path from "path";
+import fs from "fs/promises";
 import { ensureDir } from "./data";
+import { extractDomSnapshot } from "./dom-snapshot";
+import type { DomSnapshot } from "./types";
 
 export interface ScreenshotResult {
   breakpoint: number;
   filePath: string;
+  domSnapshot?: DomSnapshot;
 }
 
 export async function captureScreenshots(options: {
@@ -12,26 +16,48 @@ export async function captureScreenshots(options: {
   breakpoints: number[];
   outputDir: string;
   prefix: string;
-  onProgress?: (breakpoint: number, status: string) => void;
+  onProgress?: (breakpoint: number, status: string) => void | Promise<void>;
 }): Promise<ScreenshotResult[]> {
   const { url, breakpoints, outputDir, prefix, onProgress } = options;
   await ensureDir(outputDir);
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--disable-dev-shm-usage",
+      "--no-sandbox",
+      "--disable-gpu",
+    ],
+  });
   const results: ScreenshotResult[] = [];
 
   try {
     for (const bp of breakpoints) {
-      onProgress?.(bp, "capturing");
-
       const context = await browser.newContext({
         viewport: { width: bp, height: 900 },
         deviceScaleFactor: 1,
+        reducedMotion: "reduce",
       });
       const page = await context.newPage();
 
       try {
-        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+        // Use domcontentloaded then briefly wait for networkidle.
+        // Sites with persistent connections (analytics, websockets) will
+        // never reach networkidle — the 5s timeout keeps things moving.
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+        await Promise.race([
+          page.waitForLoadState("networkidle"),
+          page.waitForTimeout(5000),
+        ]);
+
+        // Kill all CSS animations and transitions for clean screenshots
+        await page.addStyleTag({
+          content: `*, *::before, *::after {
+            animation: none !important;
+            transition: none !important;
+            scroll-behavior: auto !important;
+          }`,
+        });
 
         // Dismiss common cookie banners
         await dismissPopups(page);
@@ -39,20 +65,31 @@ export async function captureScreenshots(options: {
         // Scroll to trigger lazy-loaded content
         await autoScroll(page);
 
-        // Wait a bit for any final renders
-        await page.waitForTimeout(500);
+        // Wait for web fonts to load
+        await page.evaluate(() => document.fonts.ready);
+
+        // General settle time for animations, transitions, lazy JS
+        await page.waitForTimeout(1000);
 
         const filePath = path.join(outputDir, `${prefix}-${bp}.png`);
         await page.screenshot({ fullPage: true, path: filePath });
 
-        results.push({ breakpoint: bp, filePath });
-        onProgress?.(bp, "done");
+        // Extract DOM snapshot for semantic diffing
+        let domSnapshot: DomSnapshot | undefined;
+        try {
+          domSnapshot = await extractDomSnapshot(page, url, bp);
+        } catch (err) {
+          console.error(`Failed to extract DOM snapshot for ${url} at ${bp}px:`, err);
+        }
+
+        results.push({ breakpoint: bp, filePath, domSnapshot });
       } catch (err) {
         console.error(`Failed to capture ${url} at ${bp}px:`, err);
-        onProgress?.(bp, "error");
       } finally {
         await context.close();
       }
+
+      await onProgress?.(bp, "done");
     }
   } finally {
     await browser.close();
