@@ -4,6 +4,7 @@ import { migrateGlobalDataToUser } from "@/lib/migrate";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/sign-in",
