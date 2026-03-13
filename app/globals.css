@@ -60,6 +60,11 @@
   --surface-secondary: var(--neutral-light-100);
   --surface-tertiary: var(--neutral-light-300);
   --surface-comparison: var(--neutral-taupe-500);
+  --surface-content: var(--neutral-light-100);
+
+  /* Gradient fade */
+  --surface-fade-from: var(--neutral-light-100);
+  --surface-fade-via: rgba(255, 255, 255, 0.9);
 
   /* Text */
   --foreground: var(--neutral-dark-900);
@@ -101,13 +106,69 @@
   /* Slider */
   --slider-handle: var(--neutral-taupe-700);
 
-  /* Severity markers */
+  /* Severity markers (DiffViewer marker borders) */
   --severity-error: #cc4444;
-  --severity-warning: var(--status-warning-500);
   --severity-info: #aaaaaa;
+
+  /* Elevation (primitives) */
+  --elevation-sm: 0px 1px 2px rgba(0, 0, 0, 0.06), 0px 2px 4px rgba(0, 0, 0, 0.08);
+  --elevation-md: 0px 2px 4px rgba(0, 0, 0, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.1);
+  --elevation-lg: 0px 3px 7px rgba(0, 0, 0, 0.12), 0px 12px 12px rgba(0, 0, 0, 0.1), 0px 28px 17px rgba(0, 0, 0, 0.06);
+  --elevation-content: 0px 0px 2px rgba(0, 0, 0, 0.1), 0px 0px 6px rgba(0, 0, 0, 0.05), 0px 0px 18px rgba(0, 0, 0, 0.03);
 
   /* Legacy aliases (keep --background for Next.js defaults) */
   --background: var(--neutral-light-100);
+}
+
+/* ── Dark Mode ──────────────────────────────────────────────────── */
+
+.dark {
+  /* Neutral / Dark → light content text */
+  --neutral-dark-900: #ffffff;
+  --neutral-dark-800: rgba(255, 255, 255, 0.9);
+  --neutral-dark-700: rgba(255, 255, 255, 0.7);
+  --neutral-dark-500: rgba(255, 255, 255, 0.5);
+  --neutral-dark-400: rgba(255, 255, 255, 0.4);
+  --neutral-dark-200: rgba(255, 255, 255, 0.2);
+  --neutral-dark-150: rgba(255, 255, 255, 0.15);
+  --neutral-dark-100: rgba(255, 255, 255, 0.1);
+
+  /* Neutral / Light → dark surfaces */
+  --neutral-light-100: #1e1e1e;
+  --neutral-light-200: #121212;
+  --neutral-light-300: #2a2a2a;
+
+  /* Neutral / Taupe */
+  --neutral-taupe-500: #7a7075;
+  --neutral-taupe-700: rgba(200, 200, 200, 0.4);
+
+  /* Brand — slightly brighter for dark bg contrast */
+  --brand-primary-100: #3a2510;
+  --brand-primary-500: #f0a040;
+
+  /* Status — tints must clearly contrast against #1e1e1e */
+  --status-success-100: #1e4a2e;
+  --status-success-500: #3aaa80;
+  --status-warning-100: #4a4520;
+  --status-warning-500: #d6c840;
+  --status-error-100: #4a2424;
+  --status-error-200: #5c3030;
+  --status-error-500: #e06060;
+  --status-error-800: #e88a8a;
+
+  /* Elevation — stronger for dark bg visibility */
+  --elevation-sm: 0px 1px 3px rgba(0, 0, 0, 0.4), 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --elevation-md: 0px 2px 6px rgba(0, 0, 0, 0.5), 0px 4px 12px rgba(0, 0, 0, 0.4);
+  --elevation-lg: 0px 4px 12px rgba(0, 0, 0, 0.5), 0px 12px 24px rgba(0, 0, 0, 0.4);
+  --elevation-content: 0px 0px 2px rgba(255, 255, 255, 0.05), 0px 0px 6px rgba(0, 0, 0, 0.3);
+
+  /* Surfaces */
+  --surface-content: #1e1e1e;
+  --surface-fade-from: #1e1e1e;
+  --surface-fade-via: rgba(30, 30, 30, 0.9);
+
+  /* Legacy */
+  --background: #1e1e1e;
 }
 
 @theme inline {
@@ -116,6 +177,9 @@
   --color-surface-secondary: var(--surface-secondary);
   --color-surface-tertiary: var(--surface-tertiary);
   --color-surface-comparison: var(--surface-comparison);
+  --color-surface-content: var(--surface-content);
+  --color-surface-fade-from: var(--surface-fade-from);
+  --color-surface-fade-via: var(--surface-fade-via);
 
   /* Text */
   --color-foreground: var(--foreground);
@@ -159,8 +223,13 @@
 
   /* Severity */
   --color-severity-error: var(--severity-error);
-  --color-severity-warning: var(--severity-warning);
   --color-severity-info: var(--severity-info);
+
+  /* Elevation */
+  --shadow-elevation-sm: var(--elevation-sm);
+  --shadow-elevation-md: var(--elevation-md);
+  --shadow-elevation-lg: var(--elevation-lg);
+  --shadow-elevation-content: var(--elevation-content);
 
   /* Legacy */
   --color-background: var(--background);
@@ -172,4 +241,10 @@
 body {
   background: var(--surface-primary);
   color: var(--foreground);
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  color-scheme: dark;
 }

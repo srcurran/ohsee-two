@@ -135,7 +135,7 @@ function PageDetailInner() {
   return (
     <div>
       {/* Sticky top nav */}
-      <div className="sticky top-0 z-10 rounded-t-[12px] bg-white">
+      <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content">
         <div className="flex flex-col gap-[16px] px-[20px] py-[24px] pb-0">
           {/* Title row */}
           <div className="flex items-center justify-between gap-[16px]">
@@ -145,7 +145,7 @@ function PageDetailInner() {
                 {/* Domain — links back to report */}
                 <Link
                   href={`/reports/${params.reportId}?bp=${activeBp}`}
-                  className="shrink-0 text-[36px] text-black hover:opacity-70"
+                  className="shrink-0 text-[36px] text-foreground hover:opacity-70"
                 >
                   {displayUrl}
                 </Link>
@@ -155,10 +155,10 @@ function PageDetailInner() {
                 <div className="relative min-w-0">
                   <button
                     onClick={() => { setShowPageNav(!showPageNav); setShowReportNav(false); }}
-                    className="block max-w-full truncate rounded-[8px] hover:bg-black/[0.03]"
+                    className="block max-w-full truncate rounded-[8px] transition-all hover:bg-foreground/[0.03]"
                     title={pageName}
                   >
-                    <span className="text-[36px] text-black">{pageName}</span>
+                    <span className="text-[36px] text-foreground">{pageName}</span>
                   </button>
                   {showPageNav && (
                     <>
@@ -166,7 +166,7 @@ function PageDetailInner() {
                         className="fixed inset-0 z-30"
                         onClick={() => setShowPageNav(false)}
                       />
-                      <div className="absolute left-0 top-[56px] z-40 flex min-w-[280px] max-w-[400px] flex-col gap-[4px] rounded-[12px] bg-white p-[12px] shadow-[0px_3px_7px_0px_rgba(0,0,0,0.12),0px_12px_12px_0px_rgba(0,0,0,0.1),0px_28px_17px_0px_rgba(0,0,0,0.06)]">
+                      <div className="absolute left-0 top-[56px] z-40 flex min-w-[280px] max-w-[400px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
                         {report.pages.map((page) => {
                           const label =
                             page.path === "/"
@@ -180,7 +180,7 @@ function PageDetailInner() {
                               key={page.pageId}
                               href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}`}
                               onClick={() => setShowPageNav(false)}
-                              className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[6px] text-[14px] text-black ${
+                              className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[6px] text-[14px] text-foreground ${
                                 isCurrent
                                   ? "bg-surface-tertiary font-bold"
                                   : "font-normal hover:bg-surface-tertiary"
@@ -200,7 +200,7 @@ function PageDetailInner() {
               </div>
 
               {/* Change count badge */}
-              <span className={`flex h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-full px-[8px] text-[20px] text-black ${
+              <span className={`flex h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-full px-[8px] text-[20px] text-foreground ${
                 bpResult && bpResult.changeCount > 0 ? "bg-accent-yellow-tint" : "bg-accent-green-tint"
               }`}>
                 {bpResult?.changeCount ?? 0}
@@ -213,7 +213,7 @@ function PageDetailInner() {
               <div className="relative">
                 <button
                   onClick={() => { setShowReportNav(!showReportNav); setShowPageNav(false); }}
-                  className="flex items-center gap-[8px] text-[16px] text-black hover:opacity-70"
+                  className="flex items-center gap-[8px] text-[16px] text-foreground hover:opacity-70"
                   title={formatFullDateTime(report.createdAt)}
                 >
                   {dateStr}
@@ -225,7 +225,7 @@ function PageDetailInner() {
                       className="fixed inset-0 z-30"
                       onClick={() => setShowReportNav(false)}
                     />
-                    <div className="absolute right-0 top-[32px] z-40 flex min-w-[280px] flex-col gap-[4px] rounded-[12px] bg-white p-[12px] shadow-[0px_3px_7px_0px_rgba(0,0,0,0.12),0px_12px_12px_0px_rgba(0,0,0,0.1),0px_28px_17px_0px_rgba(0,0,0,0.06)]">
+                    <div className="absolute right-0 top-[32px] z-40 flex min-w-[280px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
                       {allReports.map((r) => {
                         const isCurrent = r.id === report.id;
                         return (
@@ -236,7 +236,7 @@ function PageDetailInner() {
                             title={formatFullDateTime(r.createdAt)}
                             className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-[14px] ${
                               isCurrent
-                                ? "bg-surface-tertiary font-bold text-black"
+                                ? "bg-surface-tertiary font-bold text-foreground"
                                 : "text-text-secondary hover:bg-surface-tertiary"
                             }`}
                           >
@@ -254,7 +254,7 @@ function PageDetailInner() {
               {prevPage ? (
                 <Link
                   href={`/reports/${report.id}/pages/${prevPage.pageId}?bp=${activeBp}`}
-                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-black"
+                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-foreground"
                   title={prevPage.path === "/" ? "index" : prevPage.path.replace(/^\//, "")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -273,7 +273,7 @@ function PageDetailInner() {
               {nextPage ? (
                 <Link
                   href={`/reports/${report.id}/pages/${nextPage.pageId}?bp=${activeBp}`}
-                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-black"
+                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-foreground"
                   title={nextPage.path === "/" ? "index" : nextPage.path.replace(/^\//, "")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -291,7 +291,7 @@ function PageDetailInner() {
               {/* Close (back to report) */}
               <Link
                 href={`/reports/${params.reportId}?bp=${activeBp}`}
-                className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-black"
+                className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-foreground"
                 title="Back to report"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -314,7 +314,7 @@ function PageDetailInner() {
         {/* Column headers */}
         {bpResult && (
           <div className="flex gap-[29px] px-[20px] pb-[8px] pt-[16px]">
-            <div className="flex flex-1 items-center text-[14px] text-black">
+            <div className="flex flex-1 items-center text-[14px] text-foreground">
               <span>Changes</span>
             </div>
             <div className="flex-1">
@@ -445,10 +445,10 @@ function CollapsibleIssues({
           />
         </div>
         {collapsed && (
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center bg-gradient-to-t from-white via-white/90 to-transparent pt-[40px] pb-[8px]">
+          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center bg-gradient-to-t from-surface-fade-from via-surface-fade-via to-transparent pt-[40px] pb-[8px]">
             <button
               onClick={() => setExpanded(true)}
-              className="rounded-full border border-border-primary bg-white px-[20px] py-[8px] text-[13px] text-black shadow-sm hover:bg-surface-tertiary"
+              className="rounded-full border border-border-primary bg-surface-content px-[20px] py-[8px] text-[13px] text-foreground shadow-sm transition-all hover:bg-surface-tertiary hover:shadow-elevation-sm"
             >
               Show all {changes.length} issues
             </button>
@@ -458,7 +458,7 @@ function CollapsibleIssues({
       {expanded && isOverflowing && (
         <button
           onClick={() => setExpanded(false)}
-          className="mt-[8px] text-[13px] text-text-muted underline hover:text-black"
+          className="mt-[8px] text-[13px] text-text-muted underline hover:text-foreground"
         >
           Collapse
         </button>

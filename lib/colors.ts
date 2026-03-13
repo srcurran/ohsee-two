@@ -44,7 +44,7 @@ export const CATEGORY_CONFIG: Record<
  */
 export const SEVERITY_BORDER_CLASSES: Record<ChangeSeverity, string> = {
   error: "border-l-severity-error",
-  warning: "border-l-severity-warning",
+  warning: "border-l-accent-yellow",
   info: "border-l-severity-info",
 };
 

@@ -28,7 +28,7 @@ export default function SignInPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-primary">
       <div className="flex flex-col items-center gap-[32px]">
         <div className="text-center">
-          <h1 className="text-[48px] font-bold text-black">OHSEE</h1>
+          <h1 className="text-[48px] font-bold text-foreground">OHSEE</h1>
           <p className="mt-[8px] text-[16px] text-text-muted">
             Visual regression testing
           </p>
@@ -36,7 +36,7 @@ export default function SignInPage() {
         <form action={signInWithGoogle}>
           <button
             type="submit"
-            className="flex items-center gap-[12px] rounded-full bg-black px-[32px] py-[14px] text-[16px] font-bold text-white transition-colors hover:bg-black/80"
+            className="flex items-center gap-[12px] rounded-full bg-black px-[32px] py-[14px] text-[16px] font-bold text-white transition-all hover:bg-black/80 hover:shadow-elevation-md hover:-translate-y-[1px]"
           >
             <GoogleIcon />
             Sign in with Google

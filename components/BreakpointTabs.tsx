@@ -22,7 +22,7 @@ export default function BreakpointTabs({ active, onChange, changeCounts }: Props
             <button
               key={bp}
               onClick={() => onChange(bp)}
-              className={`relative flex items-center gap-[4px] py-[12px] text-[14px] text-black ${
+              className={`relative flex items-center gap-[4px] py-[12px] text-[14px] text-foreground ${
                 isActive ? "font-bold" : "font-normal"
               }`}
             >
@@ -36,7 +36,7 @@ export default function BreakpointTabs({ active, onChange, changeCounts }: Props
               )}
               {/* Active underline indicator */}
               {isActive && (
-                <span className="absolute bottom-[-1px] left-0 right-0 h-[4px] bg-black" />
+                <span className="absolute bottom-[-1px] left-0 right-0 h-[4px] bg-foreground" />
               )}
             </button>
           );

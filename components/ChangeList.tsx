@@ -39,7 +39,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
   return (
     <div className="flex flex-col gap-[16px]">
       <div className="flex items-center justify-between">
-        <h3 className="text-[20px] font-bold text-black">
+        <h3 className="text-[20px] font-bold text-foreground">
           Issues ({changes.length})
         </h3>
       </div>
@@ -50,8 +50,8 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
           onClick={() => setActiveFilter("all")}
           className={`rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
             activeFilter === "all"
-              ? "bg-black text-white"
-              : "bg-surface-tertiary text-text-secondary hover:bg-black/10"
+              ? "bg-foreground text-surface-content"
+              : "bg-surface-tertiary text-text-secondary hover:bg-foreground/10"
           }`}
         >
           All ({changes.length})
@@ -64,8 +64,8 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
               onClick={() => setActiveFilter(cat)}
               className={`rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
                 activeFilter === cat
-                  ? "bg-black text-white"
-                  : "bg-surface-tertiary text-text-secondary hover:bg-black/10"
+                  ? "bg-foreground text-surface-content"
+                  : "bg-surface-tertiary text-text-secondary hover:bg-foreground/10"
               }`}
             >
               <span className="mr-[4px]">{cfg.icon}</span>
@@ -108,7 +108,7 @@ function ChangeEntry({ change, onClick }: { change: SemanticChange; onClick?: ()
         {cfg.icon}
       </span>
       <div className="flex min-w-0 flex-col gap-[2px]">
-        <span className="text-[14px] text-black">{change.description}</span>
+        <span className="text-[14px] text-foreground">{change.description}</span>
         {change.details.prodValue && change.details.devValue && (
           <span className="truncate text-[12px] text-text-subtle">
             {readableSelector(change.selector)}

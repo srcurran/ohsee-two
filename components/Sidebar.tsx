@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
 import type { Project, Report } from "@/lib/types";
@@ -135,7 +136,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="sticky top-0 flex h-screen w-[96px] shrink-0 flex-col items-center">
+      <aside className="sticky top-0 z-20 flex h-screen w-[96px] shrink-0 flex-col items-center">
         <div className="pt-[32px] pb-[12px]" />
 
         {/* Project icons */}
@@ -150,13 +151,13 @@ export default function Sidebar() {
                 onClick={() => handleProjectClick(project, reports)}
                 onMouseEnter={(e) => showTooltip(e, domain)}
                 onMouseLeave={hideTooltip}
-                className={`relative flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[18px] transition-colors ${
-                  active ? "bg-black/50" : "hover:bg-black/5"
+                className={`relative flex h-[64px] w-[64px] shrink-0 cursor-pointer items-center justify-center rounded-[18px] transition-all active:scale-[0.97] ${
+                  active ? "bg-black/50" : "hover:bg-foreground/5 hover:shadow-elevation-sm"
                 }`}
               >
                 <div
                   className={`relative overflow-hidden rounded-[14px] ${
-                    active ? "ring-2 ring-white" : ""
+                    active ? "ring-2 ring-surface-content" : ""
                   }`}
                 >
                   <ProjectFavicon url={project.prodUrl} size={56} />
@@ -173,7 +174,7 @@ export default function Sidebar() {
             onClick={() => setShowNewProject(true)}
             onMouseEnter={(e) => showTooltip(e, "New Project")}
             onMouseLeave={hideTooltip}
-            className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-[14px] text-text-subtle hover:bg-black/5 hover:text-text-muted"
+            className="flex h-[56px] w-[56px] shrink-0 cursor-pointer items-center justify-center rounded-[14px] text-text-subtle transition-all active:scale-[0.97] hover:bg-foreground/5 hover:text-text-muted hover:shadow-elevation-sm"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path
@@ -223,9 +224,13 @@ function UserAvatar({
   hideTooltip: () => void;
 }) {
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const user = session?.user;
   const initial = user?.name?.charAt(0).toUpperCase() || "?";
+
+  useEffect(() => setMounted(true), []);
 
   return (
     <div className="relative">
@@ -233,7 +238,7 @@ function UserAvatar({
         onClick={() => setShowMenu(!showMenu)}
         onMouseEnter={(e) => showTooltip(e, user?.name || "Account")}
         onMouseLeave={hideTooltip}
-        className="flex h-[56px] w-[56px] items-center justify-center overflow-hidden rounded-full"
+        className="flex h-[56px] w-[56px] cursor-pointer items-center justify-center overflow-hidden rounded-full"
       >
         {user?.image ? (
           <img
@@ -245,7 +250,7 @@ function UserAvatar({
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[20px] font-bold text-black">
+          <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[20px] font-bold text-foreground">
             {initial}
           </span>
         )}
@@ -253,15 +258,35 @@ function UserAvatar({
       {showMenu && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
-          <div className="absolute bottom-[64px] left-0 z-40 flex min-w-[200px] flex-col gap-[4px] rounded-[12px] bg-white p-[12px] shadow-[0px_3px_7px_0px_rgba(0,0,0,0.12),0px_12px_12px_0px_rgba(0,0,0,0.1),0px_28px_17px_0px_rgba(0,0,0,0.06)]">
+          <div className="absolute bottom-[64px] left-0 z-40 flex min-w-[200px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
             {user?.email && (
               <p className="truncate px-[12px] py-[4px] text-[12px] text-text-subtle">
                 {user.email}
               </p>
             )}
+            {mounted && (
+              <div className="px-[12px] py-[8px]">
+                <p className="mb-[6px] text-[11px] uppercase tracking-wider text-text-subtle">Theme</p>
+                <div className="flex rounded-[8px] bg-surface-tertiary p-[3px]">
+                  {(["light", "dark", "system"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setTheme(opt)}
+                      className={`flex-1 rounded-[6px] px-[8px] py-[4px] text-[12px] capitalize transition-colors ${
+                        theme === opt
+                          ? "bg-surface-content font-bold shadow-sm"
+                          : "text-text-muted hover:text-foreground"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button
               onClick={() => signOut({ callbackUrl: "/sign-in" })}
-              className="rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-black hover:bg-surface-tertiary"
+              className="rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-foreground hover:bg-surface-tertiary"
             >
               Sign out
             </button>

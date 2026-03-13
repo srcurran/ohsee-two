@@ -75,38 +75,38 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[600px] rounded-[12px] bg-white p-[32px]">
-        <h2 className="mb-[24px] text-[24px] font-bold text-black">New Project</h2>
+      <div className="w-full max-w-[600px] rounded-[12px] bg-surface-content p-[32px]">
+        <h2 className="mb-[24px] text-[24px] font-bold text-foreground">New Project</h2>
 
         <div className="mb-[16px]">
-          <label className="mb-[4px] block text-[14px] text-black">Production URL</label>
+          <label className="mb-[4px] block text-[14px] text-foreground">Production URL</label>
           <input
             type="text"
             value={prodUrl}
             onChange={(e) => setProdUrl(e.target.value)}
             placeholder="https://www.example.com"
-            className="w-full rounded-[8px] border border-border-primary px-[12px] py-[10px] text-[14px] text-black outline-none focus:border-black"
+            className="w-full rounded-[8px] border border-border-primary px-[12px] py-[10px] text-[14px] text-foreground outline-none focus:border-foreground"
           />
         </div>
 
         <div className="mb-[24px]">
-          <label className="mb-[4px] block text-[14px] text-black">Development URL</label>
+          <label className="mb-[4px] block text-[14px] text-foreground">Development URL</label>
           <input
             type="text"
             value={devUrl}
             onChange={(e) => setDevUrl(e.target.value)}
             placeholder="https://staging.example.com"
-            className="w-full rounded-[8px] border border-border-primary px-[12px] py-[10px] text-[14px] text-black outline-none focus:border-black"
+            className="w-full rounded-[8px] border border-border-primary px-[12px] py-[10px] text-[14px] text-foreground outline-none focus:border-foreground"
           />
         </div>
 
         <div className="mb-[24px]">
           <div className="mb-[8px] flex items-center justify-between">
-            <label className="text-[14px] text-black">Pages</label>
+            <label className="text-[14px] text-foreground">Pages</label>
             <button
               onClick={handleCrawl}
               disabled={!prodUrl || crawling}
-              className="text-[12px] text-black underline disabled:opacity-50"
+              className="text-[12px] text-foreground underline disabled:opacity-50"
             >
               {crawling ? "Crawling..." : "Discover from sitemap"}
             </button>
@@ -119,11 +119,11 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
               onChange={(e) => setNewPath(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddPath()}
               placeholder="/about"
-              className="flex-1 rounded-[8px] border border-border-primary px-[12px] py-[8px] text-[14px] text-black outline-none focus:border-black"
+              className="flex-1 rounded-[8px] border border-border-primary px-[12px] py-[8px] text-[14px] text-foreground outline-none focus:border-foreground"
             />
             <button
               onClick={handleAddPath}
-              className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-black"
+              className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-all hover:shadow-elevation-sm"
             >
               Add
             </button>
@@ -133,12 +133,12 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
             {paths.map((p) => (
               <div
                 key={p}
-                className="flex items-center justify-between border-b border-border-primary py-[6px] text-[14px] text-black"
+                className="flex items-center justify-between border-b border-border-primary py-[6px] text-[14px] text-foreground"
               >
                 <span>{p}</span>
                 <button
                   onClick={() => handleRemovePath(p)}
-                  className="text-[12px] text-text-muted hover:text-black"
+                  className="text-[12px] text-text-muted hover:text-foreground"
                 >
                   Remove
                 </button>
@@ -150,14 +150,14 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
         <div className="flex justify-end gap-[12px]">
           <button
             onClick={onClose}
-            className="rounded-[12px] px-[24px] py-[10px] text-[16px] text-black"
+            className="rounded-[12px] px-[24px] py-[10px] text-[16px] text-foreground"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!prodUrl || !devUrl || paths.length === 0 || submitting}
-            className="rounded-[12px] bg-accent-primary px-[40px] py-[10px] text-[16px] font-bold text-black disabled:opacity-50"
+            className="rounded-[12px] bg-accent-primary px-[40px] py-[10px] text-[16px] font-bold text-foreground transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
           >
             {submitting ? "Creating..." : "Create Project"}
           </button>

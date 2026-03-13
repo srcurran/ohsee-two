@@ -4,8 +4,8 @@ export default function ChangeBadge({ count }: { count: number }) {
   // Yellow for changes, green for zero — matches Figma tokens
   const style =
     count > 0
-      ? "bg-accent-yellow text-black"
-      : "bg-accent-green text-black";
+      ? "bg-accent-yellow text-foreground"
+      : "bg-accent-green text-foreground";
 
   return (
     <div

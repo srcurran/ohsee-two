@@ -111,26 +111,26 @@ function ReportPageInner() {
   return (
     <div>
       {/* Sticky top nav */}
-      <div className="sticky top-0 z-10 rounded-t-[12px] bg-white">
+      <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content">
         <div className="flex flex-col gap-[16px] px-[24px] py-[20px]">
           {/* Domain title */}
-          <p className="text-[48px] text-black">{displayUrl}</p>
+          <p className="text-[48px] text-foreground">{displayUrl}</p>
 
           <div className="flex items-start justify-between">
             {/* Date with report dropdown */}
             <div className="relative">
               <button
                 onClick={() => setShowReportNav(!showReportNav)}
-                className="group flex items-center gap-[12px] rounded-[8px] pr-[4px] hover:bg-black/[0.03]"
+                className="group flex items-center gap-[12px] rounded-[8px] pr-[4px] transition-all hover:bg-foreground/[0.03]"
               >
                 <span
-                  className="text-[32px] text-black"
+                  className="text-[32px] text-foreground"
                   title={formatFullDateTime(report.createdAt)}
                 >
                   {formatRelativeTime(report.createdAt)}
                 </span>
                 <span className={`inline-block h-[10px] w-[10px] shrink-0 rounded-full ${reportDotColor(report)}`} />
-                <span className="flex h-[32px] w-[32px] items-center justify-center rounded-[6px] bg-black/[0.06] text-text-muted transition-colors group-hover:bg-black/10 group-hover:text-black">
+                <span className="flex h-[32px] w-[32px] items-center justify-center rounded-[6px] bg-foreground/[0.06] text-text-muted transition-colors group-hover:bg-foreground/10 group-hover:text-foreground">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <path
                       d="M4.5 6.75l4.5 4.5 4.5-4.5"
@@ -148,7 +148,7 @@ function ReportPageInner() {
                     className="fixed inset-0 z-30"
                     onClick={() => setShowReportNav(false)}
                   />
-                  <div className="absolute left-0 top-[52px] z-40 flex min-w-[320px] flex-col gap-[4px] rounded-[12px] bg-white p-[12px] shadow-[0px_3px_7px_0px_rgba(0,0,0,0.12),0px_12px_12px_0px_rgba(0,0,0,0.1),0px_28px_17px_0px_rgba(0,0,0,0.06)]">
+                  <div className="absolute left-0 top-[52px] z-40 flex min-w-[320px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
                     {allReports.map((r) => {
                       const isCurrent = r.id === report.id;
                       return (
@@ -159,7 +159,7 @@ function ReportPageInner() {
                           title={formatFullDateTime(r.createdAt)}
                           className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-[14px] ${
                             isCurrent
-                              ? "bg-surface-tertiary font-bold text-black"
+                              ? "bg-surface-tertiary font-bold text-foreground"
                               : "text-text-secondary hover:bg-surface-tertiary"
                           }`}
                         >
@@ -177,7 +177,7 @@ function ReportPageInner() {
             {report.status !== "running" && (
               <button
                 onClick={handleRun}
-                className="flex items-center gap-[16px] rounded-full border border-border-strong px-[20px] py-[10px] text-[20px] text-black hover:bg-surface-tertiary"
+                className="flex items-center gap-[16px] rounded-full border border-border-strong px-[20px] py-[10px] text-[20px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px]"
               >
                 Run
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -259,7 +259,7 @@ function ReportPageInner() {
               <Link
                 key={page.id}
                 href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}`}
-                className="flex flex-col gap-[8px] bg-surface-primary p-[8px]"
+                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
               >
                 <div className="relative aspect-[2880/1760] w-full overflow-hidden border border-border-primary">
                   {diffSrc ? (
@@ -275,7 +275,7 @@ function ReportPageInner() {
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="truncate text-[14px] text-black">
+                  <span className="truncate text-[14px] text-foreground">
                     {page.path}
                   </span>
                   <ChangeBadge count={changeCount} />

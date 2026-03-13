@@ -60,7 +60,7 @@ export default function ProjectPage() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-[24px]">
       <div className="text-center">
-        <h1 className="text-[24px] font-bold text-black">{displayUrl}</h1>
+        <h1 className="text-[24px] font-bold text-foreground">{displayUrl}</h1>
         <p className="mt-[8px] text-[14px] text-text-muted">
           No reports yet. Run your first comparison.
         </p>
@@ -68,7 +68,7 @@ export default function ProjectPage() {
       <button
         onClick={handleRun}
         disabled={running}
-        className="flex items-center gap-[16px] rounded-full border border-border-strong px-[24px] py-[12px] text-[20px] text-black hover:bg-surface-tertiary disabled:opacity-50"
+        className="flex items-center gap-[16px] rounded-full border border-border-strong px-[24px] py-[12px] text-[20px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
       >
         {running ? "Starting..." : "Run"}
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">

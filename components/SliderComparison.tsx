@@ -20,15 +20,15 @@ export function ComparisonHeader({
   onModeChange: (mode: ComparisonMode) => void;
 }) {
   return (
-    <div className="flex items-center justify-between text-[14px] text-black">
+    <div className="flex items-center justify-between text-[14px] text-foreground">
       <span>Prod</span>
       <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-tertiary p-[3px]">
         <button
           onClick={() => onModeChange("tap")}
           className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
             mode === "tap"
-              ? "bg-white font-bold shadow-sm"
-              : "text-text-muted hover:text-black"
+              ? "bg-surface-content font-bold shadow-sm"
+              : "text-text-muted hover:text-foreground"
           }`}
         >
           Tap
@@ -37,8 +37,8 @@ export function ComparisonHeader({
           onClick={() => onModeChange("slider")}
           className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
             mode === "slider"
-              ? "bg-white font-bold shadow-sm"
-              : "text-text-muted hover:text-black"
+              ? "bg-surface-content font-bold shadow-sm"
+              : "text-text-muted hover:text-foreground"
           }`}
         >
           Slider
