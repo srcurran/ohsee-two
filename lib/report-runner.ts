@@ -110,8 +110,10 @@ export async function runReport(project: Project, reportId: string, userId: stri
     for (const page of project.pages) {
       checkCancelled();
 
-      const prodUrl = `${project.prodUrl.replace(/\/$/, "")}${page.path}`;
-      const devUrl = `${project.devUrl.replace(/\/$/, "")}${page.path}`;
+      const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
+      const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
+      const prodUrl = `${normProd.replace(/\/$/, "")}${page.path}`;
+      const devUrl = `${normDev.replace(/\/$/, "")}${page.path}`;
 
       // --- Default variant (no theme override) ---
       const breakpoints = await captureAndDiff({

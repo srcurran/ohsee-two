@@ -6,6 +6,7 @@ export interface AuthCookieConfig {
   cookieName: string;
   cookieValue: string;
   domain: string;
+  url: string;
 }
 
 /**
@@ -17,7 +18,8 @@ export async function mintSessionCookie(options: {
   targetUrl: string;
 }): Promise<AuthCookieConfig> {
   const { userId, targetUrl } = options;
-  const url = new URL(targetUrl);
+  const normalizedUrl = targetUrl.match(/^https?:\/\//) ? targetUrl : `http://${targetUrl}`;
+  const url = new URL(normalizedUrl);
 
   // NextAuth v5 uses different cookie names for HTTP vs HTTPS
   const useSecure = url.protocol === "https:";
@@ -42,5 +44,6 @@ export async function mintSessionCookie(options: {
     cookieName,
     cookieValue: token,
     domain: url.hostname,
+    url: url.origin,
   };
 }
