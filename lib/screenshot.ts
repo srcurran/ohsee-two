@@ -52,7 +52,8 @@ export async function captureScreenshots(options: {
                   {
                     name: authConfig.cookieName,
                     value: authConfig.cookieValue,
-                    url: authConfig.url,
+                    domain: authConfig.domain,
+                    path: "/",
                     httpOnly: true,
                     sameSite: "Lax" as const,
                     secure: authConfig.cookieName.startsWith("__Secure-"),
