@@ -1,3 +1,11 @@
+export interface TestVariant {
+  id: string;
+  label: string;
+  colorScheme?: "light" | "dark";
+  /** JS to run before every page load (via context.addInitScript) */
+  initScript?: string;
+}
+
 export interface Project {
   id: string;
   prodUrl: string;
@@ -5,6 +13,10 @@ export interface Project {
   pages: PageEntry[];
   createdAt: string;
   lastDiffAt: string | null;
+  /** When true, Playwright injects auth cookies for localhost captures */
+  requiresAuth?: boolean;
+  /** Optional theme/variant captures (e.g., light + dark) */
+  variants?: TestVariant[];
 }
 
 export interface PageEntry {
@@ -27,6 +39,8 @@ export interface ReportPage {
   pageId: string;
   path: string;
   breakpoints: Record<string, BreakpointResult>;
+  /** Variant results: variantId → breakpoint → result */
+  variants?: Record<string, Record<string, BreakpointResult>>;
 }
 
 export interface BreakpointResult {

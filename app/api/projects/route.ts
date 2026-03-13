@@ -19,10 +19,12 @@ export async function POST(request: Request) {
   try {
     const userId = await requireUserId();
     const body = await request.json();
-    const { prodUrl, devUrl, pages } = body as {
+    const { prodUrl, devUrl, pages, requiresAuth, variants } = body as {
       prodUrl: string;
       devUrl: string;
       pages?: { path: string }[];
+      requiresAuth?: boolean;
+      variants?: { id: string; label: string; colorScheme?: "light" | "dark"; initScript?: string }[];
     };
 
     const project: Project = {
@@ -35,6 +37,8 @@ export async function POST(request: Request) {
       })),
       createdAt: new Date().toISOString(),
       lastDiffAt: null,
+      ...(requiresAuth ? { requiresAuth } : {}),
+      ...(variants && variants.length > 0 ? { variants } : {}),
     };
 
     const projects = await readJsonFile<Project[]>(userProjectsFile(userId), []);

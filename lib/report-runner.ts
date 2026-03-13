@@ -4,6 +4,7 @@ import { generateDiff } from "./diff";
 import { generateSemanticDiff } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
+import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
 import type { Project, Report, ReportPage, BreakpointResult } from "./types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -76,8 +77,9 @@ export async function runReport(project: Project, reportId: string, userId: stri
   // Base directory for relative paths (user's data dir)
   const dataBase = userDir(userId);
 
-  // Total: per page = 6 prod screenshots + 6 dev screenshots + 6 diffs = 18
-  const totalOps = project.pages.length * BREAKPOINTS.length * 3;
+  // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
+  const variantCount = (project.variants || []).length;
+  const totalOps = project.pages.length * BREAKPOINTS.length * 3 * (1 + variantCount);
   let completedOps = 0;
 
   const report = await readJsonFile<Report>(reportPath, {
@@ -95,6 +97,14 @@ export async function runReport(project: Project, reportId: string, userId: stri
   };
 
   try {
+    // Mint auth cookies if project requires authentication
+    let prodAuthConfig: AuthCookieConfig | undefined;
+    let devAuthConfig: AuthCookieConfig | undefined;
+    if (project.requiresAuth) {
+      prodAuthConfig = await mintSessionCookie({ userId, targetUrl: project.prodUrl });
+      devAuthConfig = await mintSessionCookie({ userId, targetUrl: project.devUrl });
+    }
+
     const reportPages: ReportPage[] = [];
 
     for (const page of project.pages) {
@@ -103,87 +113,42 @@ export async function runReport(project: Project, reportId: string, userId: stri
       const prodUrl = `${project.prodUrl.replace(/\/$/, "")}${page.path}`;
       const devUrl = `${project.devUrl.replace(/\/$/, "")}${page.path}`;
 
-      const breakpoints: Record<string, BreakpointResult> = {};
-
-      // Capture prod screenshots
-      checkCancelled();
-      const prodResults = await captureScreenshots({
-        url: prodUrl,
-        breakpoints: [...BREAKPOINTS],
-        outputDir: screenshotDir,
-        prefix: `prod-${page.id}`,
-        onProgress: async () => {
-          checkCancelled();
-          completedOps++;
-          await saveProgress();
-        },
+      // --- Default variant (no theme override) ---
+      const breakpoints = await captureAndDiff({
+        prodUrl,
+        devUrl,
+        pageId: page.id,
+        prefix: "",
+        screenshotDir,
+        dataBase,
+        authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
+        checkCancelled,
+        onProgress: async () => { completedOps++; await saveProgress(); },
       });
 
-      // Capture dev screenshots
-      checkCancelled();
-      const devResults = await captureScreenshots({
-        url: devUrl,
-        breakpoints: [...BREAKPOINTS],
-        outputDir: screenshotDir,
-        prefix: `dev-${page.id}`,
-        onProgress: async () => {
+      // --- Additional variants (e.g., light/dark) ---
+      let variants: Record<string, Record<string, BreakpointResult>> | undefined;
+
+      if (project.variants && project.variants.length > 0) {
+        variants = {};
+
+        for (const variant of project.variants) {
           checkCancelled();
-          completedOps++;
-          await saveProgress();
-        },
-      });
 
-      // Generate diffs for each breakpoint
-      for (const bp of BREAKPOINTS) {
-        checkCancelled();
-
-        const prodShot = prodResults.find((r) => r.breakpoint === bp);
-        const devShot = devResults.find((r) => r.breakpoint === bp);
-
-        if (prodShot && devShot) {
-          const diffPath = path.join(screenshotDir, `diff-${page.id}-${bp}.png`);
-          const alignedProdPath = path.join(screenshotDir, `aligned-prod-${page.id}-${bp}.png`);
-          const alignedDevPath = path.join(screenshotDir, `aligned-dev-${page.id}-${bp}.png`);
-          const diffResult = await generateDiff(
-            prodShot.filePath,
-            devShot.filePath,
-            diffPath,
-            alignedProdPath,
-            alignedDevPath
-          );
-
-          const bpResult: BreakpointResult = {
-            prodScreenshot: path.relative(dataBase, prodShot.filePath),
-            devScreenshot: path.relative(dataBase, devShot.filePath),
-            diffScreenshot: path.relative(dataBase, diffPath),
-            alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
-            alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
-            changeCount: diffResult.changeCount,
-            totalPixels: diffResult.totalPixels,
-            changePercentage: diffResult.changePercentage,
-            pixelChangeCount: diffResult.changeCount,
-          };
-
-          // Run semantic diff if DOM snapshots are available
-          if (prodShot.domSnapshot && devShot.domSnapshot) {
-            try {
-              const semanticResult = generateSemanticDiff(
-                prodShot.domSnapshot,
-                devShot.domSnapshot
-              );
-              bpResult.semanticChanges = semanticResult.changes;
-              bpResult.changeSummary = semanticResult.summary;
-              bpResult.changeCount = semanticResult.issueCount;
-            } catch (err) {
-              console.error(`Semantic diff failed for ${page.path} at ${bp}px:`, err);
-            }
-          }
-
-          breakpoints[String(bp)] = bpResult;
+          variants[variant.id] = await captureAndDiff({
+            prodUrl,
+            devUrl,
+            pageId: page.id,
+            prefix: `-${variant.id}`,
+            screenshotDir,
+            dataBase,
+            authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
+            contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
+            initScript: variant.initScript,
+            checkCancelled,
+            onProgress: async () => { completedOps++; await saveProgress(); },
+          });
         }
-
-        completedOps++;
-        await saveProgress();
       }
 
       reportPages.push({
@@ -191,6 +156,7 @@ export async function runReport(project: Project, reportId: string, userId: stri
         pageId: page.id,
         path: page.path,
         breakpoints,
+        ...(variants ? { variants } : {}),
       });
 
       report.pages = reportPages;
@@ -225,4 +191,116 @@ export async function runReport(project: Project, reportId: string, userId: stri
     runningReports.delete(reportId);
     reportProjectMap.delete(reportId);
   }
+}
+
+/**
+ * Capture prod + dev screenshots and generate diffs for all breakpoints.
+ * Extracted to avoid duplicating logic between default and variant captures.
+ */
+async function captureAndDiff(options: {
+  prodUrl: string;
+  devUrl: string;
+  pageId: string;
+  /** File prefix suffix for this variant, e.g., "-dark" or "" for default */
+  prefix: string;
+  screenshotDir: string;
+  dataBase: string;
+  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
+  contextOptions?: { colorScheme?: "light" | "dark" };
+  initScript?: string;
+  checkCancelled: () => void;
+  onProgress: () => Promise<void>;
+}): Promise<Record<string, BreakpointResult>> {
+  const {
+    prodUrl, devUrl, pageId, prefix, screenshotDir, dataBase,
+    authConfig, contextOptions, initScript, checkCancelled, onProgress,
+  } = options;
+
+  const breakpoints: Record<string, BreakpointResult> = {};
+
+  // Capture prod screenshots
+  checkCancelled();
+  const prodResults = await captureScreenshots({
+    url: prodUrl,
+    breakpoints: [...BREAKPOINTS],
+    outputDir: screenshotDir,
+    prefix: `prod-${pageId}${prefix}`,
+    authConfig: authConfig.prod,
+    contextOptions,
+    initScript,
+    onProgress: async () => {
+      checkCancelled();
+      await onProgress();
+    },
+  });
+
+  // Capture dev screenshots
+  checkCancelled();
+  const devResults = await captureScreenshots({
+    url: devUrl,
+    breakpoints: [...BREAKPOINTS],
+    outputDir: screenshotDir,
+    prefix: `dev-${pageId}${prefix}`,
+    authConfig: authConfig.dev,
+    contextOptions,
+    initScript,
+    onProgress: async () => {
+      checkCancelled();
+      await onProgress();
+    },
+  });
+
+  // Generate diffs for each breakpoint
+  for (const bp of BREAKPOINTS) {
+    checkCancelled();
+
+    const prodShot = prodResults.find((r) => r.breakpoint === bp);
+    const devShot = devResults.find((r) => r.breakpoint === bp);
+
+    if (prodShot && devShot) {
+      const diffPath = path.join(screenshotDir, `diff-${pageId}${prefix}-${bp}.png`);
+      const alignedProdPath = path.join(screenshotDir, `aligned-prod-${pageId}${prefix}-${bp}.png`);
+      const alignedDevPath = path.join(screenshotDir, `aligned-dev-${pageId}${prefix}-${bp}.png`);
+      const diffResult = await generateDiff(
+        prodShot.filePath,
+        devShot.filePath,
+        diffPath,
+        alignedProdPath,
+        alignedDevPath
+      );
+
+      const bpResult: BreakpointResult = {
+        prodScreenshot: path.relative(dataBase, prodShot.filePath),
+        devScreenshot: path.relative(dataBase, devShot.filePath),
+        diffScreenshot: path.relative(dataBase, diffPath),
+        alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
+        alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+        changeCount: diffResult.changeCount,
+        totalPixels: diffResult.totalPixels,
+        changePercentage: diffResult.changePercentage,
+        pixelChangeCount: diffResult.changeCount,
+      };
+
+      // Run semantic diff if DOM snapshots are available
+      if (prodShot.domSnapshot && devShot.domSnapshot) {
+        try {
+          const semanticResult = generateSemanticDiff(
+            prodShot.domSnapshot,
+            devShot.domSnapshot
+          );
+          bpResult.semanticChanges = semanticResult.changes;
+          bpResult.changeSummary = semanticResult.summary;
+          bpResult.changeCount = semanticResult.issueCount;
+        } catch (err) {
+          console.error(`Semantic diff failed for ${prodUrl} at ${bp}px:`, err);
+        }
+      }
+
+      breakpoints[String(bp)] = bpResult;
+    }
+
+    await onProgress();
+  }
+
+  return breakpoints;
 }

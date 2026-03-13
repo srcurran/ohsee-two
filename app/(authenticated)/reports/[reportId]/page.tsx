@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BreakpointTabs from "@/components/BreakpointTabs";
+import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
 import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
-import type { Report, Project } from "@/lib/types";
+import type { Report, Project, ReportPage } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
 
 function getDomain(url: string): string {
@@ -28,6 +29,7 @@ function ReportPageInner() {
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [showReportNav, setShowReportNav] = useState(false);
   const activeBp = Number(searchParams.get("bp")) || 1024;
+  const activeVariant = searchParams.get("variant") || null;
 
   const loadReport = async () => {
     const res = await fetch(`/api/reports/${params.reportId}`);
@@ -66,6 +68,16 @@ function ReportPageInner() {
     router.push(`?${p.toString()}`, { scroll: false });
   };
 
+  const handleVariantChange = (variantId: string | null) => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (variantId) {
+      p.set("variant", variantId);
+    } else {
+      p.delete("variant");
+    }
+    router.push(`?${p.toString()}`, { scroll: false });
+  };
+
   const handleRun = async () => {
     if (!project) return;
     const res = await fetch(`/api/projects/${project.id}/reports`, {
@@ -100,10 +112,32 @@ function ReportPageInner() {
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
-  // Sum change counts per breakpoint across all pages
+  // Helper: get breakpoint data for a page, respecting active variant
+  const getPageBp = (page: ReportPage, bp: string) => {
+    if (activeVariant && page.variants?.[activeVariant]) {
+      return page.variants[activeVariant][bp];
+    }
+    return page.breakpoints[bp];
+  };
+
+  // Discover which variants exist in this report
+  const reportVariants = useMemo(() => {
+    const ids = new Set<string>();
+    for (const page of report.pages) {
+      if (page.variants) {
+        for (const vid of Object.keys(page.variants)) ids.add(vid);
+      }
+    }
+    return Array.from(ids);
+  }, [report.pages]);
+
+  // Sum change counts per breakpoint across all pages (variant-aware)
   const bpChangeCounts: Record<string, number> = {};
   for (const page of report.pages) {
-    for (const [bp, result] of Object.entries(page.breakpoints)) {
+    const bpData = activeVariant && page.variants?.[activeVariant]
+      ? page.variants[activeVariant]
+      : page.breakpoints;
+    for (const [bp, result] of Object.entries(bpData)) {
       bpChangeCounts[bp] = (bpChangeCounts[bp] || 0) + (result.changeCount || 0);
     }
   }
@@ -235,6 +269,13 @@ function ReportPageInner() {
           )}
         </div>
 
+        {/* Variant tabs (only shown when variants exist) */}
+        <VariantTabs
+          variants={reportVariants}
+          active={activeVariant}
+          onChange={handleVariantChange}
+        />
+
         {/* Breakpoint tabs */}
         <div className="px-[24px]">
           <BreakpointTabs
@@ -249,16 +290,17 @@ function ReportPageInner() {
       <div className="p-[24px]">
         <div className="grid grid-cols-3 gap-[24px]">
           {report.pages.map((page) => {
-            const bpResult = page.breakpoints[String(activeBp)];
+            const bpResult = getPageBp(page, String(activeBp));
             const changeCount = bpResult?.changeCount || 0;
             const diffSrc = bpResult?.diffScreenshot
               ? `/api/screenshots/${bpResult.diffScreenshot}`
               : null;
 
+            const variantParam = activeVariant ? `&variant=${activeVariant}` : "";
             return (
               <Link
                 key={page.id}
-                href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}`}
+                href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}${variantParam}`}
                 className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
               >
                 <div className="relative aspect-[2880/1760] w-full overflow-hidden border border-border-primary">

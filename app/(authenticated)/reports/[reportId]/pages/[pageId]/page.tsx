@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BreakpointTabs from "@/components/BreakpointTabs";
+import VariantTabs from "@/components/VariantTabs";
 import DiffViewer from "@/components/DiffViewer";
 import SliderComparison, { ComparisonHeader, type ComparisonMode } from "@/components/SliderComparison";
 import ChangeList from "@/components/ChangeList";
@@ -33,6 +34,7 @@ function PageDetailInner() {
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("tap");
   const activeBp = Number(searchParams.get("bp")) || 1024;
+  const activeVariant = searchParams.get("variant") || null;
 
   useEffect(() => {
     fetch(`/api/reports/${params.reportId}`)
@@ -112,7 +114,33 @@ function PageDetailInner() {
   const prevPage = currentIndex > 0 ? report.pages[currentIndex - 1] : null;
   const nextPage = currentIndex < report.pages.length - 1 ? report.pages[currentIndex + 1] : null;
 
-  const bpResult = currentPage.breakpoints[String(activeBp)];
+  // Get breakpoint data respecting active variant
+  const activeBpData = activeVariant && currentPage.variants?.[activeVariant]
+    ? currentPage.variants[activeVariant]
+    : currentPage.breakpoints;
+  const bpResult = activeBpData[String(activeBp)];
+
+  // Discover which variants exist in this report
+  const reportVariants = useMemo(() => {
+    const ids = new Set<string>();
+    for (const page of report.pages) {
+      if (page.variants) {
+        for (const vid of Object.keys(page.variants)) ids.add(vid);
+      }
+    }
+    return Array.from(ids);
+  }, [report.pages]);
+
+  const handleVariantChange = (variantId: string | null) => {
+    const p = new URLSearchParams(searchParams.toString());
+    if (variantId) {
+      p.set("variant", variantId);
+    } else {
+      p.delete("variant");
+    }
+    router.push(`?${p.toString()}`, { scroll: false });
+  };
+
   const displayUrl = project ? getDomain(project.prodUrl) : "...";
   const dateStr = formatRelativeTime(report.createdAt);
   const pageName =
@@ -120,15 +148,15 @@ function PageDetailInner() {
       ? "index"
       : currentPage.path.replace(/^\//, "");
 
-  // Compute total change count for current page (across all breakpoints)
-  const totalChangeCount = Object.values(currentPage.breakpoints).reduce(
+  // Compute total change count for current page (across all breakpoints, variant-aware)
+  const totalChangeCount = Object.values(activeBpData).reduce(
     (sum, bp) => sum + (bp.changeCount || 0),
     0
   );
 
   // Change counts per breakpoint for the tab dots
   const bpChangeCounts: Record<string, number> = {};
-  for (const [key, val] of Object.entries(currentPage.breakpoints)) {
+  for (const [key, val] of Object.entries(activeBpData)) {
     bpChangeCounts[key] = val.changeCount || 0;
   }
 
@@ -301,6 +329,12 @@ function PageDetailInner() {
             </div>
           </div>
         </div>
+
+        <VariantTabs
+          variants={reportVariants}
+          active={activeVariant}
+          onChange={handleVariantChange}
+        />
 
         {/* Breakpoint tabs */}
         <div className="px-[20px]">

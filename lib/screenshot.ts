@@ -1,9 +1,9 @@
-import { chromium, type Browser } from "playwright";
+import { chromium, type BrowserContextOptions } from "playwright";
 import path from "path";
-import fs from "fs/promises";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import type { DomSnapshot } from "./types";
+import type { AuthCookieConfig } from "./auth-token";
 
 export interface ScreenshotResult {
   breakpoint: number;
@@ -16,9 +16,15 @@ export async function captureScreenshots(options: {
   breakpoints: number[];
   outputDir: string;
   prefix: string;
+  /** Auth cookie to inject via Playwright storageState */
+  authConfig?: AuthCookieConfig;
+  /** Extra context options (e.g., colorScheme for dark mode) */
+  contextOptions?: Partial<BrowserContextOptions>;
+  /** JS to run before every page load (e.g., localStorage theme injection) */
+  initScript?: string;
   onProgress?: (breakpoint: number, status: string) => void | Promise<void>;
 }): Promise<ScreenshotResult[]> {
-  const { url, breakpoints, outputDir, prefix, onProgress } = options;
+  const { url, breakpoints, outputDir, prefix, authConfig, contextOptions, initScript, onProgress } = options;
   await ensureDir(outputDir);
 
   const browser = await chromium.launch({
@@ -37,7 +43,34 @@ export async function captureScreenshots(options: {
         viewport: { width: bp, height: 900 },
         deviceScaleFactor: 1,
         reducedMotion: "reduce",
+        ...contextOptions,
+        // Inject auth cookie if provided
+        ...(authConfig
+          ? {
+              storageState: {
+                cookies: [
+                  {
+                    name: authConfig.cookieName,
+                    value: authConfig.cookieValue,
+                    domain: authConfig.domain,
+                    path: "/",
+                    httpOnly: true,
+                    sameSite: "Lax" as const,
+                    secure: authConfig.cookieName.startsWith("__Secure-"),
+                    expires: Math.floor(Date.now() / 1000) + 3600,
+                  },
+                ],
+                origins: [],
+              },
+            }
+          : {}),
       });
+
+      // Run init script before every page load (e.g., theme localStorage injection)
+      if (initScript) {
+        await context.addInitScript(initScript);
+      }
+
       const page = await context.newPage();
 
       try {

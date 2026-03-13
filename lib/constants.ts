@@ -1,6 +1,26 @@
 import path from "path";
+import type { TestVariant } from "./types";
 
 export const BREAKPOINTS = [1920, 1440, 1024, 768, 440, 375] as const;
+
+/**
+ * Built-in test variants. Projects can select from these in the create form.
+ * initScript runs before each page load via Playwright's addInitScript.
+ */
+export const BUILT_IN_VARIANTS: TestVariant[] = [
+  {
+    id: "light",
+    label: "Light",
+    colorScheme: "light",
+    initScript: 'localStorage.setItem("theme","light");document.documentElement.classList.remove("dark");',
+  },
+  {
+    id: "dark",
+    label: "Dark",
+    colorScheme: "dark",
+    initScript: 'localStorage.setItem("theme","dark");document.documentElement.classList.add("dark");',
+  },
+];
 
 export type Breakpoint = (typeof BREAKPOINTS)[number];
 

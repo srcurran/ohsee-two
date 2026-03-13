@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BUILT_IN_VARIANTS } from "@/lib/constants";
 
 interface Props {
   onClose: () => void;
@@ -14,6 +15,8 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
   const [newPath, setNewPath] = useState("");
   const [crawling, setCrawling] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [requiresAuth, setRequiresAuth] = useState(false);
+  const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
 
   const handleCrawl = async () => {
     if (!prodUrl) return;
@@ -57,6 +60,8 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
         body: JSON.stringify({
           prodUrl: prodUrl.replace(/\/$/, ""),
           devUrl: devUrl.replace(/\/$/, ""),
+          requiresAuth,
+          variants: BUILT_IN_VARIANTS.filter((v) => selectedVariants.includes(v.id)),
           pages: paths.map((p) => ({ path: p })),
         }),
       });
@@ -98,6 +103,41 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
             placeholder="https://staging.example.com"
             className="w-full rounded-[8px] border border-border-primary px-[12px] py-[10px] text-[14px] text-foreground outline-none focus:border-foreground"
           />
+        </div>
+
+        {/* Options */}
+        <div className="mb-[24px] flex flex-col gap-[12px]">
+          <label className="flex items-center gap-[8px] text-[14px] text-foreground">
+            <input
+              type="checkbox"
+              checked={requiresAuth}
+              onChange={(e) => setRequiresAuth(e.target.checked)}
+              className="h-[16px] w-[16px]"
+            />
+            Requires authentication (for localhost testing)
+          </label>
+          <div>
+            <p className="mb-[6px] text-[13px] text-text-muted">Test variants</p>
+            <div className="flex gap-[16px]">
+              {BUILT_IN_VARIANTS.map((v) => (
+                <label key={v.id} className="flex items-center gap-[6px] text-[14px] text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={selectedVariants.includes(v.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedVariants([...selectedVariants, v.id]);
+                      } else {
+                        setSelectedVariants(selectedVariants.filter((id) => id !== v.id));
+                      }
+                    }}
+                    className="h-[16px] w-[16px]"
+                  />
+                  {v.label}
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="mb-[24px]">
