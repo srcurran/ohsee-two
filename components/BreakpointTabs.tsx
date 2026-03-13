@@ -10,7 +10,7 @@ interface Props {
 
 export default function BreakpointTabs({ active, onChange, changeCounts }: Props) {
   return (
-    <div className="border-b border-black/15">
+    <div className="border-b border-border-secondary">
       <div className="flex items-center justify-center gap-[24px]">
         {BREAKPOINTS.map((bp) => {
           const isActive = active === bp;

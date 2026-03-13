@@ -138,7 +138,7 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
                 <span>{p}</span>
                 <button
                   onClick={() => handleRemovePath(p)}
-                  className="text-[12px] text-black/50 hover:text-black"
+                  className="text-[12px] text-text-muted hover:text-black"
                 >
                   Remove
                 </button>
@@ -157,7 +157,7 @@ export default function NewProjectOverlay({ onClose, onCreated }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!prodUrl || !devUrl || paths.length === 0 || submitting}
-            className="rounded-[12px] bg-accent-green px-[40px] py-[10px] text-[16px] font-bold text-black disabled:opacity-50"
+            className="rounded-[12px] bg-accent-primary px-[40px] py-[10px] text-[16px] font-bold text-black disabled:opacity-50"
           >
             {submitting ? "Creating..." : "Create Project"}
           </button>

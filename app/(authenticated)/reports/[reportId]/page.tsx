@@ -8,6 +8,7 @@ import ChangeBadge from "@/components/ChangeBadge";
 import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project } from "@/lib/types";
+import { reportDotColor } from "@/lib/colors";
 
 function getDomain(url: string): string {
   try {
@@ -15,24 +16,6 @@ function getDomain(url: string): string {
   } catch {
     return url;
   }
-}
-
-function getReportTotalChanges(r: Report): number {
-  return r.pages.reduce(
-    (sum, page) =>
-      sum +
-      Object.values(page.breakpoints).reduce(
-        (s, bp) => s + (bp.changeCount || 0),
-        0
-      ),
-    0
-  );
-}
-
-function reportDotColor(r: Report): string {
-  if (r.status === "running") return "bg-blue-400 animate-pulse";
-  if (r.status === "failed" || r.status === "cancelled") return "bg-black/20";
-  return getReportTotalChanges(r) > 0 ? "bg-accent-yellow" : "bg-accent-green";
 }
 
 function ReportPageInner() {
@@ -108,7 +91,7 @@ function ReportPageInner() {
   if (!report) {
     return (
       <div className="p-[24px]">
-        <p className="text-black/50">Loading...</p>
+        <p className="text-text-muted">Loading...</p>
       </div>
     );
   }
@@ -147,7 +130,7 @@ function ReportPageInner() {
                   {formatRelativeTime(report.createdAt)}
                 </span>
                 <span className={`inline-block h-[10px] w-[10px] shrink-0 rounded-full ${reportDotColor(report)}`} />
-                <span className="flex h-[32px] w-[32px] items-center justify-center rounded-[6px] bg-black/[0.06] text-black/60 transition-colors group-hover:bg-black/10 group-hover:text-black">
+                <span className="flex h-[32px] w-[32px] items-center justify-center rounded-[6px] bg-black/[0.06] text-text-muted transition-colors group-hover:bg-black/10 group-hover:text-black">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <path
                       d="M4.5 6.75l4.5 4.5 4.5-4.5"
@@ -177,7 +160,7 @@ function ReportPageInner() {
                           className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-[14px] ${
                             isCurrent
                               ? "bg-surface-tertiary font-bold text-black"
-                              : "text-black/70 hover:bg-surface-tertiary"
+                              : "text-text-secondary hover:bg-surface-tertiary"
                           }`}
                         >
                           <span className="flex-1">{formatRelativeTime(r.createdAt)}</span>
@@ -194,7 +177,7 @@ function ReportPageInner() {
             {report.status !== "running" && (
               <button
                 onClick={handleRun}
-                className="flex items-center gap-[16px] rounded-full border border-black/40 px-[20px] py-[10px] text-[20px] text-black hover:bg-surface-tertiary"
+                className="flex items-center gap-[16px] rounded-full border border-border-strong px-[20px] py-[10px] text-[20px] text-black hover:bg-surface-tertiary"
               >
                 Run
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -213,18 +196,18 @@ function ReportPageInner() {
               <div className="flex items-center gap-[12px]">
                 <div className="h-[6px] flex-1 overflow-hidden rounded-full bg-surface-tertiary">
                   <div
-                    className="h-full rounded-full bg-accent-green transition-all duration-500"
+                    className="h-full rounded-full bg-accent-primary transition-all duration-500"
                     style={{
                       width: `${(progressCompleted / progressTotal) * 100}%`,
                     }}
                   />
                 </div>
-                <span className="shrink-0 text-[13px] text-black/50">
+                <span className="shrink-0 text-[13px] text-text-muted">
                   {progressCompleted} / {progressTotal}
                 </span>
                 <button
                   onClick={handleCancel}
-                  className="shrink-0 text-[13px] text-red-500 underline hover:text-red-700"
+                  className="shrink-0 text-[13px] text-status-error underline hover:text-status-error-text"
                 >
                   Cancel
                 </button>
@@ -234,17 +217,17 @@ function ReportPageInner() {
 
           {/* Cancelled state */}
           {report.status === "cancelled" && (
-            <div className="mt-[12px] rounded-[8px] border border-black/10 bg-surface-tertiary p-[16px]">
-              <p className="text-[13px] text-black/50">Report was cancelled.</p>
+            <div className="mt-[12px] rounded-[8px] border border-border-primary bg-surface-tertiary p-[16px]">
+              <p className="text-[13px] text-text-muted">Report was cancelled.</p>
             </div>
           )}
 
           {/* Error state */}
           {report.status === "failed" && (
-            <div className="mt-[12px] rounded-[8px] border border-red-200 bg-red-50 p-[16px]">
-              <p className="text-[13px] font-bold text-red-800">Report failed</p>
+            <div className="mt-[12px] rounded-[8px] border border-status-error-border bg-status-error-muted p-[16px]">
+              <p className="text-[13px] font-bold text-status-error-strong">Report failed</p>
               {report.error && (
-                <pre className="mt-[8px] max-h-[200px] overflow-auto whitespace-pre-wrap text-[12px] text-red-700">
+                <pre className="mt-[8px] max-h-[200px] overflow-auto whitespace-pre-wrap text-[12px] text-status-error-text">
                   {report.error}
                 </pre>
               )}
@@ -286,7 +269,7 @@ function ReportPageInner() {
                       className="absolute inset-0 h-full w-full object-cover object-top"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-surface-tertiary text-[12px] text-black/30">
+                    <div className="flex h-full w-full items-center justify-center bg-surface-tertiary text-[12px] text-text-subtle">
                       No screenshot
                     </div>
                   )}
@@ -305,21 +288,21 @@ function ReportPageInner() {
         {/* Empty states */}
         {report.pages.length === 0 && report.status === "running" && (
           <div className="flex flex-col items-center gap-[16px] py-[40px]">
-            <div className="h-[32px] w-[32px] animate-spin rounded-full border-[3px] border-surface-tertiary border-t-accent-green" />
-            <p className="text-[14px] text-black/50">
+            <div className="h-[32px] w-[32px] animate-spin rounded-full border-[3px] border-surface-tertiary border-t-accent-primary" />
+            <p className="text-[14px] text-text-muted">
               Capturing screenshots...
             </p>
           </div>
         )}
 
         {report.pages.length === 0 && report.status === "failed" && (
-          <p className="text-center text-[14px] text-black/50">
+          <p className="text-center text-[14px] text-text-muted">
             No pages were processed before the report failed.
           </p>
         )}
 
         {report.pages.length === 0 && report.status === "completed" && (
-          <p className="text-center text-[14px] text-black/50">
+          <p className="text-center text-[14px] text-text-muted">
             No pages in this report.
           </p>
         )}
@@ -333,7 +316,7 @@ export default function ReportPage() {
     <Suspense
       fallback={
         <div className="p-[24px]">
-          <p className="text-black/50">Loading...</p>
+          <p className="text-text-muted">Loading...</p>
         </div>
       }
     >

@@ -2,27 +2,7 @@
 
 import { useState } from "react";
 import type { SemanticChange, ChangeCategory } from "@/lib/types";
-
-const CATEGORY_CONFIG: Record<
-  ChangeCategory,
-  { label: string; icon: string; color: string }
-> = {
-  layout: { label: "Layout", icon: "⊞", color: "#c44" },
-  spacing: { label: "Spacing", icon: "↔", color: "#c77" },
-  alignment: { label: "Alignment", icon: "☰", color: "#a5c" },
-  typography: { label: "Typography", icon: "Aa", color: "#77a" },
-  color: { label: "Color", icon: "◉", color: "#5a7" },
-  content: { label: "Content", icon: "✎", color: "#c44" },
-  visibility: { label: "Visibility", icon: "◐", color: "#c44" },
-  border: { label: "Border", icon: "─", color: "#a85" },
-  structural: { label: "Structural", icon: "±", color: "#c44" },
-};
-
-const SEVERITY_STYLES: Record<string, string> = {
-  error: "border-l-[#c44]",
-  warning: "border-l-[#e1d034]",
-  info: "border-l-[#aaa]",
-};
+import { CATEGORY_CONFIG, SEVERITY_BORDER_CLASSES } from "@/lib/colors";
 
 interface ChangeListProps {
   changes: SemanticChange[];
@@ -39,7 +19,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     return (
       <div className="flex items-center gap-[8px] rounded-[8px] bg-accent-green/20 px-[20px] py-[16px]">
         <span className="text-[20px]">✓</span>
-        <span className="text-[16px] text-black/70">
+        <span className="text-[16px] text-text-secondary">
           No visual regressions detected
         </span>
       </div>
@@ -71,7 +51,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
           className={`rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
             activeFilter === "all"
               ? "bg-black text-white"
-              : "bg-surface-tertiary text-black/70 hover:bg-black/10"
+              : "bg-surface-tertiary text-text-secondary hover:bg-black/10"
           }`}
         >
           All ({changes.length})
@@ -85,7 +65,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
               className={`rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
                 activeFilter === cat
                   ? "bg-black text-white"
-                  : "bg-surface-tertiary text-black/70 hover:bg-black/10"
+                  : "bg-surface-tertiary text-text-secondary hover:bg-black/10"
               }`}
             >
               <span className="mr-[4px]">{cfg.icon}</span>
@@ -111,7 +91,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
 
 function ChangeEntry({ change, onClick }: { change: SemanticChange; onClick?: () => void }) {
   const cfg = CATEGORY_CONFIG[change.category];
-  const severityBorder = SEVERITY_STYLES[change.severity] || SEVERITY_STYLES.info;
+  const severityBorder = SEVERITY_BORDER_CLASSES[change.severity] || SEVERITY_BORDER_CLASSES.info;
 
   return (
     <div
@@ -130,7 +110,7 @@ function ChangeEntry({ change, onClick }: { change: SemanticChange; onClick?: ()
       <div className="flex min-w-0 flex-col gap-[2px]">
         <span className="text-[14px] text-black">{change.description}</span>
         {change.details.prodValue && change.details.devValue && (
-          <span className="truncate text-[12px] text-black/40">
+          <span className="truncate text-[12px] text-text-subtle">
             {readableSelector(change.selector)}
           </span>
         )}

@@ -68,7 +68,7 @@ export default function Home() {
   if (loading && hasProjects) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-black/50">Loading...</p>
+        <p className="text-text-muted">Loading...</p>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export default function Home() {
         <div className="flex h-full flex-col items-center justify-center gap-[24px]">
           <div className="text-center">
             <h1 className="text-[24px] font-bold text-black">Welcome to OHSEE</h1>
-            <p className="mt-[8px] text-[14px] text-black/50">
+            <p className="mt-[8px] text-[14px] text-text-muted">
               Visual regression testing for your websites.
             </p>
           </div>
@@ -106,7 +106,7 @@ export default function Home() {
 
   return (
     <div className="flex h-full items-center justify-center">
-      <p className="text-black/50">Redirecting...</p>
+      <p className="text-text-muted">Redirecting...</p>
     </div>
   );
 }

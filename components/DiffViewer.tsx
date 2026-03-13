@@ -2,18 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import type { SemanticChange } from "@/lib/types";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  layout: "#c44",
-  spacing: "#c77",
-  alignment: "#a5c",
-  typography: "#77a",
-  color: "#5a7",
-  content: "#c44",
-  visibility: "#c44",
-  border: "#a85",
-  structural: "#c44",
-};
+import { CATEGORY_COLORS, CATEGORY_COLOR_FALLBACK } from "@/lib/colors";
 
 interface Props {
   src: string;
@@ -168,13 +157,13 @@ function dedupeMarkers(changes: SemanticChange[], scale: number): Marker[] {
       // Update label to the most severe change in the group
       const primary = lastMarker.changes.sort(severityOrder)[0];
       lastMarker.label = primary.description;
-      lastMarker.color = CATEGORY_COLORS[primary.category] || "#c44";
+      lastMarker.color = CATEGORY_COLORS[primary.category] || CATEGORY_COLOR_FALLBACK;
     } else {
       markers.push({
         id: change.id,
         y: change.yPosition,
         label: change.description,
-        color: CATEGORY_COLORS[change.category] || "#c44",
+        color: CATEGORY_COLORS[change.category] || CATEGORY_COLOR_FALLBACK,
         count: 1,
         changes: [change],
       });

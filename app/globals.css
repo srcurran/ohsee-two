@@ -1,23 +1,171 @@
 @import "tailwindcss";
 
+/* ================================================================
+   DESIGN TOKENS — Two-Level System
+   Level 1: Primitives (raw palette)
+   Level 2: Semantic (theme-aware, reference primitives)
+   ================================================================ */
+
 :root {
-  --surface-primary: #faf8f4;
-  --surface-tertiary: #f2eee9;
-  --border-primary: rgba(0, 0, 0, 0.1);
-  --accent-green: #34e1a4;
-  --accent-yellow: #e1d034;
-  --foreground: #000000;
-  --background: #ffffff;
+  /* ── Level 1: Primitives ─────────────────────────────────────── */
+
+  /* Neutral / Dark (content) */
+  --neutral-dark-900: #000000;
+  --neutral-dark-800: rgba(0, 0, 0, 0.9);
+  --neutral-dark-700: rgba(0, 0, 0, 0.7);
+  --neutral-dark-500: rgba(0, 0, 0, 0.5);
+  --neutral-dark-400: rgba(0, 0, 0, 0.4);
+  --neutral-dark-200: rgba(0, 0, 0, 0.2);
+  --neutral-dark-150: rgba(0, 0, 0, 0.15);
+  --neutral-dark-100: rgba(0, 0, 0, 0.1);
+
+  /* Neutral / Light (surfaces) */
+  --neutral-light-100: #ffffff;
+  --neutral-light-200: #faf8f4;
+  --neutral-light-300: #f2eee9;
+
+  /* Neutral / Taupe (comparison UI) */
+  --neutral-taupe-500: #9d9297;
+  --neutral-taupe-700: rgba(75, 75, 75, 0.5);
+
+  /* Brand / Primary (CTAs + branding) */
+  --brand-primary-100: #FEF3E7;
+  --brand-primary-200: #FDD9B0;
+  --brand-primary-300: #F4B76B;
+  --brand-primary-500: #E88F2F;
+  --brand-primary-700: #C67320;
+  --brand-primary-900: #8B4F13;
+
+  /* Status / Success (no changes / clean) */
+  --status-success-100: #C8FFC7;
+  --status-success-500: #34e1a4;
+
+  /* Status / Warning (has changes) */
+  --status-warning-100: #faf5d4;
+  --status-warning-500: #e1d034;
+
+  /* Status / Error */
+  --status-error-100: #fef2f2;
+  --status-error-200: #fecaca;
+  --status-error-500: #ef4444;
+  --status-error-800: #b91c1c;
+
+  /* Status / Running */
+  --status-running-400: #60a5fa;
+
+  /* ── Level 2: Semantic ───────────────────────────────────────── */
+
+  /* Surfaces */
+  --surface-primary: var(--neutral-light-200);
+  --surface-secondary: var(--neutral-light-100);
+  --surface-tertiary: var(--neutral-light-300);
+  --surface-comparison: var(--neutral-taupe-500);
+
+  /* Text */
+  --foreground: var(--neutral-dark-900);
+  --text-secondary: var(--neutral-dark-700);
+  --text-muted: var(--neutral-dark-500);
+  --text-subtle: var(--neutral-dark-400);
+  --text-disabled: var(--neutral-dark-100);
+
+  /* Borders */
+  --border-primary: var(--neutral-dark-100);
+  --border-secondary: var(--neutral-dark-150);
+  --border-strong: var(--neutral-dark-400);
+
+  /* Brand */
+  --accent-primary: var(--brand-primary-500);
+  --accent-primary-tint: var(--brand-primary-100);
+
+  /* Status — success */
+  --accent-green: var(--status-success-500);
+  --accent-green-tint: var(--status-success-100);
+
+  /* Status — warning */
+  --accent-yellow: var(--status-warning-500);
+  --accent-yellow-tint: var(--status-warning-100);
+
+  /* Status — error */
+  --status-error: var(--status-error-500);
+  --status-error-strong: var(--status-error-800);
+  --status-error-muted: var(--status-error-100);
+  --status-error-border: var(--status-error-200);
+  --status-error-text: var(--status-error-800);
+
+  /* Status — running */
+  --status-running: var(--status-running-400);
+
+  /* Status — inactive */
+  --status-inactive: var(--neutral-dark-200);
+
+  /* Slider */
+  --slider-handle: var(--neutral-taupe-700);
+
+  /* Severity markers */
+  --severity-error: #cc4444;
+  --severity-warning: var(--status-warning-500);
+  --severity-info: #aaaaaa;
+
+  /* Legacy aliases (keep --background for Next.js defaults) */
+  --background: var(--neutral-light-100);
 }
 
 @theme inline {
+  /* Surfaces */
   --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
   --color-surface-tertiary: var(--surface-tertiary);
-  --color-border-primary: var(--border-primary);
-  --color-accent-green: var(--accent-green);
-  --color-accent-yellow: var(--accent-yellow);
-  --color-background: var(--background);
+  --color-surface-comparison: var(--surface-comparison);
+
+  /* Text */
   --color-foreground: var(--foreground);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-text-disabled: var(--text-disabled);
+
+  /* Borders */
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-strong: var(--border-strong);
+
+  /* Brand */
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-tint: var(--accent-primary-tint);
+
+  /* Status — success */
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-tint: var(--accent-green-tint);
+
+  /* Status — warning */
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-yellow-tint: var(--accent-yellow-tint);
+
+  /* Status — error */
+  --color-status-error: var(--status-error);
+  --color-status-error-strong: var(--status-error-strong);
+  --color-status-error-muted: var(--status-error-muted);
+  --color-status-error-border: var(--status-error-border);
+  --color-status-error-text: var(--status-error-text);
+
+  /* Status — running */
+  --color-status-running: var(--status-running);
+
+  /* Status — inactive */
+  --color-status-inactive: var(--status-inactive);
+
+  /* Slider */
+  --color-slider-handle: var(--slider-handle);
+
+  /* Severity */
+  --color-severity-error: var(--severity-error);
+  --color-severity-warning: var(--severity-warning);
+  --color-severity-info: var(--severity-info);
+
+  /* Legacy */
+  --color-background: var(--background);
+
+  /* Font */
   --font-sans: var(--font-poppins);
 }
 

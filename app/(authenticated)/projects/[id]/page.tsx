@@ -49,7 +49,7 @@ export default function ProjectPage() {
   if (!project) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-black/50">Loading...</p>
+        <p className="text-text-muted">Loading...</p>
       </div>
     );
   }
@@ -61,14 +61,14 @@ export default function ProjectPage() {
     <div className="flex h-full flex-col items-center justify-center gap-[24px]">
       <div className="text-center">
         <h1 className="text-[24px] font-bold text-black">{displayUrl}</h1>
-        <p className="mt-[8px] text-[14px] text-black/50">
+        <p className="mt-[8px] text-[14px] text-text-muted">
           No reports yet. Run your first comparison.
         </p>
       </div>
       <button
         onClick={handleRun}
         disabled={running}
-        className="flex items-center gap-[16px] rounded-full border border-black/40 px-[24px] py-[12px] text-[20px] text-black hover:bg-surface-tertiary disabled:opacity-50"
+        className="flex items-center gap-[16px] rounded-full border border-border-strong px-[24px] py-[12px] text-[20px] text-black hover:bg-surface-tertiary disabled:opacity-50"
       >
         {running ? "Starting..." : "Run"}
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">

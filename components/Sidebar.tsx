@@ -173,7 +173,7 @@ export default function Sidebar() {
             onClick={() => setShowNewProject(true)}
             onMouseEnter={(e) => showTooltip(e, "New Project")}
             onMouseLeave={hideTooltip}
-            className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-[14px] text-black/30 hover:bg-black/5 hover:text-black/50"
+            className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-[14px] text-text-subtle hover:bg-black/5 hover:text-text-muted"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path
@@ -255,7 +255,7 @@ function UserAvatar({
           <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
           <div className="absolute bottom-[64px] left-0 z-40 flex min-w-[200px] flex-col gap-[4px] rounded-[12px] bg-white p-[12px] shadow-[0px_3px_7px_0px_rgba(0,0,0,0.12),0px_12px_12px_0px_rgba(0,0,0,0.1),0px_28px_17px_0px_rgba(0,0,0,0.06)]">
             {user?.email && (
-              <p className="truncate px-[12px] py-[4px] text-[12px] text-black/40">
+              <p className="truncate px-[12px] py-[4px] text-[12px] text-text-subtle">
                 {user.email}
               </p>
             )}

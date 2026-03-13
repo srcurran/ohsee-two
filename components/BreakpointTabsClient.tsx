@@ -20,7 +20,7 @@ function BreakpointTabsInner() {
 
 export default function BreakpointTabsClient() {
   return (
-    <Suspense fallback={<div className="h-[58px] border-b border-black/20 py-[20px]" />}>
+    <Suspense fallback={<div className="h-[58px] border-b border-border-secondary py-[20px]" />}>
       <BreakpointTabsInner />
     </Suspense>
   );

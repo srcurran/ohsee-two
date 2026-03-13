@@ -10,6 +10,7 @@ import ChangeList from "@/components/ChangeList";
 import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SemanticChange } from "@/lib/types";
+import { reportDotColor } from "@/lib/colors";
 
 function getDomain(url: string): string {
   try {
@@ -17,24 +18,6 @@ function getDomain(url: string): string {
   } catch {
     return url;
   }
-}
-
-function getReportTotalChanges(r: Report): number {
-  return r.pages.reduce(
-    (sum, page) =>
-      sum +
-      Object.values(page.breakpoints).reduce(
-        (s, bp) => s + (bp.changeCount || 0),
-        0
-      ),
-    0
-  );
-}
-
-function reportDotColor(r: Report): string {
-  if (r.status === "running") return "bg-blue-400 animate-pulse";
-  if (r.status === "failed" || r.status === "cancelled") return "bg-black/20";
-  return getReportTotalChanges(r) > 0 ? "bg-accent-yellow" : "bg-accent-green";
 }
 
 function PageDetailInner() {
@@ -110,7 +93,7 @@ function PageDetailInner() {
   if (!report) {
     return (
       <div className="p-[24px]">
-        <p className="text-black/50">Loading...</p>
+        <p className="text-text-muted">Loading...</p>
       </div>
     );
   }
@@ -121,7 +104,7 @@ function PageDetailInner() {
   if (!currentPage) {
     return (
       <div className="p-[24px]">
-        <p className="text-black/50">Page not found in report.</p>
+        <p className="text-text-muted">Page not found in report.</p>
       </div>
     );
   }
@@ -166,7 +149,7 @@ function PageDetailInner() {
                 >
                   {displayUrl}
                 </Link>
-                <span className="shrink-0 text-[36px] text-black/30">/</span>
+                <span className="shrink-0 text-[36px] text-text-subtle">/</span>
 
                 {/* Page path — opens page dropdown */}
                 <div className="relative min-w-0">
@@ -218,7 +201,7 @@ function PageDetailInner() {
 
               {/* Change count badge */}
               <span className={`flex h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-full px-[8px] text-[20px] text-black ${
-                bpResult && bpResult.changeCount > 0 ? "bg-[#faf5d4]" : "bg-[#d4fae8]"
+                bpResult && bpResult.changeCount > 0 ? "bg-accent-yellow-tint" : "bg-accent-green-tint"
               }`}>
                 {bpResult?.changeCount ?? 0}
               </span>
@@ -254,7 +237,7 @@ function PageDetailInner() {
                             className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-[14px] ${
                               isCurrent
                                 ? "bg-surface-tertiary font-bold text-black"
-                                : "text-black/70 hover:bg-surface-tertiary"
+                                : "text-text-secondary hover:bg-surface-tertiary"
                             }`}
                           >
                             <span className="flex-1">{formatRelativeTime(r.createdAt)}</span>
@@ -271,7 +254,7 @@ function PageDetailInner() {
               {prevPage ? (
                 <Link
                   href={`/reports/${report.id}/pages/${prevPage.pageId}?bp=${activeBp}`}
-                  className="flex h-[24px] w-[24px] items-center justify-center text-black/40 transition-colors hover:text-black"
+                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-black"
                   title={prevPage.path === "/" ? "index" : prevPage.path.replace(/^\//, "")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -279,7 +262,7 @@ function PageDetailInner() {
                   </svg>
                 </Link>
               ) : (
-                <span className="flex h-[24px] w-[24px] items-center justify-center text-black/10">
+                <span className="flex h-[24px] w-[24px] items-center justify-center text-text-disabled">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -290,7 +273,7 @@ function PageDetailInner() {
               {nextPage ? (
                 <Link
                   href={`/reports/${report.id}/pages/${nextPage.pageId}?bp=${activeBp}`}
-                  className="flex h-[24px] w-[24px] items-center justify-center text-black/40 transition-colors hover:text-black"
+                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-black"
                   title={nextPage.path === "/" ? "index" : nextPage.path.replace(/^\//, "")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -298,7 +281,7 @@ function PageDetailInner() {
                   </svg>
                 </Link>
               ) : (
-                <span className="flex h-[24px] w-[24px] items-center justify-center text-black/10">
+                <span className="flex h-[24px] w-[24px] items-center justify-center text-text-disabled">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -308,7 +291,7 @@ function PageDetailInner() {
               {/* Close (back to report) */}
               <Link
                 href={`/reports/${params.reportId}?bp=${activeBp}`}
-                className="flex h-[24px] w-[24px] items-center justify-center text-black/40 transition-colors hover:text-black"
+                className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-black"
                 title="Back to report"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -366,7 +349,7 @@ function PageDetailInner() {
             </div>
           </div>
         ) : (
-          <p className="text-center text-[14px] text-black/50">
+          <p className="text-center text-[14px] text-text-muted">
             No screenshot available for this breakpoint.
           </p>
         )}
@@ -465,7 +448,7 @@ function CollapsibleIssues({
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center bg-gradient-to-t from-white via-white/90 to-transparent pt-[40px] pb-[8px]">
             <button
               onClick={() => setExpanded(true)}
-              className="rounded-full border border-black/10 bg-white px-[20px] py-[8px] text-[13px] text-black shadow-sm hover:bg-surface-tertiary"
+              className="rounded-full border border-border-primary bg-white px-[20px] py-[8px] text-[13px] text-black shadow-sm hover:bg-surface-tertiary"
             >
               Show all {changes.length} issues
             </button>
@@ -475,7 +458,7 @@ function CollapsibleIssues({
       {expanded && isOverflowing && (
         <button
           onClick={() => setExpanded(false)}
-          className="mt-[8px] text-[13px] text-black/50 underline hover:text-black"
+          className="mt-[8px] text-[13px] text-text-muted underline hover:text-black"
         >
           Collapse
         </button>
@@ -489,7 +472,7 @@ export default function PageDetailPage() {
     <Suspense
       fallback={
         <div className="p-[24px]">
-          <p className="text-black/50">Loading...</p>
+          <p className="text-text-muted">Loading...</p>
         </div>
       }
     >

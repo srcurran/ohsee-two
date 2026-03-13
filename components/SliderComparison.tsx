@@ -28,7 +28,7 @@ export function ComparisonHeader({
           className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
             mode === "tap"
               ? "bg-white font-bold shadow-sm"
-              : "text-black/50 hover:text-black"
+              : "text-text-muted hover:text-black"
           }`}
         >
           Tap
@@ -38,7 +38,7 @@ export function ComparisonHeader({
           className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
             mode === "slider"
               ? "bg-white font-bold shadow-sm"
-              : "text-black/50 hover:text-black"
+              : "text-text-muted hover:text-black"
           }`}
         >
           Slider
@@ -84,7 +84,7 @@ function TapReveal({ prodSrc, devSrc }: Props) {
 
   return (
     <div
-      className="relative cursor-pointer select-none overflow-hidden bg-[#9d9297]"
+      className="relative cursor-pointer select-none overflow-hidden bg-surface-comparison"
       onMouseDown={() => setPressed(true)}
       onMouseUp={() => setPressed(false)}
       onMouseLeave={() => setPressed(false)}
@@ -145,7 +145,7 @@ function SliderReveal({ prodSrc, devSrc }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative cursor-col-resize select-none overflow-hidden bg-[#9d9297]"
+      className="relative cursor-col-resize select-none overflow-hidden bg-surface-comparison"
       onMouseDown={(e) => {
         setIsDragging(true);
         handleMove(e.clientX);
@@ -168,7 +168,7 @@ function SliderReveal({ prodSrc, devSrc }: Props) {
         className="absolute top-0 bottom-0 z-10 w-[2px] bg-white/80"
         style={{ left: `${dividerPos}%`, transform: "translateX(-1px)" }}
       >
-        <div className="absolute top-1/2 left-1/2 flex h-[36px] w-[36px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#4b4b4b]/50 text-[14px] text-white backdrop-blur-[8.6px]">
+        <div className="absolute top-1/2 left-1/2 flex h-[36px] w-[36px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-slider-handle text-[14px] text-white backdrop-blur-[8.6px]">
           <span>&lt;</span>
           <span>&gt;</span>
         </div>
