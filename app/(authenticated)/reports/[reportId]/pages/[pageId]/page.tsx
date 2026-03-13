@@ -343,6 +343,7 @@ function PageDetailInner() {
             active={activeBp}
             onChange={handleBpChange}
             changeCounts={bpChangeCounts}
+            breakpoints={project?.breakpoints}
           />
         </div>
 

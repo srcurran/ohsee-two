@@ -58,7 +58,8 @@ export async function POST(
     cancelRunningReportsForProject(id);
 
     const reportId = uuidv4();
-    const totalOps = project.pages.length * BREAKPOINTS.length * 3;
+    const bpCount = project.breakpoints?.length || BREAKPOINTS.length;
+    const totalOps = project.pages.length * bpCount * 3;
     const report: Report = {
       id: reportId,
       projectId: id,

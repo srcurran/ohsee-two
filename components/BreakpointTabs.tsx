@@ -6,13 +6,16 @@ interface Props {
   active: number;
   onChange: (bp: number) => void;
   changeCounts?: Record<string, number>;
+  /** Override the displayed breakpoints (defaults to global BREAKPOINTS) */
+  breakpoints?: number[];
 }
 
-export default function BreakpointTabs({ active, onChange, changeCounts }: Props) {
+export default function BreakpointTabs({ active, onChange, changeCounts, breakpoints: bpOverride }: Props) {
+  const bps = bpOverride || [...BREAKPOINTS];
   return (
     <div className="border-b border-border-secondary">
       <div className="flex items-center justify-center gap-[24px]">
-        {BREAKPOINTS.map((bp) => {
+        {bps.map((bp) => {
           const isActive = active === bp;
           const count = changeCounts?.[String(bp)];
           const hasData = count !== undefined;

@@ -77,9 +77,12 @@ export async function runReport(project: Project, reportId: string, userId: stri
   // Base directory for relative paths (user's data dir)
   const dataBase = userDir(userId);
 
+  // Use project-level breakpoints if set, otherwise global defaults
+  const projectBreakpoints = project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
+
   // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
   const variantCount = (project.variants || []).length;
-  const totalOps = project.pages.length * BREAKPOINTS.length * 3 * (1 + variantCount);
+  const totalOps = project.pages.length * projectBreakpoints.length * 3 * (1 + variantCount);
   let completedOps = 0;
 
   const report = await readJsonFile<Report>(reportPath, {
@@ -124,6 +127,7 @@ export async function runReport(project: Project, reportId: string, userId: stri
         screenshotDir,
         dataBase,
         authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
+        breakpointList: projectBreakpoints,
         checkCancelled,
         onProgress: async () => { completedOps++; await saveProgress(); },
       });
@@ -145,6 +149,7 @@ export async function runReport(project: Project, reportId: string, userId: stri
             screenshotDir,
             dataBase,
             authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
+            breakpointList: projectBreakpoints,
             contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
             initScript: variant.initScript,
             checkCancelled,
@@ -208,6 +213,8 @@ async function captureAndDiff(options: {
   screenshotDir: string;
   dataBase: string;
   authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
+  /** Breakpoints to capture (defaults to global BREAKPOINTS) */
+  breakpointList?: number[];
   contextOptions?: { colorScheme?: "light" | "dark" };
   initScript?: string;
   checkCancelled: () => void;
@@ -215,7 +222,8 @@ async function captureAndDiff(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     prodUrl, devUrl, pageId, prefix, screenshotDir, dataBase,
-    authConfig, contextOptions, initScript, checkCancelled, onProgress,
+    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    checkCancelled, onProgress,
   } = options;
 
   const breakpoints: Record<string, BreakpointResult> = {};
@@ -224,7 +232,7 @@ async function captureAndDiff(options: {
   checkCancelled();
   const prodResults = await captureScreenshots({
     url: prodUrl,
-    breakpoints: [...BREAKPOINTS],
+    breakpoints: breakpointList,
     outputDir: screenshotDir,
     prefix: `prod-${pageId}${prefix}`,
     authConfig: authConfig.prod,
@@ -240,7 +248,7 @@ async function captureAndDiff(options: {
   checkCancelled();
   const devResults = await captureScreenshots({
     url: devUrl,
-    breakpoints: [...BREAKPOINTS],
+    breakpoints: breakpointList,
     outputDir: screenshotDir,
     prefix: `dev-${pageId}${prefix}`,
     authConfig: authConfig.dev,
@@ -253,7 +261,7 @@ async function captureAndDiff(options: {
   });
 
   // Generate diffs for each breakpoint
-  for (const bp of BREAKPOINTS) {
+  for (const bp of breakpointList) {
     checkCancelled();
 
     const prodShot = prodResults.find((r) => r.breakpoint === bp);

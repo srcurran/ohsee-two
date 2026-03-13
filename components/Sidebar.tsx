@@ -141,7 +141,7 @@ export default function Sidebar() {
 
         {/* Project icons */}
         <nav className="flex flex-1 flex-col items-center gap-[8px] overflow-y-auto px-[4px] pt-[8px]">
-          {data.map(({ project, reports }) => {
+          {data.filter(({ project }) => !project.archived).map(({ project, reports }) => {
             const active = isProjectActive(project, reports);
             const domain = getDomain(project.prodUrl);
 
@@ -225,6 +225,7 @@ function UserAvatar({
 }) {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
   const user = session?.user;
@@ -284,6 +285,15 @@ function UserAvatar({
                 </div>
               </div>
             )}
+            <button
+              onClick={() => {
+                setShowMenu(false);
+                router.push("/settings");
+              }}
+              className="rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-foreground hover:bg-surface-tertiary"
+            >
+              Settings
+            </button>
             <button
               onClick={() => signOut({ callbackUrl: "/sign-in" })}
               className="rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-foreground hover:bg-surface-tertiary"

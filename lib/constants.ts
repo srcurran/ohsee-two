@@ -42,3 +42,7 @@ export function userProjectsFile(userId: string): string {
 export function userReportsDir(userId: string): string {
   return path.join(userDir(userId), "reports");
 }
+
+export function userSettingsFile(userId: string): string {
+  return path.join(userDir(userId), "settings.json");
+}

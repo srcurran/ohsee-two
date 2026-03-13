@@ -6,6 +6,7 @@ import Link from "next/link";
 import BreakpointTabs from "@/components/BreakpointTabs";
 import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
+import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
 import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, ReportPage } from "@/lib/types";
@@ -28,6 +29,7 @@ function ReportPageInner() {
   const [project, setProject] = useState<Project | null>(null);
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [showReportNav, setShowReportNav] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
 
@@ -208,21 +210,50 @@ function ReportPageInner() {
               )}
             </div>
 
-            {/* Run button (hidden while running) */}
-            {report.status !== "running" && (
-              <button
-                onClick={handleRun}
-                className="flex items-center gap-[16px] rounded-full border border-border-strong px-[20px] py-[10px] text-[20px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px]"
-              >
-                Run
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                  <path
-                    d="M8 5v18l16-9L8 5z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </button>
-            )}
+            {/* Actions */}
+            <div className="flex items-center gap-[8px]">
+              {/* Settings gear */}
+              {project && (
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="flex h-[48px] w-[48px] items-center justify-center rounded-full text-text-muted transition-all hover:bg-surface-tertiary hover:text-foreground"
+                  title="Project settings"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Run button (hidden while running) */}
+              {report.status !== "running" && (
+                <button
+                  onClick={handleRun}
+                  className="flex items-center gap-[16px] rounded-full border border-border-strong px-[20px] py-[10px] text-[20px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px]"
+                >
+                  Run
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <path
+                      d="M8 5v18l16-9L8 5z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Progress indicator */}
@@ -283,6 +314,7 @@ function ReportPageInner() {
             active={activeBp}
             onChange={handleBpChange}
             changeCounts={bpChangeCounts}
+            breakpoints={project?.breakpoints}
           />
         </div>
       </div>
@@ -350,6 +382,15 @@ function ReportPageInner() {
           </p>
         )}
       </div>
+
+      {/* Project settings overlay */}
+      {showSettings && project && (
+        <ProjectSettingsOverlay
+          project={project}
+          onClose={() => setShowSettings(false)}
+          onUpdated={(updated) => setProject(updated)}
+        />
+      )}
     </div>
   );
 }

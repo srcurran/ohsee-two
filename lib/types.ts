@@ -17,6 +17,17 @@ export interface Project {
   requiresAuth?: boolean;
   /** Optional theme/variant captures (e.g., light + dark) */
   variants?: TestVariant[];
+  /** Per-project breakpoint overrides (uses user/global defaults if omitted) */
+  breakpoints?: number[];
+  /** Soft-deleted / hidden from sidebar */
+  archived?: boolean;
+}
+
+export interface UserSettings {
+  /** Default breakpoints for new projects */
+  defaultBreakpoints: number[];
+  /** Default variants for new projects */
+  defaultVariants?: string[];
 }
 
 export interface PageEntry {
