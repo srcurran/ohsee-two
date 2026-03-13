@@ -92,6 +92,18 @@ function PageDetailInner() {
     }
   };
 
+  // Discover which variants exist in this report (must be before early returns)
+  const reportVariants = useMemo(() => {
+    if (!report) return [];
+    const ids = new Set<string>();
+    for (const page of report.pages) {
+      if (page.variants) {
+        for (const vid of Object.keys(page.variants)) ids.add(vid);
+      }
+    }
+    return Array.from(ids);
+  }, [report]);
+
   if (!report) {
     return (
       <div className="p-[24px]">
@@ -119,17 +131,6 @@ function PageDetailInner() {
     ? currentPage.variants[activeVariant]
     : currentPage.breakpoints;
   const bpResult = activeBpData[String(activeBp)];
-
-  // Discover which variants exist in this report
-  const reportVariants = useMemo(() => {
-    const ids = new Set<string>();
-    for (const page of report.pages) {
-      if (page.variants) {
-        for (const vid of Object.keys(page.variants)) ids.add(vid);
-      }
-    }
-    return Array.from(ids);
-  }, [report.pages]);
 
   const handleVariantChange = (variantId: string | null) => {
     const p = new URLSearchParams(searchParams.toString());

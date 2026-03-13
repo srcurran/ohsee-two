@@ -100,6 +100,18 @@ function ReportPageInner() {
     }
   };
 
+  // Discover which variants exist in this report (must be before early return)
+  const reportVariants = useMemo(() => {
+    if (!report) return [];
+    const ids = new Set<string>();
+    for (const page of report.pages) {
+      if (page.variants) {
+        for (const vid of Object.keys(page.variants)) ids.add(vid);
+      }
+    }
+    return Array.from(ids);
+  }, [report]);
+
   if (!report) {
     return (
       <div className="p-[24px]">
@@ -119,17 +131,6 @@ function ReportPageInner() {
     }
     return page.breakpoints[bp];
   };
-
-  // Discover which variants exist in this report
-  const reportVariants = useMemo(() => {
-    const ids = new Set<string>();
-    for (const page of report.pages) {
-      if (page.variants) {
-        for (const vid of Object.keys(page.variants)) ids.add(vid);
-      }
-    }
-    return Array.from(ids);
-  }, [report.pages]);
 
   // Sum change counts per breakpoint across all pages (variant-aware)
   const bpChangeCounts: Record<string, number> = {};
