@@ -1,0 +1,104 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import { BUILT_IN_VARIANTS } from "@/lib/constants";
+import type { UserSettings } from "@/lib/types";
+
+export default function DefaultsSettingsPage() {
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then(setSettings);
+  }, []);
+
+  const toggleVariant = (id: string) => {
+    if (!settings) return;
+    const current = settings.defaultVariants || [];
+    const next = current.includes(id)
+      ? current.filter((v) => v !== id)
+      : [...current, id];
+    setSettings({ ...settings, defaultVariants: next });
+  };
+
+  const handleSave = async () => {
+    if (!settings) return;
+    setSaving(true);
+    setSaved(false);
+    await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  if (!settings) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-text-muted">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="mb-[8px] text-[24px] font-bold text-foreground">Defaults</h1>
+      <p className="mb-[32px] text-[14px] text-text-muted">
+        Applied to new projects by default.
+      </p>
+
+      {/* Breakpoints */}
+      <section className="mb-[32px]">
+        <BreakpointEditor
+          breakpoints={settings.defaultBreakpoints}
+          onChange={(bp) => setSettings({ ...settings, defaultBreakpoints: bp })}
+        />
+      </section>
+
+      {/* Variants */}
+      <section className="mb-[32px]">
+        <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
+        <div className="flex gap-[16px]">
+          {BUILT_IN_VARIANTS.map((v) => {
+            const active = (settings.defaultVariants || []).includes(v.id);
+            return (
+              <label
+                key={v.id}
+                className="flex items-center gap-[8px] text-[14px] text-foreground"
+              >
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => toggleVariant(v.id)}
+                  className="h-[16px] w-[16px]"
+                />
+                {v.label}
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Save */}
+      <div className="flex items-center gap-[12px]">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="rounded-[12px] bg-black px-[32px] py-[10px] text-[16px] font-bold text-white transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50 dark:bg-white dark:text-black"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+        {saved && (
+          <span className="text-[14px] text-accent-green">Saved</span>
+        )}
+      </div>
+    </div>
+  );
+}

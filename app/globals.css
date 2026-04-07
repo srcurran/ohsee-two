@@ -21,7 +21,7 @@
 
   /* Neutral / Light (surfaces) */
   --neutral-light-100: #ffffff;
-  --neutral-light-200: #faf8f4;
+  --neutral-light-200: #f5f4f3;
   --neutral-light-300: #f2eee9;
 
   /* Neutral / Taupe (comparison UI) */
@@ -236,6 +236,26 @@
 
   /* Font */
   --font-sans: var(--font-poppins);
+
+}
+
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-fade-in-up {
+  animation: fade-in-up 0.35s ease-out both;
 }
 
 body {

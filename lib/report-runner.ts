@@ -5,7 +5,8 @@ import { generateSemanticDiff } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
-import type { Project, Report, ReportPage, BreakpointResult } from "./types";
+import type { Project, Report, ReportPage, BreakpointResult, FlowEntry } from "./types";
+import { executeFlow, getScreenshotStepIds, type FlowScreenshotResult } from "./flow-runner";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -82,7 +83,13 @@ export async function runReport(project: Project, reportId: string, userId: stri
 
   // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
   const variantCount = (project.variants || []).length;
-  const totalOps = project.pages.length * projectBreakpoints.length * 3 * (1 + variantCount);
+  // Count screenshot steps across all flows
+  const flowScreenshotSteps = (project.flows || []).reduce((sum, flow) =>
+    sum + getScreenshotStepIds(flow).length, 0);
+  const pageOps = project.pages.length * projectBreakpoints.length * 3 * (1 + variantCount);
+  // Flow ops: per screenshot step = breakpoints × (prod + dev + diff) × (1 + variants)
+  const flowOps = flowScreenshotSteps * projectBreakpoints.length * 3 * (1 + variantCount);
+  const totalOps = pageOps + flowOps;
   let completedOps = 0;
 
   const report = await readJsonFile<Report>(reportPath, {
@@ -168,6 +175,92 @@ export async function runReport(project: Project, reportId: string, userId: stri
 
       report.pages = reportPages;
       await writeJsonFile(reportPath, report);
+    }
+
+    // --- Flow execution ---
+    if (project.flows && project.flows.length > 0) {
+      for (const flow of project.flows) {
+        checkCancelled();
+
+        const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
+        const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
+
+        // --- Default variant ---
+        const flowBreakpoints = await captureAndDiffFlow({
+          flow,
+          prodBaseUrl: normProd,
+          devBaseUrl: normDev,
+          prefix: "",
+          screenshotDir,
+          dataBase,
+          authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
+          breakpointList: projectBreakpoints,
+          checkCancelled,
+          onProgress: async () => { completedOps++; await saveProgress(); },
+        });
+
+        // --- Variant captures for flows ---
+        let flowVariants: Record<string, typeof flowBreakpoints> | undefined;
+        if (project.variants && project.variants.length > 0) {
+          flowVariants = {};
+          for (const variant of project.variants) {
+            checkCancelled();
+            flowVariants[variant.id] = await captureAndDiffFlow({
+              flow,
+              prodBaseUrl: normProd,
+              devBaseUrl: normDev,
+              prefix: `-${variant.id}`,
+              screenshotDir,
+              dataBase,
+              authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
+              breakpointList: projectBreakpoints,
+              contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
+              initScript: variant.initScript,
+              checkCancelled,
+              onProgress: async () => { completedOps++; await saveProgress(); },
+            });
+          }
+        }
+
+        // Convert flow results into ReportPages (one per step that captures a screenshot)
+        const screenshotSteps = getScreenshotStepIds(flow);
+        for (const step of screenshotSteps) {
+          const stepBreakpoints: Record<string, BreakpointResult> = {};
+          for (const bp of projectBreakpoints) {
+            const key = `${step.id}-${bp}`;
+            if (flowBreakpoints[key]) {
+              stepBreakpoints[String(bp)] = flowBreakpoints[key];
+            }
+          }
+
+          let stepVariants: Record<string, Record<string, BreakpointResult>> | undefined;
+          if (flowVariants) {
+            stepVariants = {};
+            for (const [variantId, variantResults] of Object.entries(flowVariants)) {
+              stepVariants[variantId] = {};
+              for (const bp of projectBreakpoints) {
+                const key = `${step.id}-${bp}`;
+                if (variantResults[key]) {
+                  stepVariants[variantId][String(bp)] = variantResults[key];
+                }
+              }
+            }
+          }
+
+          reportPages.push({
+            id: uuidv4(),
+            pageId: step.id,
+            path: `${flow.name} > ${step.label}`,
+            breakpoints: stepBreakpoints,
+            ...(stepVariants ? { variants: stepVariants } : {}),
+            flowId: flow.id,
+            stepLabel: step.label,
+          });
+        }
+
+        report.pages = reportPages;
+        await writeJsonFile(reportPath, report);
+      }
     }
 
     report.pages = reportPages;
@@ -313,4 +406,122 @@ async function captureAndDiff(options: {
   }
 
   return breakpoints;
+}
+
+/**
+ * Execute a flow against prod + dev and generate diffs for each screenshot step.
+ * Returns results keyed by "{stepId}-{breakpoint}".
+ */
+async function captureAndDiffFlow(options: {
+  flow: FlowEntry;
+  prodBaseUrl: string;
+  devBaseUrl: string;
+  prefix: string;
+  screenshotDir: string;
+  dataBase: string;
+  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
+  breakpointList?: number[];
+  contextOptions?: { colorScheme?: "light" | "dark" };
+  initScript?: string;
+  checkCancelled: () => void;
+  onProgress: () => Promise<void>;
+}): Promise<Record<string, BreakpointResult>> {
+  const {
+    flow, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
+    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    checkCancelled, onProgress,
+  } = options;
+
+  const results: Record<string, BreakpointResult> = {};
+
+  // Capture prod flow
+  checkCancelled();
+  const prodResults = await executeFlow({
+    flow,
+    baseUrl: prodBaseUrl,
+    breakpoints: breakpointList,
+    outputDir: screenshotDir,
+    prefix: `prod-flow-${flow.id}${prefix}`,
+    authConfig: authConfig.prod,
+    contextOptions,
+    initScript,
+    onProgress: async () => {
+      checkCancelled();
+      await onProgress();
+    },
+  });
+
+  // Capture dev flow
+  checkCancelled();
+  const devResults = await executeFlow({
+    flow,
+    baseUrl: devBaseUrl,
+    breakpoints: breakpointList,
+    outputDir: screenshotDir,
+    prefix: `dev-flow-${flow.id}${prefix}`,
+    authConfig: authConfig.dev,
+    contextOptions,
+    initScript,
+    onProgress: async () => {
+      checkCancelled();
+      await onProgress();
+    },
+  });
+
+  // Generate diffs for each screenshot step at each breakpoint
+  const screenshotSteps = flow.steps.filter((s) => s.type === "screenshot");
+  for (const step of screenshotSteps) {
+    for (const bp of breakpointList) {
+      checkCancelled();
+
+      const prodShot = prodResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
+      const devShot = devResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
+
+      if (prodShot && devShot) {
+        const diffPath = path.join(screenshotDir, `diff-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
+        const alignedProdPath = path.join(screenshotDir, `aligned-prod-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
+        const alignedDevPath = path.join(screenshotDir, `aligned-dev-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
+
+        const diffResult = await generateDiff(
+          prodShot.filePath,
+          devShot.filePath,
+          diffPath,
+          alignedProdPath,
+          alignedDevPath,
+        );
+
+        const bpResult: BreakpointResult = {
+          prodScreenshot: path.relative(dataBase, prodShot.filePath),
+          devScreenshot: path.relative(dataBase, devShot.filePath),
+          diffScreenshot: path.relative(dataBase, diffPath),
+          alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
+          alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+          changeCount: diffResult.changeCount,
+          totalPixels: diffResult.totalPixels,
+          changePercentage: diffResult.changePercentage,
+          pixelChangeCount: diffResult.changeCount,
+        };
+
+        if (prodShot.domSnapshot && devShot.domSnapshot) {
+          try {
+            const semanticResult = generateSemanticDiff(
+              prodShot.domSnapshot,
+              devShot.domSnapshot,
+            );
+            bpResult.semanticChanges = semanticResult.changes;
+            bpResult.changeSummary = semanticResult.summary;
+            bpResult.changeCount = semanticResult.issueCount;
+          } catch (err) {
+            console.error(`Semantic diff failed for flow "${flow.name}" step "${step.id}" at ${bp}px:`, err);
+          }
+        }
+
+        results[`${step.id}-${bp}`] = bpResult;
+      }
+
+      await onProgress();
+    }
+  }
+
+  return results;
 }

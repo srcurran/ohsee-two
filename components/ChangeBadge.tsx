@@ -9,9 +9,9 @@ export default function ChangeBadge({ count }: { count: number }) {
 
   return (
     <div
-      className={`${style} inline-flex size-[24px] items-center justify-center rounded-full`}
+      className={`${style} inline-flex min-w-[22px] items-center justify-center rounded-full px-[6px] py-[2px]`}
     >
-      <span className="text-[14px] font-bold leading-none">{label}</span>
+      <span className="text-[11px] font-bold leading-none">{label}</span>
     </div>
   );
 }

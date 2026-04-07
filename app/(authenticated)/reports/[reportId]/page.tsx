@@ -6,11 +6,11 @@ import Link from "next/link";
 import BreakpointTabs from "@/components/BreakpointTabs";
 import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
-import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
 import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, ReportPage } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
+import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 
 function getDomain(url: string): string {
   try {
@@ -26,6 +26,7 @@ function ReportPageInner() {
   const searchParams = useSearchParams();
   const { refreshProjects } = useSidebar();
   const [report, setReport] = useState<Report | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [showReportNav, setShowReportNav] = useState(false);
@@ -35,18 +36,20 @@ function ReportPageInner() {
 
   const loadReport = async () => {
     const res = await fetch(`/api/reports/${params.reportId}`);
-    if (res.ok) {
-      const r = await res.json();
-      setReport(r);
-      if (!project) {
-        const pRes = await fetch(`/api/projects/${r.projectId}`);
-        if (pRes.ok) {
-          const p = await pRes.json();
-          setProject(p);
-          // Also load all reports for the dropdown
-          const allRes = await fetch(`/api/projects/${r.projectId}/reports`);
-          if (allRes.ok) setAllReports(await allRes.json());
-        }
+    if (!res.ok) {
+      setNotFound(true);
+      return;
+    }
+    const r = await res.json();
+    setReport(r);
+    if (!project) {
+      const pRes = await fetch(`/api/projects/${r.projectId}`);
+      if (pRes.ok) {
+        const p = await pRes.json();
+        setProject(p);
+        // Also load all reports for the dropdown
+        const allRes = await fetch(`/api/projects/${r.projectId}/reports`);
+        if (allRes.ok) setAllReports(await allRes.json());
       }
     }
   };
@@ -114,15 +117,23 @@ function ReportPageInner() {
     return Array.from(ids);
   }, [report]);
 
+  // Report not found or not owned — clear stale path and go home
+  useEffect(() => {
+    if (notFound) {
+      localStorage.removeItem("ohsee-last-path");
+      router.replace("/");
+    }
+  }, [notFound, router]);
+
   if (!report) {
     return (
       <div className="p-[24px]">
-        <p className="text-text-muted">Loading...</p>
+        <p className="text-text-muted">{notFound ? "Redirecting..." : "Loading..."}</p>
       </div>
     );
   }
 
-  const displayUrl = project ? getDomain(project.prodUrl) : "...";
+  const displayUrl = project ? (project.name || getDomain(project.prodUrl)) : "...";
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
@@ -146,12 +157,36 @@ function ReportPageInner() {
   }
 
   return (
-    <div>
+    <div className="relative min-h-full overflow-hidden">
+      {/* Settings panel (slides up from bottom) */}
+      {showSettings && project && (
+        <ProjectSettingsPanel
+          projectId={project.id}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       {/* Sticky top nav */}
       <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content">
         <div className="flex flex-col gap-[16px] px-[24px] py-[20px]">
-          {/* Domain title */}
-          <p className="text-[48px] text-foreground">{displayUrl}</p>
+          {/* Domain title + settings */}
+          <div className="flex items-center justify-between">
+            <p className="text-[48px] text-foreground">{displayUrl}</p>
+            {project && (
+              <button
+                onClick={() => setShowSettings(true)}
+                className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
+                title="Project settings"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="8" cy="6" r="2" fill="currentColor" />
+                  <circle cx="16" cy="12" r="2" fill="currentColor" />
+                  <circle cx="10" cy="18" r="2" fill="currentColor" />
+                </svg>
+              </button>
+            )}
+          </div>
 
           <div className="flex items-start justify-between">
             {/* Date with report dropdown */}
@@ -212,32 +247,6 @@ function ReportPageInner() {
 
             {/* Actions */}
             <div className="flex items-center gap-[8px]">
-              {/* Settings gear */}
-              {project && (
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="flex h-[48px] w-[48px] items-center justify-center rounded-full text-text-muted transition-all hover:bg-surface-tertiary hover:text-foreground"
-                  title="Project settings"
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 15a3 3 0 100-6 3 3 0 000 6z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              )}
-
               {/* Run button (hidden while running) */}
               {report.status !== "running" && (
                 <button
@@ -321,26 +330,38 @@ function ReportPageInner() {
 
       {/* Page grid */}
       <div className="p-[24px]">
-        <div className="grid grid-cols-3 gap-[24px]">
-          {report.pages.map((page) => {
+        {(() => {
+          const regularPages = report.pages.filter((p) => !p.flowId);
+          const flowPages = report.pages.filter((p) => p.flowId);
+
+          // Group flow pages by flowId
+          const flowGroups = new Map<string, ReportPage[]>();
+          for (const fp of flowPages) {
+            const group = flowGroups.get(fp.flowId!) || [];
+            group.push(fp);
+            flowGroups.set(fp.flowId!, group);
+          }
+
+          const variantParam = activeVariant ? `&variant=${activeVariant}` : "";
+
+          const renderPageCard = (page: ReportPage) => {
             const bpResult = getPageBp(page, String(activeBp));
             const changeCount = bpResult?.changeCount || 0;
             const diffSrc = bpResult?.diffScreenshot
               ? `/api/screenshots/${bpResult.diffScreenshot}`
               : null;
 
-            const variantParam = activeVariant ? `&variant=${activeVariant}` : "";
             return (
               <Link
                 key={page.id}
                 href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}${variantParam}`}
-                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
+                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97]"
               >
-                <div className="relative aspect-[2880/1760] w-full overflow-hidden border border-border-primary">
+                <div className="relative aspect-[2880/1760] w-full overflow-hidden rounded-[4px]">
                   {diffSrc ? (
                     <img
                       src={diffSrc}
-                      alt={page.path}
+                      alt={page.stepLabel || page.path}
                       className="absolute inset-0 h-full w-full object-cover object-top"
                     />
                   ) : (
@@ -349,16 +370,46 @@ function ReportPageInner() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="truncate text-[14px] text-foreground">
-                    {page.path}
+                <div className="flex items-center justify-between gap-[8px] px-[4px] py-[4px]">
+                  <span className="truncate text-[13px] text-text-secondary">
+                    {page.stepLabel || page.path}
                   </span>
                   <ChangeBadge count={changeCount} />
                 </div>
               </Link>
             );
-          })}
-        </div>
+          };
+
+          return (
+            <>
+              {/* Regular pages */}
+              {regularPages.length > 0 && (
+                <div className="grid grid-cols-3 gap-[24px]">
+                  {regularPages.map(renderPageCard)}
+                </div>
+              )}
+
+              {/* Flow sections */}
+              {Array.from(flowGroups.entries()).map(([flowId, pages]) => {
+                // Extract flow name from the path (format: "FlowName > StepLabel")
+                const flowName = pages[0]?.path.split(" > ")[0] || "Flow";
+                return (
+                  <div key={flowId} className={regularPages.length > 0 ? "mt-[32px]" : ""}>
+                    <div className="mb-[12px] flex items-center gap-[8px]">
+                      <span className="rounded-[4px] bg-accent-primary/10 px-[8px] py-[2px] text-[12px] font-bold text-accent-primary">
+                        Flow
+                      </span>
+                      <h3 className="text-[16px] font-bold text-foreground">{flowName}</h3>
+                    </div>
+                    <div className="grid grid-cols-3 gap-[24px]">
+                      {pages.map(renderPageCard)}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          );
+        })()}
 
         {/* Empty states */}
         {report.pages.length === 0 && report.status === "running" && (
@@ -383,14 +434,6 @@ function ReportPageInner() {
         )}
       </div>
 
-      {/* Project settings overlay */}
-      {showSettings && project && (
-        <ProjectSettingsOverlay
-          project={project}
-          onClose={() => setShowSettings(false)}
-          onUpdated={(updated) => setProject(updated)}
-        />
-      )}
     </div>
   );
 }

@@ -144,8 +144,9 @@ function PageDetailInner() {
 
   const displayUrl = project ? getDomain(project.prodUrl) : "...";
   const dateStr = formatRelativeTime(report.createdAt);
-  const pageName =
-    currentPage.path === "/"
+  const pageName = currentPage.stepLabel
+    ? currentPage.stepLabel
+    : currentPage.path === "/"
       ? "index"
       : currentPage.path.replace(/^\//, "");
 
@@ -162,9 +163,9 @@ function PageDetailInner() {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in-up">
       {/* Sticky top nav */}
-      <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content">
+      <div className="sticky top-0 z-30 rounded-t-[12px] bg-surface-content">
         <div className="flex flex-col gap-[16px] px-[20px] py-[24px] pb-0">
           {/* Title row */}
           <div className="flex items-center justify-between gap-[16px]">
@@ -197,8 +198,9 @@ function PageDetailInner() {
                       />
                       <div className="absolute left-0 top-[56px] z-40 flex min-w-[280px] max-w-[400px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
                         {report.pages.map((page) => {
-                          const label =
-                            page.path === "/"
+                          const label = page.stepLabel
+                            ? page.stepLabel
+                            : page.path === "/"
                               ? "index"
                               : page.path.replace(/^\//, "");
                           const isCurrent = page.pageId === params.pageId;

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import { useTheme } from "next-themes";
+import { useSession } from "next-auth/react";
 import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
 import type { Project, Report } from "@/lib/types";
@@ -71,6 +70,42 @@ function ProjectFavicon({ url, size = 56 }: { url: string; size?: number }) {
 interface ProjectWithReports {
   project: Project;
   reports: Report[];
+}
+
+function UserAvatarLink({
+  showTooltip,
+  hideTooltip,
+}: {
+  showTooltip: (e: React.MouseEvent, text: string) => void;
+  hideTooltip: () => void;
+}) {
+  const { data: session } = useSession();
+  const user = session?.user;
+  const initial = user?.name?.charAt(0).toUpperCase() || "?";
+
+  return (
+    <Link
+      href="/settings"
+      onMouseEnter={(e) => showTooltip(e, user?.name || "Settings")}
+      onMouseLeave={hideTooltip}
+      className="flex h-[56px] w-[56px] cursor-pointer items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-80"
+    >
+      {user?.image ? (
+        <img
+          src={user.image}
+          alt={user.name || "User"}
+          width={56}
+          height={56}
+          className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[20px] font-bold text-foreground">
+          {initial}
+        </span>
+      )}
+    </Link>
+  );
 }
 
 export default function Sidebar() {
@@ -149,7 +184,7 @@ export default function Sidebar() {
               <button
                 key={project.id}
                 onClick={() => handleProjectClick(project, reports)}
-                onMouseEnter={(e) => showTooltip(e, domain)}
+                onMouseEnter={(e) => showTooltip(e, project.name || domain)}
                 onMouseLeave={hideTooltip}
                 className={`relative flex h-[64px] w-[64px] shrink-0 cursor-pointer items-center justify-center rounded-[18px] transition-all active:scale-[0.97] ${
                   active ? "bg-black/50" : "hover:bg-foreground/5 hover:shadow-elevation-sm"
@@ -187,9 +222,9 @@ export default function Sidebar() {
           </button>
         </nav>
 
-        {/* User avatar + sign out */}
+        {/* User avatar → links to settings */}
         <div className="pb-[24px] pt-[16px]">
-          <UserAvatar showTooltip={showTooltip} hideTooltip={hideTooltip} />
+          <UserAvatarLink showTooltip={showTooltip} hideTooltip={hideTooltip} />
         </div>
       </aside>
 
@@ -213,96 +248,5 @@ export default function Sidebar() {
         />
       )}
     </>
-  );
-}
-
-function UserAvatar({
-  showTooltip,
-  hideTooltip,
-}: {
-  showTooltip: (e: React.MouseEvent, text: string) => void;
-  hideTooltip: () => void;
-}) {
-  const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
-  const router = useRouter();
-  const [showMenu, setShowMenu] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const user = session?.user;
-  const initial = user?.name?.charAt(0).toUpperCase() || "?";
-
-  useEffect(() => setMounted(true), []);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setShowMenu(!showMenu)}
-        onMouseEnter={(e) => showTooltip(e, user?.name || "Account")}
-        onMouseLeave={hideTooltip}
-        className="flex h-[56px] w-[56px] cursor-pointer items-center justify-center overflow-hidden rounded-full"
-      >
-        {user?.image ? (
-          <img
-            src={user.image}
-            alt={user.name || "User"}
-            width={56}
-            height={56}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[20px] font-bold text-foreground">
-            {initial}
-          </span>
-        )}
-      </button>
-      {showMenu && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
-          <div className="absolute bottom-[64px] left-0 z-40 flex min-w-[200px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
-            {user?.email && (
-              <p className="truncate px-[12px] py-[4px] text-[12px] text-text-subtle">
-                {user.email}
-              </p>
-            )}
-            {mounted && (
-              <div className="px-[12px] py-[8px]">
-                <p className="mb-[6px] text-[11px] uppercase tracking-wider text-text-subtle">Theme</p>
-                <div className="flex rounded-[8px] bg-surface-tertiary p-[3px]">
-                  {(["light", "dark", "system"] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setTheme(opt)}
-                      className={`flex-1 rounded-[6px] px-[8px] py-[4px] text-[12px] capitalize transition-colors ${
-                        theme === opt
-                          ? "bg-surface-content font-bold shadow-sm"
-                          : "text-text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                router.push("/settings");
-              }}
-              className="rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-foreground hover:bg-surface-tertiary"
-            >
-              Settings
-            </button>
-            <button
-              onClick={() => signOut({ callbackUrl: "/sign-in" })}
-              className="rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-foreground hover:bg-surface-tertiary"
-            >
-              Sign out
-            </button>
-          </div>
-        </>
-      )}
-    </div>
   );
 }

@@ -8,6 +8,8 @@ export interface TestVariant {
 
 export interface Project {
   id: string;
+  /** Display name for the project (falls back to domain if omitted) */
+  name?: string;
   prodUrl: string;
   devUrl: string;
   pages: PageEntry[];
@@ -21,6 +23,8 @@ export interface Project {
   breakpoints?: number[];
   /** Soft-deleted / hidden from sidebar */
   archived?: boolean;
+  /** Scripted browser flows for multi-step visual regression testing */
+  flows?: FlowEntry[];
 }
 
 export interface UserSettings {
@@ -33,6 +37,23 @@ export interface UserSettings {
 export interface PageEntry {
   id: string;
   path: string;
+}
+
+// --- Flow types ---
+
+export type FlowAction =
+  | { id: string; type: "click"; selector: string; captureScreenshot?: boolean }
+  | { id: string; type: "fill"; selector: string; value: string; captureScreenshot?: boolean }
+  | { id: string; type: "wait"; ms: number; captureScreenshot?: boolean }
+  | { id: string; type: "waitForSelector"; selector: string; captureScreenshot?: boolean }
+  | { id: string; type: "navigate"; path: string; captureScreenshot?: boolean }
+  | { id: string; type: "screenshot"; label: string };
+
+export interface FlowEntry {
+  id: string;
+  name: string;
+  startPath: string;
+  steps: FlowAction[];
 }
 
 export interface Report {
@@ -52,6 +73,10 @@ export interface ReportPage {
   breakpoints: Record<string, BreakpointResult>;
   /** Variant results: variantId → breakpoint → result */
   variants?: Record<string, Record<string, BreakpointResult>>;
+  /** Set when this page is a flow screenshot capture point */
+  flowId?: string;
+  /** Human-readable label for this flow step */
+  stepLabel?: string;
 }
 
 export interface BreakpointResult {

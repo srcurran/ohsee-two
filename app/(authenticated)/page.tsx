@@ -15,13 +15,6 @@ export default function Home() {
 
   useEffect(() => {
     async function redirectToLatest() {
-      // Check localStorage for last viewed route
-      const lastPath = localStorage.getItem("ohsee-last-path");
-      if (lastPath && lastPath !== "/") {
-        router.replace(lastPath);
-        return;
-      }
-
       const res = await fetch("/api/projects");
       if (!res.ok) {
         setLoading(false);
@@ -29,8 +22,16 @@ export default function Home() {
       }
       const projects: Project[] = await res.json();
       if (projects.length === 0) {
+        localStorage.removeItem("ohsee-last-path");
         setLoading(false);
         setHasProjects(false);
+        return;
+      }
+
+      // Only use saved path if user actually has projects
+      const lastPath = localStorage.getItem("ohsee-last-path");
+      if (lastPath && lastPath !== "/") {
+        router.replace(lastPath);
         return;
       }
 
