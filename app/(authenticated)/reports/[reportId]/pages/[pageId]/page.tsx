@@ -33,6 +33,7 @@ function PageDetailInner() {
   const [showReportNav, setShowReportNav] = useState(false);
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("tap");
+  const [showingDev, setShowingDev] = useState(false);
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
 
@@ -142,7 +143,7 @@ function PageDetailInner() {
     router.push(`?${p.toString()}`, { scroll: false });
   };
 
-  const displayUrl = project ? getDomain(project.prodUrl) : "...";
+  const displayUrl = project ? (project.name || getDomain(project.prodUrl)) : "...";
   const dateStr = formatRelativeTime(report.createdAt);
   const pageName = currentPage.stepLabel
     ? currentPage.stepLabel
@@ -356,7 +357,7 @@ function PageDetailInner() {
               <span>Changes</span>
             </div>
             <div className="flex-1">
-              <ComparisonHeader mode={comparisonMode} onModeChange={setComparisonMode} />
+              <ComparisonHeader mode={comparisonMode} onModeChange={setComparisonMode} showingDev={showingDev} />
             </div>
           </div>
         )}
@@ -382,6 +383,7 @@ function PageDetailInner() {
                 devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
                 mode={comparisonMode}
                 onModeChange={setComparisonMode}
+                onPressedChange={setShowingDev}
                 hideHeader
               />
             </div>

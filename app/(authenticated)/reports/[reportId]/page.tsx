@@ -11,6 +11,8 @@ import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, ReportPage } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
+import ProjectFavicon from "@/components/ProjectFavicon";
+import PageDetailPanel from "@/components/PageDetailPanel";
 
 function getDomain(url: string): string {
   try {
@@ -31,8 +33,11 @@ function ReportPageInner() {
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [showReportNav, setShowReportNav] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [pageOriginRect, setPageOriginRect] = useState<DOMRect | null>(null);
+  const [pageOriginThumb, setPageOriginThumb] = useState<{ rect: DOMRect; src: string } | null>(null);
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
+  const activePageId = searchParams.get("page") || null;
 
   const loadReport = async () => {
     const res = await fetch(`/api/reports/${params.reportId}`);
@@ -70,6 +75,29 @@ function ReportPageInner() {
   const handleBpChange = (bp: number) => {
     const p = new URLSearchParams(searchParams.toString());
     p.set("bp", String(bp));
+    router.push(`?${p.toString()}`, { scroll: false });
+  };
+
+  const openPage = (pageId: string, e?: React.MouseEvent) => {
+    if (e) {
+      const card = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setPageOriginRect(card);
+      // Find the thumbnail image inside the card
+      const img = (e.currentTarget as HTMLElement).querySelector("img");
+      if (img) {
+        setPageOriginThumb({ rect: img.getBoundingClientRect(), src: img.src });
+      } else {
+        setPageOriginThumb(null);
+      }
+    }
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("page", pageId);
+    router.push(`?${p.toString()}`, { scroll: false });
+  };
+
+  const closePage = () => {
+    const p = new URLSearchParams(searchParams.toString());
+    p.delete("page");
     router.push(`?${p.toString()}`, { scroll: false });
   };
 
@@ -162,7 +190,30 @@ function ReportPageInner() {
       {showSettings && project && (
         <ProjectSettingsPanel
           projectId={project.id}
-          onClose={() => setShowSettings(false)}
+          onClose={() => {
+            setShowSettings(false);
+            // Re-fetch project to pick up name/URL changes
+            fetch(`/api/projects/${project.id}`)
+              .then((r) => r.ok ? r.json() : null)
+              .then((p) => { if (p) setProject(p); });
+          }}
+        />
+      )}
+
+      {/* Page detail panel */}
+      {activePageId && report && project && (
+        <PageDetailPanel
+          report={report}
+          project={project}
+          pageId={activePageId}
+          initialBp={activeBp}
+          initialVariant={activeVariant}
+          originRect={pageOriginRect}
+          originThumb={pageOriginThumb}
+          onClose={() => { closePage(); setPageOriginRect(null); setPageOriginThumb(null); }}
+          onNavigate={(pid) => openPage(pid)}
+          onBpChange={handleBpChange}
+          onVariantChange={handleVariantChange}
         />
       )}
 
@@ -171,7 +222,12 @@ function ReportPageInner() {
         <div className="flex flex-col gap-[16px] px-[24px] py-[20px]">
           {/* Domain title + settings */}
           <div className="flex items-center justify-between">
-            <p className="text-[48px] text-foreground">{displayUrl}</p>
+            <div className="flex items-center gap-[16px]">
+              {project && (
+                <ProjectFavicon url={project.prodUrl} fallbackUrl={project.devUrl} size={48} />
+              )}
+              <p className="text-[48px] text-foreground">{displayUrl}</p>
+            </div>
             {project && (
               <button
                 onClick={() => setShowSettings(true)}
@@ -352,10 +408,10 @@ function ReportPageInner() {
               : null;
 
             return (
-              <Link
+              <button
                 key={page.id}
-                href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}${variantParam}`}
-                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97]"
+                onClick={(e) => openPage(page.pageId, e)}
+                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97]"
               >
                 <div className="relative aspect-[2880/1760] w-full overflow-hidden rounded-[4px]">
                   {diffSrc ? (
@@ -376,7 +432,7 @@ function ReportPageInner() {
                   </span>
                   <ChangeBadge count={changeCount} />
                 </div>
-              </Link>
+              </button>
             );
           };
 

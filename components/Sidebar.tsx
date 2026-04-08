@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
+import ProjectFavicon from "./ProjectFavicon";
 import type { Project, Report } from "@/lib/types";
 
 function getDomain(url: string): string {
@@ -16,56 +17,6 @@ function getDomain(url: string): string {
   }
 }
 
-function getHostname(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
-}
-
-/** Hash a string to a consistent hue for fallback colors */
-function domainHue(domain: string): number {
-  let hash = 0;
-  for (let i = 0; i < domain.length; i++) {
-    hash = domain.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash % 360);
-}
-
-function ProjectFavicon({ url, size = 56 }: { url: string; size?: number }) {
-  const [failed, setFailed] = useState(false);
-  const domain = getDomain(url);
-  const hostname = getHostname(url);
-  const initial = domain.charAt(0).toUpperCase();
-  const hue = domainHue(domain);
-
-  if (failed || !url) {
-    return (
-      <span
-        className="flex shrink-0 items-center justify-center rounded-[14px] text-[24px] font-bold text-white"
-        style={{
-          width: size,
-          height: size,
-          backgroundColor: `hsl(${hue}, 50%, 65%)`,
-        }}
-      >
-        {initial}
-      </span>
-    );
-  }
-
-  return (
-    <img
-      src={`/api/favicon?domain=${hostname}`}
-      alt={domain}
-      width={size}
-      height={size}
-      className="shrink-0 rounded-[14px] object-cover"
-      onError={() => setFailed(true)}
-    />
-  );
-}
 
 interface ProjectWithReports {
   project: Project;
@@ -172,10 +123,10 @@ export default function Sidebar() {
   return (
     <>
       <aside className="sticky top-0 z-20 flex h-screen w-[96px] shrink-0 flex-col items-center">
-        <div className="pt-[32px] pb-[12px]" />
+        <div className="pt-[24px] pb-[12px]" />
 
         {/* Project icons */}
-        <nav className="flex flex-1 flex-col items-center gap-[8px] overflow-y-auto px-[4px] pt-[8px]">
+        <nav className="flex flex-1 flex-col items-center gap-[8px] overflow-y-auto px-[4px]">
           {data.filter(({ project }) => !project.archived).map(({ project, reports }) => {
             const active = isProjectActive(project, reports);
             const domain = getDomain(project.prodUrl);
@@ -187,16 +138,15 @@ export default function Sidebar() {
                 onMouseEnter={(e) => showTooltip(e, project.name || domain)}
                 onMouseLeave={hideTooltip}
                 className={`relative flex h-[64px] w-[64px] shrink-0 cursor-pointer items-center justify-center rounded-[18px] transition-all active:scale-[0.97] ${
-                  active ? "bg-black/50" : "hover:bg-foreground/5 hover:shadow-elevation-sm"
+                  active ? "" : "hover:bg-foreground/5 hover:shadow-elevation-sm"
                 }`}
               >
-                <div
-                  className={`relative overflow-hidden rounded-[14px] ${
-                    active ? "ring-2 ring-surface-content" : ""
-                  }`}
-                >
-                  <ProjectFavicon url={project.prodUrl} size={56} />
-                </div>
+                <ProjectFavicon
+                  url={project.prodUrl}
+                  fallbackUrl={project.devUrl}
+                  size={56}
+                  className={active ? "ring-2 ring-foreground" : ""}
+                />
                 {/* Arrow indicator on hover */}
                 <div className="pointer-events-none absolute right-[-2px] top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
                 </div>

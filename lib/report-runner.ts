@@ -468,8 +468,8 @@ async function captureAndDiffFlow(options: {
     },
   });
 
-  // Generate diffs for each screenshot step at each breakpoint
-  const screenshotSteps = flow.steps.filter((s) => s.type === "screenshot");
+  // Generate diffs for each step that captures a screenshot
+  const screenshotSteps = getScreenshotStepIds(flow);
   for (const step of screenshotSteps) {
     for (const bp of breakpointList) {
       checkCancelled();

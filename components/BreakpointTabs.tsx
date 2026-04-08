@@ -20,6 +20,7 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
           const count = changeCounts?.[String(bp)];
           const hasData = count !== undefined;
           const hasChanges = hasData && count > 0;
+          const noScreenshot = hasData && count < 0;
 
           return (
             <button
@@ -33,7 +34,7 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
               {hasData && (
                 <span
                   className={`inline-block h-[8px] w-[8px] rounded-full ${
-                    hasChanges ? "bg-accent-yellow" : "bg-accent-green"
+                    noScreenshot ? "bg-text-disabled" : hasChanges ? "bg-accent-yellow" : "bg-accent-green"
                   }`}
                 />
               )}

@@ -40,7 +40,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     <div className="flex flex-col gap-[16px]">
       <div className="flex items-center justify-between">
         <h3 className="text-[20px] font-bold text-foreground">
-          Issues ({changes.length})
+          Changes ({changes.length})
         </h3>
       </div>
 

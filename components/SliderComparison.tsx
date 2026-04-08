@@ -9,19 +9,24 @@ interface Props {
   devSrc: string;
   mode?: ComparisonMode;
   onModeChange?: (mode: ComparisonMode) => void;
+  onPressedChange?: (pressed: boolean) => void;
   hideHeader?: boolean;
 }
 
 export function ComparisonHeader({
   mode,
   onModeChange,
+  showingDev,
 }: {
   mode: ComparisonMode;
   onModeChange: (mode: ComparisonMode) => void;
+  showingDev?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between text-[14px] text-foreground">
-      <span>Prod</span>
+    <div className="flex items-center justify-between text-[14px]">
+      <span className={`transition-colors duration-150 ${
+        showingDev ? "text-text-muted" : "font-bold text-foreground"
+      }`}>Prod</span>
       <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-tertiary p-[3px]">
         <button
           onClick={() => onModeChange("tap")}
@@ -44,7 +49,9 @@ export function ComparisonHeader({
           Slider
         </button>
       </div>
-      <span>Dev</span>
+      <span className={`transition-colors duration-150 ${
+        showingDev ? "font-bold text-foreground" : "text-text-muted"
+      }`}>Dev</span>
     </div>
   );
 }
@@ -54,6 +61,7 @@ export default function SliderComparison({
   devSrc,
   mode: controlledMode,
   onModeChange,
+  onPressedChange,
   hideHeader,
 }: Props) {
   const [internalMode, setInternalMode] = useState<ComparisonMode>("tap");
@@ -69,7 +77,7 @@ export default function SliderComparison({
       )}
 
       {mode === "tap" ? (
-        <TapReveal prodSrc={prodSrc} devSrc={devSrc} />
+        <TapReveal prodSrc={prodSrc} devSrc={devSrc} onPressedChange={onPressedChange} />
       ) : (
         <SliderReveal prodSrc={prodSrc} devSrc={devSrc} />
       )}
@@ -79,18 +87,23 @@ export default function SliderComparison({
 
 /* ── Tap to reveal ────────────────────────────────────────────── */
 
-function TapReveal({ prodSrc, devSrc }: Props) {
+function TapReveal({ prodSrc, devSrc, onPressedChange }: Props) {
   const [pressed, setPressed] = useState(false);
+
+  const updatePressed = (val: boolean) => {
+    setPressed(val);
+    onPressedChange?.(val);
+  };
 
   return (
     <div
       className="relative cursor-pointer select-none overflow-hidden bg-surface-comparison"
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
-      onTouchStart={() => setPressed(true)}
-      onTouchEnd={() => setPressed(false)}
-      onTouchCancel={() => setPressed(false)}
+      onMouseDown={() => updatePressed(true)}
+      onMouseUp={() => updatePressed(false)}
+      onMouseLeave={() => updatePressed(false)}
+      onTouchStart={() => updatePressed(true)}
+      onTouchEnd={() => updatePressed(false)}
+      onTouchCancel={() => updatePressed(false)}
     >
       <img src={devSrc} alt="Dev version" className="block w-full" draggable={false} />
       <img
@@ -100,9 +113,6 @@ function TapReveal({ prodSrc, devSrc }: Props) {
         style={{ opacity: pressed ? 0 : 1 }}
         draggable={false}
       />
-      <div className="pointer-events-none absolute bottom-[12px] left-1/2 -translate-x-1/2 rounded-[4px] bg-black/60 px-[10px] py-[4px] text-[12px] text-white backdrop-blur-[4px]">
-        {pressed ? "Dev" : "Prod"} — {pressed ? "release" : "hold"} to see {pressed ? "prod" : "dev"}
-      </div>
     </div>
   );
 }
