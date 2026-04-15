@@ -1,4 +1,4 @@
-import { signInWithGoogle } from "./actions";
+import { signInWithGoogle, signInWithCredentials } from "./actions";
 
 function GoogleIcon() {
   return (
@@ -42,6 +42,38 @@ export default function SignInPage() {
             Sign in with Google
           </button>
         </form>
+
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <div className="flex items-center gap-[16px] w-full max-w-[320px]">
+              <div className="h-px flex-1 bg-border-primary" />
+              <span className="text-[12px] text-text-muted">DEV ONLY</span>
+              <div className="h-px flex-1 bg-border-primary" />
+            </div>
+            <form action={signInWithCredentials} className="flex w-full max-w-[320px] flex-col gap-[12px]">
+              <input
+                name="email"
+                type="email"
+                placeholder="Email"
+                required
+                className="rounded-[8px] border border-border-primary bg-surface-content px-[16px] py-[12px] text-[14px] text-foreground placeholder:text-text-muted"
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                required
+                className="rounded-[8px] border border-border-primary bg-surface-content px-[16px] py-[12px] text-[14px] text-foreground placeholder:text-text-muted"
+              />
+              <button
+                type="submit"
+                className="rounded-[8px] bg-foreground/10 px-[32px] py-[12px] text-[14px] font-bold text-foreground transition-all hover:bg-foreground/20"
+              >
+                Dev Sign In
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

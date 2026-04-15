@@ -49,7 +49,7 @@ export default function DefaultsSettingsPage() {
 
   return (
     <div>
-      <h1 className="mb-[8px] text-[24px] font-bold text-foreground">Defaults</h1>
+      <h1 className="mb-[8px] text-[32px] text-foreground">Defaults</h1>
       <p className="mb-[32px] text-[14px] text-text-muted">
         Applied to new projects by default.
       </p>

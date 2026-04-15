@@ -8,10 +8,9 @@ import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
 import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
-import type { Report, Project, ReportPage } from "@/lib/types";
+import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
 import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
-import ProjectFavicon from "@/components/ProjectFavicon";
 import PageDetailPanel from "@/components/PageDetailPanel";
 
 function getDomain(url: string): string {
@@ -31,6 +30,7 @@ function ReportPageInner() {
   const [notFound, setNotFound] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [allReports, setAllReports] = useState<Report[]>([]);
+  const [siteTest, setSiteTest] = useState<SiteTest | null>(null);
   const [showReportNav, setShowReportNav] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pageOriginRect, setPageOriginRect] = useState<DOMRect | null>(null);
@@ -52,8 +52,16 @@ function ReportPageInner() {
       if (pRes.ok) {
         const p = await pRes.json();
         setProject(p);
-        // Also load all reports for the dropdown
-        const allRes = await fetch(`/api/projects/${r.projectId}/reports`);
+        // Resolve the site test for this report
+        if (r.siteTestId && p.tests) {
+          const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
+          if (test) setSiteTest(test);
+        }
+        // Load reports filtered by siteTestId (or all if no test)
+        const reportsUrl = r.siteTestId
+          ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
+          : `/api/projects/${r.projectId}/reports`;
+        const allRes = await fetch(reportsUrl);
         if (allRes.ok) setAllReports(await allRes.json());
       }
     }
@@ -113,9 +121,11 @@ function ReportPageInner() {
 
   const handleRun = async () => {
     if (!project) return;
-    const res = await fetch(`/api/projects/${project.id}/reports`, {
-      method: "POST",
-    });
+    // Use test-scoped endpoint if we know which test this report belongs to
+    const url = report?.siteTestId
+      ? `/api/projects/${project.id}/tests/${report.siteTestId}/reports`
+      : `/api/projects/${project.id}/reports`;
+    const res = await fetch(url, { method: "POST" });
     if (res.ok) {
       const { reportId } = await res.json();
       refreshProjects();
@@ -161,7 +171,11 @@ function ReportPageInner() {
     );
   }
 
-  const displayUrl = project ? (project.name || getDomain(project.prodUrl)) : "...";
+  const projectName = project ? (project.name || getDomain(project.prodUrl)) : "...";
+  const hasMultipleTests = (project?.tests?.length ?? 0) > 1;
+  const displayUrl = hasMultipleTests && siteTest
+    ? `${projectName} › ${siteTest.name}`
+    : projectName;
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
@@ -219,56 +233,59 @@ function ReportPageInner() {
 
       {/* Sticky top nav */}
       <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content">
-        <div className="flex flex-col gap-[16px] px-[24px] py-[20px]">
-          {/* Domain title + settings */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-[16px]">
-              {project && (
-                <ProjectFavicon url={project.prodUrl} fallbackUrl={project.devUrl} size={48} />
-              )}
-              <p className="text-[48px] text-foreground">{displayUrl}</p>
-            </div>
-            {project && (
+        {/* Title row */}
+        <div className="flex items-center justify-between px-[24px] py-[20px]">
+          {/* Left: Run now pill */}
+          <div className="flex shrink-0 items-center">
+            {report.status !== "running" ? (
               <button
-                onClick={() => setShowSettings(true)}
-                className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
-                title="Project settings"
+                onClick={handleRun}
+                className="flex items-center gap-[16px] rounded-[8px] border border-border-strong pl-[24px] pr-[20px] py-[8px] text-[16px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px]"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="8" cy="6" r="2" fill="currentColor" />
-                  <circle cx="16" cy="12" r="2" fill="currentColor" />
-                  <circle cx="10" cy="18" r="2" fill="currentColor" />
+                Run now
+                <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="text-text-subtle">
+                  <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
                 </svg>
               </button>
+            ) : (
+              <div className="flex items-center gap-[12px]">
+                <div className="h-[6px] w-[120px] overflow-hidden rounded-full bg-surface-tertiary">
+                  <div
+                    className="h-full rounded-full bg-accent-primary transition-all duration-500"
+                    style={{ width: `${(progressCompleted / progressTotal) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[13px] text-text-muted">
+                  {progressCompleted}/{progressTotal}
+                </span>
+                <button
+                  onClick={handleCancel}
+                  className="text-[13px] text-status-error underline hover:text-status-error-text"
+                >
+                  Cancel
+                </button>
+              </div>
             )}
           </div>
 
-          <div className="flex items-start justify-between">
+          {/* Center: Project name */}
+          <p className="absolute left-1/2 -translate-x-1/2 text-[24px] text-foreground whitespace-nowrap">{displayUrl}</p>
+
+          {/* Right: Date + status dot + settings */}
+          <div className="flex shrink-0 items-center gap-[24px]">
             {/* Date with report dropdown */}
             <div className="relative">
               <button
                 onClick={() => setShowReportNav(!showReportNav)}
-                className="group flex items-center gap-[12px] rounded-[8px] pr-[4px] transition-all hover:bg-foreground/[0.03]"
+                className="flex items-center gap-[8px] rounded-[8px] px-[8px] py-[4px] transition-all hover:bg-foreground/[0.03]"
               >
                 <span
-                  className="text-[32px] text-foreground"
+                  className="text-[16px] text-foreground"
                   title={formatFullDateTime(report.createdAt)}
                 >
                   {formatRelativeTime(report.createdAt)}
                 </span>
-                <span className={`inline-block h-[10px] w-[10px] shrink-0 rounded-full ${reportDotColor(report)}`} />
-                <span className="flex h-[32px] w-[32px] items-center justify-center rounded-[6px] bg-foreground/[0.06] text-text-muted transition-colors group-hover:bg-foreground/10 group-hover:text-foreground">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path
-                      d="M4.5 6.75l4.5 4.5 4.5-4.5"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
+                <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${reportDotColor(report)}`} />
               </button>
               {showReportNav && (
                 <>
@@ -276,7 +293,7 @@ function ReportPageInner() {
                     className="fixed inset-0 z-30"
                     onClick={() => setShowReportNav(false)}
                   />
-                  <div className="absolute left-0 top-[52px] z-40 flex min-w-[320px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
+                  <div className="absolute right-0 top-[40px] z-40 flex min-w-[320px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
                     {allReports.map((r) => {
                       const isCurrent = r.id === report.id;
                       return (
@@ -301,70 +318,40 @@ function ReportPageInner() {
               )}
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-[8px]">
-              {/* Run button (hidden while running) */}
-              {report.status !== "running" && (
-                <button
-                  onClick={handleRun}
-                  className="flex items-center gap-[16px] rounded-full border border-border-strong px-[20px] py-[10px] text-[20px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px]"
-                >
-                  Run
-                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                    <path
-                      d="M8 5v18l16-9L8 5z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
+            {/* Settings icon */}
+            {project && (
+              <button
+                onClick={() => setShowSettings(true)}
+                className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
+                title="Project settings"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="8" cy="6" r="2" fill="currentColor" />
+                  <circle cx="16" cy="12" r="2" fill="currentColor" />
+                  <circle cx="10" cy="18" r="2" fill="currentColor" />
+                </svg>
+              </button>
+            )}
           </div>
-
-          {/* Progress indicator */}
-          {report.status === "running" && (
-            <div className="mt-[12px] flex flex-col gap-[8px]">
-              <div className="flex items-center gap-[12px]">
-                <div className="h-[6px] flex-1 overflow-hidden rounded-full bg-surface-tertiary">
-                  <div
-                    className="h-full rounded-full bg-accent-primary transition-all duration-500"
-                    style={{
-                      width: `${(progressCompleted / progressTotal) * 100}%`,
-                    }}
-                  />
-                </div>
-                <span className="shrink-0 text-[13px] text-text-muted">
-                  {progressCompleted} / {progressTotal}
-                </span>
-                <button
-                  onClick={handleCancel}
-                  className="shrink-0 text-[13px] text-status-error underline hover:text-status-error-text"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Cancelled state */}
-          {report.status === "cancelled" && (
-            <div className="mt-[12px] rounded-[8px] border border-border-primary bg-surface-tertiary p-[16px]">
-              <p className="text-[13px] text-text-muted">Report was cancelled.</p>
-            </div>
-          )}
-
-          {/* Error state */}
-          {report.status === "failed" && (
-            <div className="mt-[12px] rounded-[8px] border border-status-error-border bg-status-error-muted p-[16px]">
-              <p className="text-[13px] font-bold text-status-error-strong">Report failed</p>
-              {report.error && (
-                <pre className="mt-[8px] max-h-[200px] overflow-auto whitespace-pre-wrap text-[12px] text-status-error-text">
-                  {report.error}
-                </pre>
-              )}
-            </div>
-          )}
         </div>
+
+        {/* Status messages below title row */}
+        {report.status === "cancelled" && (
+          <div className="mx-[32px] mb-[12px] rounded-[8px] border border-border-primary bg-surface-tertiary p-[16px]">
+            <p className="text-[13px] text-text-muted">Report was cancelled.</p>
+          </div>
+        )}
+        {report.status === "failed" && (
+          <div className="mx-[32px] mb-[12px] rounded-[8px] border border-status-error-border bg-status-error-muted p-[16px]">
+            <p className="text-[13px] font-bold text-status-error-strong">Report failed</p>
+            {report.error && (
+              <pre className="mt-[8px] max-h-[200px] overflow-auto whitespace-pre-wrap text-[12px] text-status-error-text">
+                {report.error}
+              </pre>
+            )}
+          </div>
+        )}
 
         {/* Variant tabs (only shown when variants exist) */}
         <VariantTabs
@@ -380,6 +367,7 @@ function ReportPageInner() {
             onChange={handleBpChange}
             changeCounts={bpChangeCounts}
             breakpoints={project?.breakpoints}
+            align="start"
           />
         </div>
       </div>
@@ -400,9 +388,10 @@ function ReportPageInner() {
 
           const variantParam = activeVariant ? `&variant=${activeVariant}` : "";
 
-          const renderPageCard = (page: ReportPage) => {
+          const renderPageCard = (page: ReportPage, index: number) => {
             const bpResult = getPageBp(page, String(activeBp));
             const changeCount = bpResult?.changeCount || 0;
+            const hasScreenshot = !!bpResult?.prodScreenshot;
             const diffSrc = bpResult?.diffScreenshot
               ? `/api/screenshots/${bpResult.diffScreenshot}`
               : null;
@@ -411,14 +400,15 @@ function ReportPageInner() {
               <button
                 key={page.id}
                 onClick={(e) => openPage(page.pageId, e)}
-                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97]"
+                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97] animate-card-in"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="relative aspect-[2880/1760] w-full overflow-hidden rounded-[4px]">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[4px] bg-surface-tertiary">
                   {diffSrc ? (
                     <img
                       src={diffSrc}
                       alt={page.stepLabel || page.path}
-                      className="absolute inset-0 h-full w-full object-cover object-top"
+                      className="absolute inset-0 h-full w-full object-contain object-top"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-surface-tertiary text-[12px] text-text-subtle">
@@ -430,7 +420,7 @@ function ReportPageInner() {
                   <span className="truncate text-[13px] text-text-secondary">
                     {page.stepLabel || page.path}
                   </span>
-                  <ChangeBadge count={changeCount} />
+                  <ChangeBadge count={changeCount} noData={!hasScreenshot} />
                 </div>
               </button>
             );
@@ -441,7 +431,7 @@ function ReportPageInner() {
               {/* Regular pages */}
               {regularPages.length > 0 && (
                 <div className="grid grid-cols-3 gap-[24px]">
-                  {regularPages.map(renderPageCard)}
+                  {regularPages.map((page, i) => renderPageCard(page, i))}
                 </div>
               )}
 
@@ -458,7 +448,7 @@ function ReportPageInner() {
                       <h3 className="text-[16px] font-bold text-foreground">{flowName}</h3>
                     </div>
                     <div className="grid grid-cols-3 gap-[24px]">
-                      {pages.map(renderPageCard)}
+                      {pages.map((page, i) => renderPageCard(page, regularPages.length + i))}
                     </div>
                   </div>
                 );

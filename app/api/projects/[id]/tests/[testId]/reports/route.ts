@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
-import { userReportsDir, BREAKPOINTS } from "@/lib/constants";
+import { userProjectsFile, userReportsDir, BREAKPOINTS } from "@/lib/constants";
 import { requireUserId } from "@/lib/auth-helpers";
 import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
@@ -9,13 +9,14 @@ import type { Report } from "@/lib/types";
 import path from "path";
 import { promises as fs } from "fs";
 
+/** GET /api/projects/[id]/tests/[testId]/reports — list reports for a specific test */
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string; testId: string }> }
 ) {
   try {
     const userId = await requireUserId();
-    const { id } = await params;
+    const { id, testId } = await params;
     const reportsDir = userReportsDir(userId);
     const reports: Report[] = [];
     try {
@@ -24,17 +25,16 @@ export async function GET(
         const reportPath = path.join(reportsDir, dir, "report.json");
         try {
           const report = await readJsonFile<Report>(reportPath, null as unknown as Report);
-          if (report && report.projectId === id) {
+          if (report && report.projectId === id && report.siteTestId === testId) {
             reports.push(report);
           }
         } catch {
-          // skip invalid report files
+          // skip invalid
         }
       }
     } catch {
       // reports dir doesn't exist yet
     }
-
     reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return NextResponse.json(reports);
   } catch {
@@ -42,33 +42,33 @@ export async function GET(
   }
 }
 
+/** POST /api/projects/[id]/tests/[testId]/reports — run a specific test */
 export async function POST(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string; testId: string }> }
 ) {
   try {
     const userId = await requireUserId();
-    const { id } = await params;
+    const { id, testId } = await params;
     const projects = await readProjectsWithMigration(userId);
     const project = projects.find((p) => p.id === id);
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
+    const siteTest = project.tests?.find((t) => t.id === testId);
+    if (!siteTest) {
+      return NextResponse.json({ error: "Test not found" }, { status: 404 });
+    }
 
-    // Use the first/default test if available
-    const siteTest = project.tests?.[0];
-
-    // Cancel any running reports for this project before starting a new one
     cancelRunningReportsForProject(id);
 
     const reportId = uuidv4();
     const bpCount = project.breakpoints?.length || BREAKPOINTS.length;
-    const pages = siteTest?.pages ?? project.pages;
-    const totalOps = pages.length * bpCount * 3;
+    const totalOps = siteTest.pages.length * bpCount * 3;
     const report: Report = {
       id: reportId,
       projectId: id,
-      ...(siteTest ? { siteTestId: siteTest.id } : {}),
+      siteTestId: testId,
       createdAt: new Date().toISOString(),
       status: "running",
       progress: { completed: 0, total: totalOps },
@@ -78,7 +78,6 @@ export async function POST(
     const reportDir = path.join(userReportsDir(userId), reportId);
     await writeJsonFile(path.join(reportDir, "report.json"), report);
 
-    // Run report asynchronously
     runReport(project, reportId, userId, siteTest).catch(console.error);
 
     return NextResponse.json({ reportId }, { status: 202 });

@@ -6,7 +6,7 @@ import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { FlowEditor } from "@/components/FlowEditor";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import { useSidebar } from "@/components/SidebarProvider";
-import type { Project, FlowEntry } from "@/lib/types";
+import type { Project, SiteTest, FlowEntry } from "@/lib/types";
 
 function getDomain(url: string): string {
   try {
@@ -16,7 +16,7 @@ function getDomain(url: string): string {
   }
 }
 
-type Tab = "general" | "pages" | "flows" | "advanced";
+type Tab = "general" | "tests" | "advanced";
 
 interface Props {
   projectId: string;
@@ -38,11 +38,13 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
 
-  // Pages fields
+  // Tests
+  const [tests, setTests] = useState<SiteTest[]>([]);
+  const [editingTestId, setEditingTestId] = useState<string | null>(null);
+
+  // Test-scoped pages/flows (for the currently editing test)
   const [paths, setPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
-
-  // Flows fields
   const [flows, setFlows] = useState<FlowEntry[]>([]);
 
   // Advanced
@@ -53,8 +55,8 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   // Refs for latest state (used in save to avoid stale closures)
-  const stateRef = useRef({ name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows });
-  stateRef.current = { name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows };
+  const stateRef = useRef({ name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows, tests });
+  stateRef.current = { name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows, tests };
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}`)
@@ -67,7 +69,9 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
         setRequiresAuth(p.requiresAuth || false);
         setSelectedVariants((p.variants || []).map((v) => v.id));
         setBreakpoints(p.breakpoints?.length ? p.breakpoints : [...BREAKPOINTS]);
-        setPaths(p.pages.map((pg) => pg.path));
+        setTests(p.tests || []);
+        // Legacy compat: populate paths/flows from project-level fields
+        setPaths(p.pages.map((pg: { path: string }) => pg.path));
         setFlows(p.flows || []);
       });
   }, [projectId]);
@@ -108,6 +112,7 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
         breakpoints: s.breakpoints,
         pages: updatedPages,
         flows: s.flows,
+        tests: s.tests,
       }),
     });
 
@@ -124,9 +129,20 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
 
   // Helpers that update state AND save immediately
   const addPath = () => {
-    const p = newPath.trim();
-    if (p && !paths.includes(p)) {
-      const next = [...paths, p.startsWith("/") ? p : `/${p}`];
+    let p = newPath.trim();
+    if (!p) return;
+    // Strip domain info from full URLs
+    try {
+      const parsed = new URL(p);
+      if (parsed.hostname) {
+        p = parsed.pathname + parsed.search + parsed.hash;
+      }
+    } catch {
+      // Not a full URL — treat as a path
+    }
+    if (!p.startsWith("/")) p = `/${p}`;
+    if (!paths.includes(p)) {
+      const next = [...paths, p];
       setPaths(next);
       setNewPath("");
       save({ paths: next });
@@ -176,6 +192,63 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
     save({ flows: next });
   };
 
+  // --- Test management ---
+  const openTestEditor = (test: SiteTest) => {
+    setEditingTestId(test.id);
+    setPaths(test.pages.map((p) => p.path));
+    setFlows(test.flows || []);
+  };
+
+  const closeTestEditor = () => {
+    setEditingTestId(null);
+  };
+
+  const saveTestEdits = () => {
+    if (!editingTestId) return;
+    const existingTest = tests.find((t) => t.id === editingTestId);
+    if (!existingTest) return;
+
+    const existingByPath = new Map(existingTest.pages.map((p) => [p.path, p]));
+    const updatedPages = paths.map((p) => {
+      const existing = existingByPath.get(p);
+      return existing || { id: crypto.randomUUID(), path: p };
+    });
+
+    const updatedTests = tests.map((t) =>
+      t.id === editingTestId ? { ...t, pages: updatedPages, flows } : t
+    );
+    setTests(updatedTests);
+    save({ tests: updatedTests });
+  };
+
+  const addTest = () => {
+    const newTest: SiteTest = {
+      id: crypto.randomUUID(),
+      name: "New Test",
+      pages: [{ id: crypto.randomUUID(), path: "/" }],
+      flows: [],
+      createdAt: new Date().toISOString(),
+      lastRunAt: null,
+    };
+    const next = [...tests, newTest];
+    setTests(next);
+    save({ tests: next });
+    openTestEditor(newTest);
+  };
+
+  const removeTest = (testId: string) => {
+    const next = tests.filter((t) => t.id !== testId);
+    setTests(next);
+    if (editingTestId === testId) setEditingTestId(null);
+    save({ tests: next });
+  };
+
+  const renameTest = (testId: string, newName: string) => {
+    const next = tests.map((t) => t.id === testId ? { ...t, name: newName } : t);
+    setTests(next);
+    save({ tests: next });
+  };
+
   // Save text fields on blur
   const handleBlur = () => save();
 
@@ -206,8 +279,7 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "general", label: "General" },
-    { id: "pages", label: "Pages" },
-    { id: "flows", label: "Flows" },
+    { id: "tests", label: "Tests" },
     { id: "advanced", label: "Advanced" },
   ];
 
@@ -222,12 +294,12 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div
-        className={`fixed top-[24px] right-[12px] bottom-[24px] w-[608px] max-w-[calc(100%-48px)] flex flex-col rounded-[12px] bg-surface-content shadow-elevation-lg transition-transform duration-300 ease-out ${
+        className={`fixed top-[24px] right-[20px] bottom-[24px] w-[608px] max-w-[calc(100%-48px)] flex flex-col rounded-[12px] bg-surface-content shadow-elevation-lg transition-transform duration-300 ease-out ${
           visible ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-[24px] py-[20px]">
+        <div className="relative flex items-center justify-between px-[24px] py-[20px]">
           <div className="flex items-center gap-[12px]">
             <p className="text-[28px] font-bold text-foreground">Settings</p>
             {saveStatus === "saving" && (
@@ -239,7 +311,7 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
           </div>
           <button
             onClick={handleClose}
-            className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
+            className="absolute top-[12px] right-[16px] flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
             title="Close settings"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -309,55 +381,136 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
                 Requires authentication (for localhost testing)
               </label>
             </div>
-          ) : tab === "pages" ? (
+          ) : tab === "tests" ? (
             <div className="max-w-[560px]">
-              <p className="mb-[24px] text-[14px] text-text-muted">URL paths to capture during each scan.</p>
-              <div className="mb-[16px] flex gap-[8px]">
-                <input
-                  type="text"
-                  value={newPath}
-                  onChange={(e) => setNewPath(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addPath()}
-                  placeholder="/about"
-                  className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
-                />
-                <button onClick={addPath} className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10">
-                  Add
-                </button>
-              </div>
-              <div>
-                {paths.map((p) => (
-                  <div key={p} className="flex items-center justify-between border-b border-border-primary py-[8px] text-[14px] text-foreground">
-                    <span>{p}</span>
-                    <button onClick={() => removePath(p)} className="text-[12px] text-text-muted transition-colors hover:text-foreground">
-                      Remove
-                    </button>
+              {editingTestId ? (
+                /* Editing a specific test's pages + flows */
+                (() => {
+                  const editingTest = tests.find((t) => t.id === editingTestId);
+                  if (!editingTest) return null;
+                  return (
+                    <div>
+                      <button
+                        onClick={closeTestEditor}
+                        className="mb-[16px] flex items-center gap-[4px] text-[13px] text-text-muted transition-colors hover:text-foreground"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Back to tests
+                      </button>
+
+                      <input
+                        type="text"
+                        value={editingTest.name}
+                        onChange={(e) => renameTest(editingTestId, e.target.value)}
+                        onBlur={() => saveTestEdits()}
+                        className="mb-[24px] text-[20px] font-bold text-foreground bg-transparent outline-none border-b border-transparent focus:border-foreground w-full"
+                      />
+
+                      {/* Pages section */}
+                      <div className="mb-[32px]">
+                        <h4 className="mb-[8px] text-[14px] font-bold text-foreground">Pages</h4>
+                        <p className="mb-[16px] text-[13px] text-text-muted">URL paths to capture during each scan.</p>
+                        <div className="mb-[12px] flex gap-[8px]">
+                          <input
+                            type="text"
+                            value={newPath}
+                            onChange={(e) => setNewPath(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") { addPath(); setTimeout(saveTestEdits, 50); } }}
+                            placeholder="/about"
+                            className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+                          />
+                          <button onClick={() => { addPath(); setTimeout(saveTestEdits, 50); }} className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10">
+                            Add
+                          </button>
+                        </div>
+                        <div>
+                          {paths.map((p) => (
+                            <div key={p} className="flex items-center justify-between border-b border-border-primary py-[8px] text-[14px] text-foreground">
+                              <span>{p}</span>
+                              <button onClick={() => { removePath(p); setTimeout(saveTestEdits, 50); }} className="text-[12px] text-text-muted transition-colors hover:text-foreground">
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                          {paths.length === 0 && <p className="py-[12px] text-center text-[13px] text-text-muted">Add at least one page path.</p>}
+                        </div>
+                      </div>
+
+                      {/* Flows section */}
+                      <div>
+                        <h4 className="mb-[8px] text-[14px] font-bold text-foreground">Flows</h4>
+                        <p className="mb-[16px] text-[13px] text-text-muted">Scripted browser interactions for multi-step testing.</p>
+                        <div className="mb-[12px] space-y-[12px]">
+                          {flows.map((flow, idx) => (
+                            <FlowEditor
+                              key={flow.id}
+                              flow={flow}
+                              onChange={(updated) => { updateFlow(idx, updated); setTimeout(saveTestEdits, 50); }}
+                              onRemove={() => { removeFlow(idx); setTimeout(saveTestEdits, 50); }}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => { addFlow(); setTimeout(saveTestEdits, 50); }}
+                          className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+                        >
+                          + Add Flow
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                /* Test list */
+                <div>
+                  <p className="mb-[24px] text-[14px] text-text-muted">
+                    Each test has its own set of pages and flows. Run them independently to get separate reports.
+                  </p>
+                  <div className="space-y-[8px]">
+                    {tests.map((test) => (
+                      <div
+                        key={test.id}
+                        className="flex items-center justify-between rounded-[8px] border border-border-primary p-[16px]"
+                      >
+                        <button
+                          onClick={() => openTestEditor(test)}
+                          className="flex flex-col gap-[4px] text-left min-w-0 flex-1"
+                        >
+                          <span className="text-[14px] font-bold text-foreground">{test.name}</span>
+                          <span className="text-[12px] text-text-muted">
+                            {test.pages.length} page{test.pages.length !== 1 ? "s" : ""}
+                            {test.flows.length > 0 && ` · ${test.flows.length} flow${test.flows.length !== 1 ? "s" : ""}`}
+                          </span>
+                        </button>
+                        <div className="flex items-center gap-[8px]">
+                          <button
+                            onClick={() => openTestEditor(test)}
+                            className="text-[12px] text-text-muted transition-colors hover:text-foreground"
+                          >
+                            Edit
+                          </button>
+                          {tests.length > 1 && (
+                            <button
+                              onClick={() => removeTest(test.id)}
+                              className="text-[12px] text-text-muted transition-colors hover:text-status-error"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                {paths.length === 0 && <p className="py-[16px] text-center text-[13px] text-text-muted">Add at least one page path.</p>}
-              </div>
-            </div>
-          ) : tab === "flows" ? (
-            <div className="max-w-[560px]">
-              <p className="mb-[24px] text-[14px] text-text-muted">
-                Scripted browser interactions for multi-step visual regression testing.
-              </p>
-              <div className="mb-[16px] space-y-[12px]">
-                {flows.map((flow, idx) => (
-                  <FlowEditor
-                    key={flow.id}
-                    flow={flow}
-                    onChange={(updated) => updateFlow(idx, updated)}
-                    onRemove={() => removeFlow(idx)}
-                  />
-                ))}
-              </div>
-              <button
-                onClick={addFlow}
-                className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-              >
-                + Add Flow
-              </button>
+                  <button
+                    onClick={addTest}
+                    className="mt-[16px] rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+                  >
+                    + Add Test
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex max-w-[560px] flex-col gap-[20px]">

@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
 import ProjectFavicon from "./ProjectFavicon";
-import type { Project, Report } from "@/lib/types";
+import type { Project, SiteTest, Report } from "@/lib/types";
 
 function getDomain(url: string): string {
   try {

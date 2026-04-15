@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { readJsonFile, writeJsonFile } from "@/lib/data";
+import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
 import { requireUserId } from "@/lib/auth-helpers";
+import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import type { Project } from "@/lib/types";
 
 export async function GET() {
   try {
     const userId = await requireUserId();
-    const projects = await readJsonFile<Project[]>(userProjectsFile(userId), []);
+    const projects = await readProjectsWithMigration(userId);
     return NextResponse.json(projects);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,22 +29,36 @@ export async function POST(request: Request) {
       flows?: Project["flows"];
     };
 
+    const now = new Date().toISOString();
+    const pageEntries = (pages || [{ path: "/" }]).map((p) => ({
+      id: uuidv4(),
+      path: p.path,
+    }));
+    const flowEntries = flows && flows.length > 0 ? flows : [];
+
     const project: Project = {
       id: uuidv4(),
       prodUrl,
       devUrl,
-      pages: (pages || [{ path: "/" }]).map((p) => ({
-        id: uuidv4(),
-        path: p.path,
-      })),
-      createdAt: new Date().toISOString(),
+      pages: pageEntries,
+      createdAt: now,
       lastDiffAt: null,
       ...(requiresAuth ? { requiresAuth } : {}),
       ...(variants && variants.length > 0 ? { variants } : {}),
-      ...(flows && flows.length > 0 ? { flows } : {}),
+      ...(flowEntries.length > 0 ? { flows: flowEntries } : {}),
+      tests: [
+        {
+          id: uuidv4(),
+          name: "Default",
+          pages: pageEntries,
+          flows: flowEntries,
+          createdAt: now,
+          lastRunAt: null,
+        },
+      ],
     };
 
-    const projects = await readJsonFile<Project[]>(userProjectsFile(userId), []);
+    const projects = await readProjectsWithMigration(userId);
     projects.push(project);
     await writeJsonFile(userProjectsFile(userId), projects);
 

@@ -6,12 +6,22 @@ export interface TestVariant {
   initScript?: string;
 }
 
+export interface SiteTest {
+  id: string;
+  name: string;
+  pages: PageEntry[];
+  flows: FlowEntry[];
+  createdAt: string;
+  lastRunAt: string | null;
+}
+
 export interface Project {
   id: string;
   /** Display name for the project (falls back to domain if omitted) */
   name?: string;
   prodUrl: string;
   devUrl: string;
+  /** @deprecated Use tests[].pages instead. Kept for backward compat during migration. */
   pages: PageEntry[];
   createdAt: string;
   lastDiffAt: string | null;
@@ -23,8 +33,10 @@ export interface Project {
   breakpoints?: number[];
   /** Soft-deleted / hidden from sidebar */
   archived?: boolean;
-  /** Scripted browser flows for multi-step visual regression testing */
+  /** @deprecated Use tests[].flows instead. Kept for backward compat during migration. */
   flows?: FlowEntry[];
+  /** Named tests for this site. Each test has its own pages + flows. */
+  tests?: SiteTest[];
 }
 
 export interface UserSettings {
@@ -59,6 +71,8 @@ export interface FlowEntry {
 export interface Report {
   id: string;
   projectId: string;
+  /** Which site test produced this report (absent for legacy reports) */
+  siteTestId?: string;
   createdAt: string;
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;

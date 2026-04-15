@@ -3,10 +3,13 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 4000,
-      "cwd": "/Users/seancurran/dev/ohsee-two"
+      "runtimeExecutable": "/Users/seancurran/.nvm/versions/node/v22.13.1/bin/npx",
+      "runtimeArgs": ["next", "dev"],
+      "autoPort": true,
+      "cwd": "/Users/seancurran/dev/ohsee-two",
+      "env": {
+        "PATH": "/Users/seancurran/.nvm/versions/node/v22.13.1/bin:/usr/local/bin:/usr/bin:/bin"
+      }
     },
     {
       "name": "stable",

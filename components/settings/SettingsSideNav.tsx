@@ -29,7 +29,7 @@ export default function SettingsSideNav({
   return (
     <div className="flex h-full">
       {/* Side nav */}
-      <nav className="w-[200px] shrink-0 border-r border-border-secondary px-[16px] py-[32px]">
+      <nav className="w-[200px] shrink-0 px-[24px] py-[24px]">
         {backHref && (
           <Link
             href={backHref}
@@ -42,19 +42,20 @@ export default function SettingsSideNav({
             {backLabel || "Back"}
           </Link>
         )}
-        <h2 className="mb-[24px] text-[20px] font-bold text-foreground">{title}</h2>
+        <h2 className="mb-[24px] text-[32px] text-foreground animate-card-in">{title}</h2>
         <div className="flex flex-col gap-[2px]">
-          {sections.map((section) => {
+          {sections.map((section, i) => {
             const isActive = pathname === section.href;
             return (
               <Link
                 key={section.href}
                 href={section.href}
-                className={`rounded-[8px] px-[12px] py-[8px] text-[14px] transition-colors ${
+                className={`animate-card-in rounded-[8px] px-[12px] py-[8px] text-[14px] transition-colors ${
                   isActive
                     ? "bg-surface-tertiary font-bold text-foreground"
                     : "text-text-muted hover:bg-surface-tertiary hover:text-foreground"
                 }`}
+                style={{ animationDelay: `${(i + 1) * 30}ms` }}
               >
                 {section.label}
               </Link>
@@ -64,7 +65,7 @@ export default function SettingsSideNav({
       </nav>
 
       {/* Content area */}
-      <div className="flex-1 overflow-y-auto px-[32px] py-[32px]">
+      <div className="flex-1 overflow-y-auto px-[32px] py-[24px]">
         <div className="max-w-[560px]">{children}</div>
       </div>
     </div>

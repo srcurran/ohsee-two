@@ -5,7 +5,7 @@ import { generateSemanticDiff } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
-import type { Project, Report, ReportPage, BreakpointResult, FlowEntry } from "./types";
+import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry } from "./types";
 import { executeFlow, getScreenshotStepIds, type FlowScreenshotResult } from "./flow-runner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -59,7 +59,11 @@ class ReportCancelledError extends Error {
   }
 }
 
-export async function runReport(project: Project, reportId: string, userId: string): Promise<void> {
+/**
+ * Run a visual regression report.
+ * If `siteTest` is provided, pages/flows come from it. Otherwise falls back to project-level pages/flows (legacy).
+ */
+export async function runReport(project: Project, reportId: string, userId: string, siteTest?: SiteTest): Promise<void> {
   const controller = new AbortController();
   runningReports.set(reportId, controller);
   reportProjectMap.set(reportId, project.id);
@@ -81,12 +85,16 @@ export async function runReport(project: Project, reportId: string, userId: stri
   // Use project-level breakpoints if set, otherwise global defaults
   const projectBreakpoints = project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
 
+  // Resolve pages and flows from siteTest (preferred) or project (legacy)
+  const testPages = siteTest?.pages ?? project.pages;
+  const testFlows = siteTest?.flows ?? project.flows ?? [];
+
   // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
   const variantCount = (project.variants || []).length;
   // Count screenshot steps across all flows
-  const flowScreenshotSteps = (project.flows || []).reduce((sum, flow) =>
+  const flowScreenshotSteps = testFlows.reduce((sum, flow) =>
     sum + getScreenshotStepIds(flow).length, 0);
-  const pageOps = project.pages.length * projectBreakpoints.length * 3 * (1 + variantCount);
+  const pageOps = testPages.length * projectBreakpoints.length * 3 * (1 + variantCount);
   // Flow ops: per screenshot step = breakpoints × (prod + dev + diff) × (1 + variants)
   const flowOps = flowScreenshotSteps * projectBreakpoints.length * 3 * (1 + variantCount);
   const totalOps = pageOps + flowOps;
@@ -95,6 +103,7 @@ export async function runReport(project: Project, reportId: string, userId: stri
   const report = await readJsonFile<Report>(reportPath, {
     id: reportId,
     projectId: project.id,
+    ...(siteTest ? { siteTestId: siteTest.id } : {}),
     createdAt: new Date().toISOString(),
     status: "running",
     progress: { completed: 0, total: totalOps },
@@ -117,7 +126,7 @@ export async function runReport(project: Project, reportId: string, userId: stri
 
     const reportPages: ReportPage[] = [];
 
-    for (const page of project.pages) {
+    for (const page of testPages) {
       checkCancelled();
 
       const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
@@ -178,8 +187,8 @@ export async function runReport(project: Project, reportId: string, userId: stri
     }
 
     // --- Flow execution ---
-    if (project.flows && project.flows.length > 0) {
-      for (const flow of project.flows) {
+    if (testFlows.length > 0) {
+      for (const flow of testFlows) {
         checkCancelled();
 
         const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
@@ -268,12 +277,18 @@ export async function runReport(project: Project, reportId: string, userId: stri
     report.progress = { completed: totalOps, total: totalOps };
     await writeJsonFile(reportPath, report);
 
-    // Update project lastDiffAt
+    // Update project lastDiffAt and siteTest lastRunAt
     const projectsFile = userProjectsFile(userId);
     const projects = await readJsonFile<Project[]>(projectsFile, []);
     const projectIdx = projects.findIndex((p) => p.id === project.id);
     if (projectIdx !== -1) {
       projects[projectIdx].lastDiffAt = report.createdAt;
+      if (siteTest && projects[projectIdx].tests) {
+        const testIdx = projects[projectIdx].tests!.findIndex((t) => t.id === siteTest.id);
+        if (testIdx !== -1) {
+          projects[projectIdx].tests![testIdx].lastRunAt = report.createdAt;
+        }
+      }
       await writeJsonFile(projectsFile, projects);
     }
   } catch (err) {
