@@ -8,13 +8,15 @@ interface Props {
   changeCounts?: Record<string, number>;
   /** Override the displayed breakpoints (defaults to global BREAKPOINTS) */
   breakpoints?: number[];
+  /** Horizontal alignment of tabs (default: "center") */
+  align?: "center" | "start";
 }
 
-export default function BreakpointTabs({ active, onChange, changeCounts, breakpoints: bpOverride }: Props) {
+export default function BreakpointTabs({ active, onChange, changeCounts, breakpoints: bpOverride, align = "center" }: Props) {
   const bps = bpOverride || [...BREAKPOINTS];
   return (
     <div className="border-b border-border-secondary">
-      <div className="flex items-center justify-center gap-[24px]">
+      <div className={`flex items-center gap-[24px] ${align === "start" ? "justify-start" : "justify-center"}`}>
         {bps.map((bp) => {
           const isActive = active === bp;
           const count = changeCounts?.[String(bp)];

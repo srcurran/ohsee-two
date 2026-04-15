@@ -6,12 +6,27 @@ import type { DomSnapshot, FlowEntry, FlowAction } from "./types";
 import type { AuthCookieConfig } from "./auth-token";
 
 /**
+ * If the last step in a flow isn't already a screenshot, append an
+ * auto-generated "Final State" screenshot step so the user always
+ * gets a capture of the end result.
+ */
+export function ensureFinalScreenshot(flow: FlowEntry): FlowAction[] {
+  const steps = [...flow.steps];
+  if (steps.length > 0 && steps[steps.length - 1].type !== "screenshot") {
+    steps.push({ id: `auto-final-${flow.id}`, type: "screenshot", label: "Final State" });
+  }
+  return steps;
+}
+
+/**
  * Returns the list of step IDs that will produce screenshots for a flow.
- * Used by report-runner.ts to compute progress totals and match results.
+ * Uses `ensureFinalScreenshot` so the auto-added final step is included
+ * in progress totals and result matching.
  */
 export function getScreenshotStepIds(flow: FlowEntry): { id: string; label: string }[] {
+  const steps = ensureFinalScreenshot(flow);
   const result: { id: string; label: string }[] = [];
-  for (const step of flow.steps) {
+  for (const step of steps) {
     if (step.type === "screenshot") {
       result.push({ id: step.id, label: step.label });
     } else if (step.captureScreenshot !== false) {
@@ -126,27 +141,35 @@ export async function executeFlow(options: {
           page.waitForTimeout(5000),
         ]);
 
-        // Execute each step
-        for (const step of flow.steps) {
-          if (step.type === "screenshot") {
-            // Legacy standalone screenshot step — always capture
-            await captureStepScreenshot(page, step.id, step.label, bp, outputDir, prefix, results);
-            await onProgress?.(step.id, bp);
-          } else {
-            // Execute the action
-            await executeAction(page, step, baseUrl);
+        // Use augmented steps so a "Final State" screenshot is auto-appended
+        const augmentedSteps = ensureFinalScreenshot(flow);
 
-            // Capture screenshot after the action (default: yes)
-            if (step.captureScreenshot !== false) {
-              const label = stepLabel(step);
-              await captureStepScreenshot(page, step.id, label, bp, outputDir, prefix, results);
+        // Execute each step — errors are caught per-step so one failure
+        // doesn't prevent later steps from executing
+        for (const step of augmentedSteps) {
+          try {
+            if (step.type === "screenshot") {
+              // Legacy standalone screenshot step — always capture
+              await captureStepScreenshot(page, step.id, step.label, bp, outputDir, prefix, results);
               await onProgress?.(step.id, bp);
+            } else {
+              // Execute the action
+              await executeAction(page, step, baseUrl);
+
+              // Capture screenshot after the action (default: yes)
+              if (step.captureScreenshot !== false) {
+                const label = stepLabel(step);
+                await captureStepScreenshot(page, step.id, label, bp, outputDir, prefix, results);
+                await onProgress?.(step.id, bp);
+              }
             }
+          } catch (err) {
+            console.error(`Flow "${flow.name}" step "${step.id}" (${step.type}) failed at ${bp}px:`, err);
+            // Continue to next step — partial results are better than none
           }
         }
       } catch (err) {
-        console.error(`Flow "${flow.name}" failed at ${bp}px:`, err);
-        // Partial results are returned — other breakpoints continue
+        console.error(`Flow "${flow.name}" failed at ${bp}px (setup):`, err);
       } finally {
         await context.close();
       }
@@ -197,12 +220,19 @@ async function executeAction(
 
   switch (step.type) {
     case "click":
+      // Wait for the element to appear before clicking
+      await page.waitForSelector(step.selector, { state: "visible", timeout: TIMEOUT });
       await page.click(step.selector, { timeout: TIMEOUT });
-      // Brief settle after click for transitions/navigation
-      await page.waitForTimeout(500);
+      // Wait for any navigation or network activity triggered by the click
+      await Promise.race([
+        page.waitForLoadState("networkidle").catch(() => {}),
+        page.waitForTimeout(3000),
+      ]);
       break;
 
     case "fill":
+      // Wait for the element to appear before filling
+      await page.waitForSelector(step.selector, { state: "visible", timeout: TIMEOUT });
       await page.fill(step.selector, step.value, { timeout: TIMEOUT });
       break;
 

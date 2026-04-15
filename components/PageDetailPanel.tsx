@@ -6,6 +6,8 @@ import VariantTabs from "@/components/VariantTabs";
 import DiffViewer from "@/components/DiffViewer";
 import SliderComparison from "@/components/SliderComparison";
 import ChangeList from "@/components/ChangeList";
+import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
+import { reportDotColor } from "@/lib/colors";
 import type { Report, Project, ReportPage } from "@/lib/types";
 
 interface Props {
@@ -26,9 +28,9 @@ interface Props {
 const PANEL = { top: 28, right: 28, bottom: 28, left: 112 };
 const ANIM_MS = 300;
 const ANIM_EASE = "cubic-bezier(0.2, 0, 0, 1)"; // Material emphasizedDecelerate
-// Content fades in early during the container expansion
-const CONTENT_FADE_MS = 200;
-const CONTENT_DELAY_MS = 50; // start almost immediately
+// Content fades in after container has finished expanding (no reflow slide)
+const CONTENT_FADE_MS = 150;
+const CONTENT_DELAY_MS = ANIM_MS; // wait for expansion to complete
 
 export default function PageDetailPanel({
   report,
@@ -99,7 +101,8 @@ export default function PageDetailPanel({
         borderRadius: 12,
         opacity: 0,
         transform: "scale(0.90)",
-        transition: `opacity ${EXIT_MS}ms ease-in, transform ${EXIT_MS}ms ease-in`,
+        filter: "blur(8px)",
+        transition: `opacity ${EXIT_MS}ms ease-in, transform ${EXIT_MS}ms ease-in, filter ${EXIT_MS}ms ease-in`,
       };
     }
     // Final position
@@ -215,72 +218,75 @@ export default function PageDetailPanel({
             }}
           >
 
-        {/* Header */}
-        <div className="flex flex-col gap-[16px] px-[24px] py-[20px] pb-0">
-          {/* Title row */}
-          <div className="flex items-center justify-between gap-[16px]">
-            {/* Left: page name + change count */}
-            <div className="flex min-w-0 items-center gap-[16px]">
-              <div className="flex min-w-0 items-baseline gap-[8px]">
-                <h2 className="truncate text-[28px] font-bold text-foreground">{pageName}</h2>
-              </div>
-              <span className={`flex h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-full px-[8px] text-[16px] text-foreground ${
-                bpResult && bpResult.changeCount > 0 ? "bg-accent-yellow-tint" : "bg-accent-green-tint"
-              }`}>
-                {bpResult?.changeCount ?? 0}
+        {/* Header — page name + badge | nav controls */}
+        <div className="relative z-10 flex items-center justify-between px-[24px] py-[20px] animate-card-in"
+          style={{ animationDelay: "0ms" }}>
+          {/* Left: page name + change count */}
+          <div className="flex items-center gap-[8px] min-w-0">
+            <h2 className="truncate text-[32px] text-foreground">{pageName}</h2>
+            <span className={`flex h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full px-[6px] text-[14px] ${
+              !bpResult?.prodScreenshot ? "bg-text-disabled/20 text-text-disabled" : bpResult.changeCount > 0 ? "bg-accent-yellow text-foreground" : "bg-accent-green text-foreground"
+            }`}>
+              {bpResult?.prodScreenshot ? (bpResult?.changeCount ?? 0) : "—"}
+            </span>
+          </div>
+
+          {/* Right: date + status dot + report dropdown + prev/next + close */}
+          <div className="flex shrink-0 items-center gap-[24px]">
+            {/* Date + status dot */}
+            <div className="flex items-center gap-[8px]">
+              <span
+                className="text-[16px] text-foreground"
+                title={formatFullDateTime(report.createdAt)}
+              >
+                {formatRelativeTime(report.createdAt)}
               </span>
+              <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${reportDotColor(report)}`} />
             </div>
 
-            {/* Right: arrows + close */}
-            <div className="flex shrink-0 items-center gap-[16px]">
-              {/* Page navigation dropdown */}
-              <PageNavDropdown
-                pages={report.pages}
-                currentPageId={pageId}
-                activeBp={activeBp}
-                getLabel={getPageLabel}
-                onSelect={onNavigate}
-              />
+            {/* Report dropdown chevron */}
+            <PageNavDropdown
+              pages={report.pages}
+              currentPageId={pageId}
+              activeBp={activeBp}
+              getLabel={getPageLabel}
+              onSelect={onNavigate}
+            />
 
-              {/* Prev arrow */}
-              <button
-                onClick={() => prevPage && onNavigate(prevPage.pageId)}
-                disabled={!prevPage}
-                className={`flex h-[32px] w-[32px] items-center justify-center rounded-[8px] transition-colors ${
-                  prevPage ? "text-text-secondary hover:bg-foreground/[0.05] hover:text-foreground" : "text-text-disabled"
-                }`}
-                title={prevPage ? getPageLabel(prevPage) : undefined}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+            {/* Prev page */}
+            <button
+              onClick={() => prevPage && onNavigate(prevPage.pageId)}
+              disabled={!prevPage}
+              className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] text-text-subtle transition-colors hover:bg-foreground/[0.05] hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              title="Previous page"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-              {/* Next arrow */}
-              <button
-                onClick={() => nextPage && onNavigate(nextPage.pageId)}
-                disabled={!nextPage}
-                className={`flex h-[32px] w-[32px] items-center justify-center rounded-[8px] transition-colors ${
-                  nextPage ? "text-text-secondary hover:bg-foreground/[0.05] hover:text-foreground" : "text-text-disabled"
-                }`}
-                title={nextPage ? getPageLabel(nextPage) : undefined}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+            {/* Next page */}
+            <button
+              onClick={() => nextPage && onNavigate(nextPage.pageId)}
+              disabled={!nextPage}
+              className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] text-text-subtle transition-colors hover:bg-foreground/[0.05] hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              title="Next page"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-              {/* Close */}
-              <button
-                onClick={handleClose}
-                className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-secondary transition-all hover:bg-foreground/[0.05] hover:text-foreground"
-                title="Close"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            </div>
+            {/* Close */}
+            <button
+              onClick={handleClose}
+              className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] text-text-subtle transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+              title="Close"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -293,49 +299,49 @@ export default function PageDetailPanel({
         </div>
 
         {/* Breakpoint tabs */}
-        <div className="px-[24px]">
+        <div className="px-[24px] animate-card-in" style={{ animationDelay: "15ms" }}>
           <BreakpointTabs
             active={activeBp}
             onChange={onBpChange}
             changeCounts={bpChangeCounts}
             breakpoints={project?.breakpoints}
+            align="start"
           />
         </div>
-
-        {/* View mode tabs */}
-        {bpResult && (
-          <div className="flex items-center justify-center gap-[56px] px-[24px] pb-[8px] pt-[16px] text-[14px]">
-            <span className={`w-[32px] text-right transition-colors duration-150 ${
-              (viewMode === "tap" && !showingDev) || viewMode === "changes" ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted"
-            }`}>Prod</span>
-            <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-tertiary p-[3px]">
-              {(["changes", "tap", "slider"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setViewMode(m)}
-                  className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
-                    viewMode === m
-                      ? "bg-surface-content font-bold shadow-sm"
-                      : "text-text-muted hover:text-foreground"
-                  }`}
-                >
-                  {m === "tap" ? "Tap" : m === "slider" ? "Slider" : "Changes"}
-                </button>
-              ))}
-            </div>
-            <span className={`w-[32px] transition-colors duration-150 ${
-              viewMode === "tap" && showingDev ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted"
-            }`}>Dev</span>
-          </div>
-        )}
 
         {/* Divider */}
         <div className="h-px bg-border-primary" />
 
         {/* Content area: scrollable screenshot + fixed changes sidebar */}
-        <div className="flex flex-1 overflow-hidden bg-surface-tertiary">
+        <div className="flex flex-1 overflow-hidden bg-surface-tertiary animate-card-in" style={{ animationDelay: "30ms" }}>
           {/* Scrollable screenshot column */}
-          <div ref={scrollRef} className="flex flex-1 justify-center overflow-y-auto p-[24px]">
+          <div ref={scrollRef} className="flex flex-1 flex-col items-center overflow-y-auto p-[24px]">
+            {/* View mode tabs */}
+            {bpResult && (
+              <div className="flex items-center justify-center gap-[56px] pb-[16px] text-[14px]">
+                <span className={`w-[32px] text-right transition-colors duration-150 ${
+                  (viewMode === "tap" && !showingDev) || viewMode === "changes" ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted"
+                }`}>Prod</span>
+                <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-content p-[3px]">
+                  {(["changes", "tap", "slider"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setViewMode(m)}
+                      className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
+                        viewMode === m
+                          ? "bg-surface-tertiary font-bold shadow-sm"
+                          : "text-text-muted hover:text-foreground"
+                      }`}
+                    >
+                      {m === "tap" ? "Tap" : m === "slider" ? "Slider" : "Changes"}
+                    </button>
+                  ))}
+                </div>
+                <span className={`w-[32px] transition-colors duration-150 ${
+                  viewMode === "tap" && showingDev ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted"
+                }`}>Dev</span>
+              </div>
+            )}
             {bpResult ? (
               <div className="min-w-0" style={{ maxWidth: activeBp }}>
                 {viewMode === "changes" ? (
@@ -395,7 +401,7 @@ export default function PageDetailPanel({
   );
 }
 
-/** Dropdown to pick a page within the report */
+/** Chevron dropdown — page navigation */
 function PageNavDropdown({
   pages,
   currentPageId,
@@ -415,40 +421,42 @@ function PageNavDropdown({
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] text-text-secondary transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-        title="Navigate pages"
+        className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] text-text-subtle transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+        title="Jump to page"
       >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M4.5 6.75l4.5 4.5 4.5-4.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-[40px] z-40 flex min-w-[280px] max-w-[400px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
-            {pages.map((page) => {
-              const label = getLabel(page);
-              const isCurrent = page.pageId === currentPageId;
-              const pageBpResult = page.breakpoints[String(activeBp)];
-              const pageChanges = pageBpResult?.changeCount ?? 0;
-              const hasScreenshot = !!pageBpResult?.prodScreenshot;
-              return (
-                <button
-                  key={page.pageId}
-                  onClick={() => { onSelect(page.pageId); setOpen(false); }}
-                  className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[6px] text-[14px] text-foreground ${
-                    isCurrent
-                      ? "bg-surface-tertiary font-bold"
-                      : "font-normal hover:bg-surface-tertiary"
-                  }`}
-                >
-                  <span className="truncate">{label}</span>
-                  <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${
-                    !hasScreenshot ? "bg-text-disabled" : pageChanges > 0 ? "bg-accent-yellow" : "bg-accent-green"
-                  }`} />
-                </button>
-              );
-            })}
+          <div className="absolute right-0 top-[40px] z-40 flex min-w-[280px] max-w-[400px] flex-col rounded-[12px] bg-surface-content p-[8px] shadow-elevation-lg">
+            <div className="flex flex-col gap-[2px]">
+              {pages.map((page) => {
+                const label = getLabel(page);
+                const isCurrent = page.pageId === currentPageId;
+                const pageBpResult = page.breakpoints[String(activeBp)];
+                const pageChanges = pageBpResult?.changeCount ?? 0;
+                const hasScreenshot = !!pageBpResult?.prodScreenshot;
+                return (
+                  <button
+                    key={page.pageId}
+                    onClick={() => { onSelect(page.pageId); setOpen(false); }}
+                    className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-left text-[14px] text-foreground ${
+                      isCurrent
+                        ? "font-bold"
+                        : "font-normal hover:bg-surface-tertiary"
+                    }`}
+                  >
+                    <span className="flex-1 text-left">{label}</span>
+                    <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${
+                      !hasScreenshot ? "bg-text-disabled" : pageChanges > 0 ? "bg-accent-yellow" : "bg-accent-green"
+                    }`} />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </>
       )}

@@ -1,9 +1,9 @@
-export default function ChangeBadge({ count }: { count: number }) {
-  const label = count > 50 ? "50+" : String(count);
+export default function ChangeBadge({ count, noData }: { count: number; noData?: boolean }) {
+  const label = noData ? "—" : count > 50 ? "50+" : String(count);
 
-  // Yellow for changes, green for zero — matches Figma tokens
-  const style =
-    count > 0
+  const style = noData
+    ? "bg-text-disabled/20 text-text-disabled"
+    : count > 0
       ? "bg-accent-yellow text-foreground"
       : "bg-accent-green text-foreground";
 
