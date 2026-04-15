@@ -408,7 +408,9 @@ async function captureAndDiff(options: {
           );
           bpResult.semanticChanges = semanticResult.changes;
           bpResult.changeSummary = semanticResult.summary;
-          bpResult.changeCount = semanticResult.issueCount;
+          // Keep the higher of pixel vs semantic change counts so a zero-structural-change
+          // semantic result never hides real pixel differences.
+          bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
         } catch (err) {
           console.error(`Semantic diff failed for ${prodUrl} at ${bp}px:`, err);
         }
@@ -525,7 +527,7 @@ async function captureAndDiffFlow(options: {
             );
             bpResult.semanticChanges = semanticResult.changes;
             bpResult.changeSummary = semanticResult.summary;
-            bpResult.changeCount = semanticResult.issueCount;
+            bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
           } catch (err) {
             console.error(`Semantic diff failed for flow "${flow.name}" step "${step.id}" at ${bp}px:`, err);
           }

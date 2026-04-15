@@ -133,8 +133,11 @@ export async function executeFlow(options: {
       const page = await context.newPage();
 
       try {
-        // Navigate to start path
-        const startUrl = `${baseUrl.replace(/\/$/, "")}${flow.startPath}`;
+        // Navigate to start path — strip domain if startPath was saved as a full URL
+        const startPathNorm = flow.startPath.match(/^https?:\/\//)
+          ? new URL(flow.startPath).pathname
+          : flow.startPath;
+        const startUrl = `${baseUrl.replace(/\/$/, "")}${startPathNorm}`;
         await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
         await Promise.race([
           page.waitForLoadState("networkidle"),
@@ -245,7 +248,11 @@ async function executeAction(
       break;
 
     case "navigate": {
-      const url = `${baseUrl.replace(/\/$/, "")}${step.path}`;
+      // Strip domain if step.path was saved as a full URL
+      const stepPathNorm = step.path.match(/^https?:\/\//)
+        ? new URL(step.path).pathname
+        : step.path;
+      const url = `${baseUrl.replace(/\/$/, "")}${stepPathNorm}`;
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
       await Promise.race([
         page.waitForLoadState("networkidle"),

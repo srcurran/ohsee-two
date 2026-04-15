@@ -11,6 +11,8 @@ interface Props {
   onModeChange?: (mode: ComparisonMode) => void;
   onPressedChange?: (pressed: boolean) => void;
   hideHeader?: boolean;
+  /** When true, locks the view to show the dev screenshot (overrides tap hold) */
+  forceDev?: boolean;
 }
 
 export function ComparisonHeader({
@@ -63,6 +65,7 @@ export default function SliderComparison({
   onModeChange,
   onPressedChange,
   hideHeader,
+  forceDev,
 }: Props) {
   const [internalMode, setInternalMode] = useState<ComparisonMode>("tap");
   const mode = controlledMode ?? internalMode;
@@ -77,7 +80,7 @@ export default function SliderComparison({
       )}
 
       {mode === "tap" ? (
-        <TapReveal prodSrc={prodSrc} devSrc={devSrc} onPressedChange={onPressedChange} />
+        <TapReveal prodSrc={prodSrc} devSrc={devSrc} onPressedChange={onPressedChange} forceDev={forceDev} />
       ) : (
         <SliderReveal prodSrc={prodSrc} devSrc={devSrc} />
       )}
@@ -87,12 +90,13 @@ export default function SliderComparison({
 
 /* ── Tap to reveal ────────────────────────────────────────────── */
 
-function TapReveal({ prodSrc, devSrc, onPressedChange }: Props) {
+function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
   const [pressed, setPressed] = useState(false);
+  const showingDev = forceDev || pressed;
 
   const updatePressed = (val: boolean) => {
     setPressed(val);
-    onPressedChange?.(val);
+    onPressedChange?.(forceDev || val);
   };
 
   return (
@@ -110,7 +114,7 @@ function TapReveal({ prodSrc, devSrc, onPressedChange }: Props) {
         src={prodSrc}
         alt="Prod version"
         className="absolute inset-0 block w-full transition-opacity duration-150"
-        style={{ opacity: pressed ? 0 : 1 }}
+        style={{ opacity: showingDev ? 0 : 1 }}
         draggable={false}
       />
     </div>

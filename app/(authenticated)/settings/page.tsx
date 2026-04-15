@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
+import SaveButton from "@/components/SaveButton";
 
 type Tab = "account" | "defaults";
 
@@ -189,17 +190,8 @@ export default function SettingsPage() {
                   </section>
 
                   {/* Save */}
-                  <div className="flex items-center gap-[12px] animate-card-in" style={{ animationDelay: "150ms" }}>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="rounded-[12px] bg-black px-[32px] py-[10px] text-[16px] font-bold text-white transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50 dark:bg-white dark:text-black"
-                    >
-                      {saving ? "Saving..." : "Save"}
-                    </button>
-                    {saved && (
-                      <span className="text-[14px] text-accent-green">Saved</span>
-                    )}
+                  <div className="animate-card-in" style={{ animationDelay: "150ms" }}>
+                    <SaveButton onClick={handleSave} saving={saving} saved={saved} />
                   </div>
                 </>
               ) : (

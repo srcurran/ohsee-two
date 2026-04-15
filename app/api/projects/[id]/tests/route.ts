@@ -49,7 +49,7 @@ export async function POST(
     const test: SiteTest = {
       id: uuidv4(),
       name: name || "Untitled Test",
-      pages: (pages || [{ path: "/" }]).map((p) => ({
+      pages: (pages || []).map((p) => ({
         id: uuidv4(),
         path: p.path,
       })),

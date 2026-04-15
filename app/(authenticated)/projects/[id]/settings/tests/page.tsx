@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor } from "@/components/FlowEditor";
+import SaveButton from "@/components/SaveButton";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, FlowEntry } from "@/lib/types";
@@ -305,6 +306,32 @@ export default function ProjectTestsSettings() {
               </div>
             </section>
 
+            {/* Flows section */}
+            <section className="mb-[32px]">
+              <h2 className="mb-[8px] text-[14px] text-foreground">Flows</h2>
+              <p className="mb-[16px] text-[14px] text-text-muted">
+                Scripted browser interactions for multi-step flows.
+              </p>
+
+              <div className="mb-[16px] space-y-[12px]">
+                {flows.map((flow, idx) => (
+                  <FlowEditor
+                    key={flow.id}
+                    flow={flow}
+                    onChange={(updated) => updateFlow(idx, updated)}
+                    onRemove={() => removeFlow(idx)}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={addFlow}
+                className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+              >
+                + Add Flow
+              </button>
+            </section>
+
             {/* Breakpoints */}
             <section className="mb-[32px]">
               <BreakpointEditor
@@ -340,45 +367,8 @@ export default function ProjectTestsSettings() {
               </div>
             </section>
 
-            {/* Flows section */}
-            <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[14px] text-foreground">Flows</h2>
-              <p className="mb-[16px] text-[14px] text-text-muted">
-                Scripted browser interactions for multi-step flows.
-              </p>
-
-              <div className="mb-[16px] space-y-[12px]">
-                {flows.map((flow, idx) => (
-                  <FlowEditor
-                    key={flow.id}
-                    flow={flow}
-                    onChange={(updated) => updateFlow(idx, updated)}
-                    onRemove={() => removeFlow(idx)}
-                  />
-                ))}
-              </div>
-
-              <button
-                onClick={addFlow}
-                className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-              >
-                + Add Flow
-              </button>
-            </section>
-
             {/* Save */}
-            <div className="flex items-center gap-[12px]">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-[12px] bg-black px-[32px] py-[10px] text-[16px] font-semibold text-white transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50 dark:bg-white dark:text-black"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-              {saved && (
-                <span className="text-[14px] text-accent-green">Saved</span>
-              )}
-            </div>
+            <SaveButton onClick={handleSave} saving={saving} saved={saved} />
           </>
         )}
       </div>

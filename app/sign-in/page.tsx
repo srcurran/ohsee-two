@@ -36,7 +36,7 @@ export default function SignInPage() {
         <form action={signInWithGoogle}>
           <button
             type="submit"
-            className="flex items-center gap-[12px] rounded-full bg-black px-[32px] py-[14px] text-[16px] font-bold text-white transition-all hover:bg-black/80 hover:shadow-elevation-md hover:-translate-y-[1px]"
+            className="flex items-center gap-[12px] rounded-[12px] bg-foreground px-[32px] py-[14px] text-[16px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
           >
             <GoogleIcon />
             Sign in with Google

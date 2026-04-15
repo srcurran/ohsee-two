@@ -49,6 +49,7 @@ export default function PageDetailPanel({
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"tap" | "slider" | "changes">("tap");
   const [showingDev, setShowingDev] = useState(false);
+  const [forceDevLocked, setForceDevLocked] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -169,6 +170,15 @@ export default function PageDetailPanel({
   for (const [key, val] of Object.entries(activeBpData)) {
     bpChangeCounts[key] = val.prodScreenshot ? (val.changeCount || 0) : -1;
   }
+
+  // Derive breakpoints actually used in this report from the data
+  const reportBreakpoints: number[] = (() => {
+    const bpSet = new Set<number>();
+    for (const page of report.pages) {
+      for (const bp of Object.keys(page.breakpoints)) bpSet.add(Number(bp));
+    }
+    return [...bpSet].sort((a, b) => a - b);
+  })();
 
   // Discover which variants exist in this report
   const reportVariants: string[] = [];
@@ -304,7 +314,7 @@ export default function PageDetailPanel({
             active={activeBp}
             onChange={onBpChange}
             changeCounts={bpChangeCounts}
-            breakpoints={project?.breakpoints}
+            breakpoints={reportBreakpoints}
             align="start"
           />
         </div>
@@ -319,14 +329,17 @@ export default function PageDetailPanel({
             {/* View mode tabs */}
             {bpResult && (
               <div className="flex items-center justify-center gap-[56px] pb-[16px] text-[14px]">
-                <span className={`w-[32px] text-right transition-colors duration-150 ${
-                  (viewMode === "tap" && !showingDev) || viewMode === "changes" ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted"
-                }`}>Prod</span>
+                <button
+                  onClick={() => { setViewMode("tap"); setForceDevLocked(false); }}
+                  className={`w-[32px] text-right transition-colors duration-150 ${
+                    (viewMode === "tap" && !showingDev) || viewMode === "changes" ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted hover:text-foreground"
+                  }`}
+                >Prod</button>
                 <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-content p-[3px]">
                   {(["changes", "tap", "slider"] as const).map((m) => (
                     <button
                       key={m}
-                      onClick={() => setViewMode(m)}
+                      onClick={() => { setViewMode(m); if (m !== "tap") setForceDevLocked(false); }}
                       className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
                         viewMode === m
                           ? "bg-surface-tertiary font-bold shadow-sm"
@@ -337,9 +350,12 @@ export default function PageDetailPanel({
                     </button>
                   ))}
                 </div>
-                <span className={`w-[32px] transition-colors duration-150 ${
-                  viewMode === "tap" && showingDev ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted"
-                }`}>Dev</span>
+                <button
+                  onClick={() => { setViewMode("tap"); setForceDevLocked(true); }}
+                  className={`w-[32px] transition-colors duration-150 ${
+                    viewMode === "tap" && showingDev ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted hover:text-foreground"
+                  }`}
+                >Dev</button>
               </div>
             )}
             {bpResult ? (
@@ -356,8 +372,9 @@ export default function PageDetailPanel({
                     prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
                     devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
                     mode={viewMode}
-                    onModeChange={(m) => setViewMode(m)}
-                    onPressedChange={setShowingDev}
+                    onModeChange={(m) => { setViewMode(m); if (m !== "tap") setForceDevLocked(false); }}
+                    onPressedChange={(p) => setShowingDev(forceDevLocked || p)}
+                    forceDev={forceDevLocked}
                     hideHeader
                   />
                 )}
@@ -383,6 +400,13 @@ export default function PageDetailPanel({
                     setTimeout(() => setHighlightedChangeId(null), 3000);
                   }}
                 />
+              ) : bpResult.pixelChangeCount && bpResult.pixelChangeCount > 0 ? (
+                <div className="flex items-center gap-[8px] rounded-[8px] bg-surface-tertiary px-[20px] py-[16px]">
+                  <span className="text-[20px]">~</span>
+                  <span className="text-[14px] text-text-secondary">
+                    Pixel differences detected — no structural changes
+                  </span>
+                </div>
               ) : (
                 <div className="flex items-center gap-[8px] rounded-[8px] bg-surface-tertiary px-[20px] py-[16px]">
                   <span className="text-[20px]">✓</span>

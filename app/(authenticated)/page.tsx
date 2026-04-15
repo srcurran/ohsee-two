@@ -86,7 +86,7 @@ export default function Home() {
           </div>
           <button
             onClick={() => setShowNewProject(true)}
-            className="rounded-[10px] bg-black px-[32px] py-[12px] text-[16px] font-bold text-white transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
+            className="rounded-[12px] bg-foreground px-[32px] py-[10px] text-[16px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
           >
             Create your first project
           </button>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor, newStep } from "@/components/FlowEditor";
+import SaveButton from "@/components/SaveButton";
 import type { Project, FlowEntry } from "@/lib/types";
 
 export default function ProjectFlowsSettings() {
@@ -100,18 +101,7 @@ export default function ProjectFlowsSettings() {
         + Add Flow
       </button>
 
-      <div className="flex items-center gap-[12px]">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-[12px] bg-black px-[32px] py-[10px] text-[16px] font-bold text-white transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50 dark:bg-white dark:text-black"
-        >
-          {saving ? "Saving..." : "Save"}
-        </button>
-        {saved && (
-          <span className="text-[14px] text-accent-green">Saved</span>
-        )}
-      </div>
+      <SaveButton onClick={handleSave} saving={saving} saved={saved} />
     </div>
   );
 }
