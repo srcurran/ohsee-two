@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor } from "@/components/FlowEditor";
+import TestCompositionEditor from "@/components/TestCompositionEditor";
+import MicroTestImportModal from "@/components/MicroTestImportModal";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
-import type { Project, SiteTest, FlowEntry } from "@/lib/types";
+import type { Project, SiteTest, FlowEntry, MicroTest, TestComposition } from "@/lib/types";
 
 function normalizePath(input: string): string {
   let p = input.trim();
@@ -43,6 +45,11 @@ export default function ProjectTestsSettings() {
   // Flows state
   const [flows, setFlows] = useState<FlowEntry[]>([]);
 
+  // Compositions + micro-tests
+  const [compositions, setCompositions] = useState<TestComposition[]>([]);
+  const [microTests, setMicroTests] = useState<MicroTest[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+
   // Breakpoints + variants
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
@@ -56,6 +63,7 @@ export default function ProjectTestsSettings() {
       .then((r) => r.json())
       .then((p: Project) => {
         setProject(p);
+        setMicroTests(p.microTests ?? []);
         const tests = p.tests || [];
         if (tests.length > 0 && !selectedTestId) {
           const queryTestId = searchParams.get("testId");
@@ -73,6 +81,7 @@ export default function ProjectTestsSettings() {
       setTestName(test.name);
       setPaths(test.pages.map((pg) => pg.path));
       setFlows(test.flows || []);
+      setCompositions(test.compositions ?? []);
       setBreakpoints(
         test.breakpoints?.length
           ? test.breakpoints
@@ -90,6 +99,33 @@ export default function ProjectTestsSettings() {
 
   const tests = project?.tests || [];
   const selectedTest = tests.find((t) => t.id === selectedTestId);
+
+  const addTest = async () => {
+    if (!project) return;
+    const newTest: SiteTest = {
+      id: crypto.randomUUID(),
+      name: "New Test",
+      pages: [{ id: crypto.randomUUID(), path: "/" }],
+      flows: [],
+      compositions: [],
+      breakpoints: [...BREAKPOINTS],
+      variants: [],
+      createdAt: new Date().toISOString(),
+      lastRunAt: null,
+    };
+    const updatedTests = [...(project.tests || []), newTest];
+    const res = await fetch(`/api/projects/${project.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tests: updatedTests }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setProject(updated);
+      setSelectedTestId(newTest.id);
+      refreshProjects();
+    }
+  };
 
   // Pages handlers
   const handleAddPath = () => {
@@ -150,6 +186,24 @@ export default function ProjectTestsSettings() {
     setFlows(flows.filter((_, i) => i !== idx));
   };
 
+  // Composition handlers
+  const addComposition = () => {
+    setCompositions([
+      ...compositions,
+      { id: crypto.randomUUID(), name: "", startPath: "/", steps: [] },
+    ]);
+  };
+
+  const updateComposition = (idx: number, updated: TestComposition) => {
+    const next = [...compositions];
+    next[idx] = updated;
+    setCompositions(next);
+  };
+
+  const removeComposition = (idx: number) => {
+    setCompositions(compositions.filter((_, i) => i !== idx));
+  };
+
   // Save all fields for the selected test
   const handleSave = async () => {
     if (!project || !selectedTestId || !selectedTest) return;
@@ -169,6 +223,7 @@ export default function ProjectTestsSettings() {
             name: testName.trim() || t.name,
             pages: updatedPages,
             flows,
+            compositions,
             breakpoints,
             variants: BUILT_IN_VARIANTS.filter((v) => selectedVariants.includes(v.id)),
           }
@@ -178,12 +233,13 @@ export default function ProjectTestsSettings() {
     const res = await fetch(`/api/projects/${project.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tests: updatedTests }),
+      body: JSON.stringify({ tests: updatedTests, microTests }),
     });
 
     if (res.ok) {
       const updated = await res.json();
       setProject(updated);
+      setMicroTests(updated.microTests ?? []);
       refreshProjects();
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -206,6 +262,29 @@ export default function ProjectTestsSettings() {
   }
 
   return (
+    <>
+    {showImportModal && (
+      <MicroTestImportModal
+        projectId={params.id}
+        onImport={(imported) => {
+          setMicroTests([...microTests, ...imported]);
+          // Auto-create a composition with the imported steps
+          const comp: TestComposition = {
+            id: crypto.randomUUID(),
+            name: imported.length > 0 ? "Imported Flow" : "",
+            startPath: "/",
+            steps: imported.map((mt) => ({
+              id: crypto.randomUUID(),
+              microTestId: mt.id,
+              captureScreenshot: true,
+            })),
+          };
+          setCompositions([...compositions, comp]);
+          setShowImportModal(false);
+        }}
+        onClose={() => setShowImportModal(false)}
+      />
+    )}
     <div className="flex gap-[1px]">
       {/* Left: test list */}
       <div className="w-[180px] shrink-0 pr-[24px] border-r border-border-secondary">
@@ -223,6 +302,15 @@ export default function ProjectTestsSettings() {
               {test.name}
             </button>
           ))}
+          <button
+            onClick={addTest}
+            className="flex items-center gap-[4px] px-[8px] py-[6px] text-[14px] text-text-muted transition-colors hover:text-foreground"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            Add test
+          </button>
         </div>
       </div>
 
@@ -343,31 +431,90 @@ export default function ProjectTestsSettings() {
               </div>
             </section>
 
-            {/* Flows section */}
+            {/* Compositions section (micro-test based) */}
             <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[14px] text-foreground">Flows</h2>
+              <h2 className="mb-[8px] text-[14px] text-foreground">Compositions</h2>
               <p className="mb-[16px] text-[14px] text-text-muted">
-                Scripted browser interactions for multi-step flows.
+                Compose reusable Playwright script steps into multi-step tests.
               </p>
 
               <div className="mb-[16px] space-y-[12px]">
-                {flows.map((flow, idx) => (
-                  <FlowEditor
-                    key={flow.id}
-                    flow={flow}
-                    onChange={(updated) => updateFlow(idx, updated)}
-                    onRemove={() => removeFlow(idx)}
+                {compositions.map((comp, idx) => (
+                  <TestCompositionEditor
+                    key={comp.id}
+                    projectId={params.id}
+                    composition={comp}
+                    microTests={microTests}
+                    onChange={(updated) => updateComposition(idx, updated)}
+                    onRemove={() => removeComposition(idx)}
+                    onMicroTestsChange={setMicroTests}
                   />
                 ))}
               </div>
 
-              <button
-                onClick={addFlow}
-                className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-              >
-                + Add Flow
-              </button>
+              <div className="flex gap-[8px]">
+                <button
+                  onClick={addComposition}
+                  className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+                >
+                  + Add Composition
+                </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="rounded-[8px] border border-border-primary px-[16px] py-[8px] text-[14px] text-text-muted transition-colors hover:text-foreground hover:bg-surface-tertiary"
+                >
+                  Import from Playwright
+                </button>
+              </div>
             </section>
+
+            {/* Micro-test library */}
+            {microTests.length > 0 && (
+              <section className="mb-[32px]">
+                <h2 className="mb-[8px] text-[14px] text-foreground">Micro-test Library</h2>
+                <p className="mb-[12px] text-[14px] text-text-muted">
+                  {microTests.length} reusable step{microTests.length !== 1 ? "s" : ""} available for compositions.
+                </p>
+                <div className="flex flex-wrap gap-[4px]">
+                  {microTests.map((mt) => (
+                    <span
+                      key={mt.id}
+                      className="rounded-[6px] bg-surface-tertiary px-[10px] py-[4px] text-[13px] text-foreground"
+                    >
+                      {mt.displayName}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Legacy flows section */}
+            {flows.length > 0 && (
+              <section className="mb-[32px]">
+                <h2 className="mb-[8px] text-[14px] text-foreground">Flows (Legacy)</h2>
+                <p className="mb-[16px] text-[14px] text-text-muted">
+                  WYSIWYG browser interactions. Use compositions above for new tests.
+                </p>
+
+                <div className="mb-[16px] space-y-[12px]">
+                  {flows.map((flow, idx) => (
+                    <FlowEditor
+                      key={flow.id}
+                      flow={flow}
+                      onChange={(updated) => updateFlow(idx, updated)}
+                      onRemove={() => removeFlow(idx)}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={addFlow}
+                  className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+                >
+                  + Add Flow
+                </button>
+              </section>
+            )}
 
             {/* Save */}
             <div className="flex items-center gap-[12px]">
@@ -386,5 +533,6 @@ export default function ProjectTestsSettings() {
         )}
       </div>
     </div>
+    </>
   );
 }

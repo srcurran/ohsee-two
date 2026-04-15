@@ -31,11 +31,40 @@ export interface MicroTestStepResult {
  * Security note: this evals user-supplied code — acceptable for a
  * single-user self-hosted tool.
  */
+/**
+ * Rewrite absolute page.goto() URLs in a script so they use the given base URL.
+ * This allows scripts recorded against one environment (e.g. dev) to run
+ * correctly against another (e.g. prod) during report comparisons.
+ *
+ * Replaces: `page.goto('https://anything.com/path')` → `page.goto('https://baseUrl/path')`
+ */
+function rewriteGotoUrls(script: string, baseUrl: string | undefined): string {
+  if (!baseUrl) return script;
+  const base = baseUrl.replace(/\/$/, "");
+  // Match page.goto('...') or page.goto("...") or page.goto(`...`)
+  return script.replace(
+    /page\.goto\s*\(\s*(['"`])(https?:\/\/[^'"`]+)\1/g,
+    (_match, quote, originalUrl) => {
+      try {
+        const parsed = new URL(originalUrl);
+        const pathAndQuery = parsed.pathname + parsed.search + parsed.hash;
+        return `page.goto(${quote}${base}${pathAndQuery}${quote}`;
+      } catch {
+        return _match;
+      }
+    },
+  );
+}
+
 export async function executeMicroTest(
   page: Page,
   script: string,
   timeout = STEP_TIMEOUT,
+  baseUrl?: string,
 ): Promise<void> {
+  // Rewrite any hardcoded goto URLs to use the correct base URL
+  const rewrittenScript = rewriteGotoUrls(script, baseUrl);
+
   // Build an async function from the script body, passing `page` as argument.
   // We also pass common Playwright helpers so scripts can use `expect()`.
   let expectFn: unknown;
@@ -47,7 +76,7 @@ export async function executeMicroTest(
     // @playwright/test may not be installed — scripts that need `expect` will fail
   }
 
-  const fn = new Function("page", "expect", `return (async () => { ${script} })()`) as (
+  const fn = new Function("page", "expect", `return (async () => { ${rewrittenScript} })()`) as (
     page: Page,
     expect: unknown,
   ) => Promise<void>;
@@ -153,21 +182,29 @@ export async function executeTestComposition(options: {
           }
 
           try {
-            await executeMicroTest(page, microTest.script);
-
-            if (step.captureScreenshot) {
-              await captureStepScreenshot(
-                page, step.id, microTest.displayName, bp, outputDir, prefix, results,
-              );
-              await onProgress?.(step.id, bp);
-            }
+            await executeMicroTest(page, microTest.script, STEP_TIMEOUT, baseUrl);
           } catch (err) {
             console.error(
               `Composition "${composition.name}" step "${step.id}" ` +
               `(micro-test "${microTest.name}") failed at ${bp}px:`,
               err,
             );
-            // Continue to next step — partial results are better than none
+            // Still capture screenshot below — showing page state at failure
+            // is more useful than a blank
+          }
+
+          if (step.captureScreenshot) {
+            try {
+              await captureStepScreenshot(
+                page, step.id, microTest.displayName, bp, outputDir, prefix, results,
+              );
+            } catch (screenshotErr) {
+              console.error(
+                `Screenshot capture failed for step "${step.id}" at ${bp}px:`,
+                screenshotErr,
+              );
+            }
+            await onProgress?.(step.id, bp);
           }
         }
 
