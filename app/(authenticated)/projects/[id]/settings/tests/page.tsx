@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor } from "@/components/FlowEditor";
+import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, FlowEntry } from "@/lib/types";
 
 function normalizePath(input: string): string {
@@ -27,6 +29,9 @@ export default function ProjectTestsSettings() {
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
 
+  // Test name
+  const [testName, setTestName] = useState("");
+
   // Pages state
   const [paths, setPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
@@ -36,6 +41,10 @@ export default function ProjectTestsSettings() {
 
   // Flows state
   const [flows, setFlows] = useState<FlowEntry[]>([]);
+
+  // Breakpoints + variants
+  const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
+  const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
 
   // Save state
   const [saving, setSaving] = useState(false);
@@ -53,13 +62,26 @@ export default function ProjectTestsSettings() {
       });
   }, [params.id]);
 
-  // Sync pages/flows when selected test changes
+  // Sync all fields when selected test changes
   useEffect(() => {
     if (!project || !selectedTestId) return;
     const test = project.tests?.find((t) => t.id === selectedTestId);
     if (test) {
+      setTestName(test.name);
       setPaths(test.pages.map((pg) => pg.path));
       setFlows(test.flows || []);
+      setBreakpoints(
+        test.breakpoints?.length
+          ? test.breakpoints
+          : project.breakpoints?.length
+            ? project.breakpoints
+            : [...BREAKPOINTS]
+      );
+      setSelectedVariants(
+        test.variants?.length
+          ? test.variants.map((v) => v.id)
+          : (project.variants || []).map((v) => v.id)
+      );
     }
   }, [project, selectedTestId]);
 
@@ -125,7 +147,7 @@ export default function ProjectTestsSettings() {
     setFlows(flows.filter((_, i) => i !== idx));
   };
 
-  // Save both pages + flows for the selected test
+  // Save all fields for the selected test
   const handleSave = async () => {
     if (!project || !selectedTestId || !selectedTest) return;
     setSaving(true);
@@ -138,7 +160,16 @@ export default function ProjectTestsSettings() {
     });
 
     const updatedTests = project.tests!.map((t) =>
-      t.id === selectedTestId ? { ...t, pages: updatedPages, flows } : t
+      t.id === selectedTestId
+        ? {
+            ...t,
+            name: testName.trim() || t.name,
+            pages: updatedPages,
+            flows,
+            breakpoints,
+            variants: BUILT_IN_VARIANTS.filter((v) => selectedVariants.includes(v.id)),
+          }
+        : t
     );
 
     const res = await fetch(`/api/projects/${project.id}`, {
@@ -192,15 +223,28 @@ export default function ProjectTestsSettings() {
         </div>
       </div>
 
-      {/* Right: pages + flows for selected test */}
+      {/* Right: settings for selected test */}
       <div className="flex-1 pl-[24px] max-w-[560px]">
         {selectedTest && (
           <>
+            {/* Test name */}
+            <section className="mb-[32px]">
+              <label className="mb-[4px] block text-[14px] text-foreground">
+                Test Name
+              </label>
+              <input
+                type="text"
+                value={testName}
+                onChange={(e) => setTestName(e.target.value)}
+                className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+              />
+            </section>
+
             {/* Pages section */}
             <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[24px] font-semibold text-foreground">Pages</h2>
+              <h2 className="mb-[8px] text-[14px] text-foreground">Pages</h2>
               <p className="mb-[16px] text-[14px] text-text-muted">
-                URL paths to capture during each scan for {selectedTest.name}.
+                URL paths to capture during each scan.
               </p>
 
               <div className="mb-[16px] flex gap-[8px]">
@@ -220,7 +264,7 @@ export default function ProjectTestsSettings() {
                 </button>
               </div>
 
-              <div className="mb-[8px]">
+              <div>
                 {paths.map((p, i) => (
                   <div
                     key={p}
@@ -261,11 +305,46 @@ export default function ProjectTestsSettings() {
               </div>
             </section>
 
+            {/* Breakpoints */}
+            <section className="mb-[32px]">
+              <BreakpointEditor
+                breakpoints={breakpoints}
+                onChange={setBreakpoints}
+              />
+            </section>
+
+            {/* Variants */}
+            <section className="mb-[32px]">
+              <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
+              <div className="flex gap-[16px]">
+                {BUILT_IN_VARIANTS.map((v) => (
+                  <label
+                    key={v.id}
+                    className="flex items-center gap-[8px] text-[14px] text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedVariants.includes(v.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedVariants([...selectedVariants, v.id]);
+                        } else {
+                          setSelectedVariants(selectedVariants.filter((id) => id !== v.id));
+                        }
+                      }}
+                      className="h-[16px] w-[16px]"
+                    />
+                    {v.label}
+                  </label>
+                ))}
+              </div>
+            </section>
+
             {/* Flows section */}
             <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[24px] font-semibold text-foreground">Flows</h2>
+              <h2 className="mb-[8px] text-[14px] text-foreground">Flows</h2>
               <p className="mb-[16px] text-[14px] text-text-muted">
-                Scripted browser interactions for testing multi-step flows for {selectedTest.name}.
+                Scripted browser interactions for multi-step flows.
               </p>
 
               <div className="mb-[16px] space-y-[12px]">

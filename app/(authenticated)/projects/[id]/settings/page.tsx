@@ -22,7 +22,6 @@ export default function ProjectGeneralSettings() {
   const [name, setName] = useState("");
   const [prodUrl, setProdUrl] = useState("");
   const [devUrl, setDevUrl] = useState("");
-  const [requiresAuth, setRequiresAuth] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
   const [saving, setSaving] = useState(false);
@@ -36,7 +35,6 @@ export default function ProjectGeneralSettings() {
         setName(p.name || "");
         setProdUrl(p.prodUrl);
         setDevUrl(p.devUrl);
-        setRequiresAuth(p.requiresAuth || false);
         setSelectedVariants((p.variants || []).map((v) => v.id));
         setBreakpoints(p.breakpoints?.length ? p.breakpoints : [...BREAKPOINTS]);
       });
@@ -51,7 +49,6 @@ export default function ProjectGeneralSettings() {
       name: name.trim() || undefined,
       prodUrl: prodUrl.replace(/\/$/, ""),
       devUrl: devUrl.replace(/\/$/, ""),
-      requiresAuth,
       variants: BUILT_IN_VARIANTS.filter((v) => selectedVariants.includes(v.id)),
       breakpoints,
     };
@@ -158,17 +155,6 @@ export default function ProjectGeneralSettings() {
             ))}
           </div>
         </div>
-
-        {/* Auth */}
-        <label className="flex items-center gap-[8px] text-[14px] text-foreground">
-          <input
-            type="checkbox"
-            checked={requiresAuth}
-            onChange={(e) => setRequiresAuth(e.target.checked)}
-            className="h-[16px] w-[16px]"
-          />
-          Requires authentication (for localhost testing)
-        </label>
 
         {/* Save */}
         <div className="flex items-center gap-[12px]">

@@ -10,7 +10,6 @@ import { useSidebar } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
-import ProjectSettingsPanel from "@/components/ProjectSettingsPanel";
 import PageDetailPanel from "@/components/PageDetailPanel";
 
 function getDomain(url: string): string {
@@ -32,7 +31,6 @@ function ReportPageInner() {
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [siteTest, setSiteTest] = useState<SiteTest | null>(null);
   const [showReportNav, setShowReportNav] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [pageOriginRect, setPageOriginRect] = useState<DOMRect | null>(null);
   const [pageOriginThumb, setPageOriginThumb] = useState<{ rect: DOMRect; src: string } | null>(null);
   const activeBp = Number(searchParams.get("bp")) || 1024;
@@ -200,20 +198,6 @@ function ReportPageInner() {
 
   return (
     <div className="relative min-h-full overflow-hidden">
-      {/* Settings panel (slides up from bottom) */}
-      {showSettings && project && (
-        <ProjectSettingsPanel
-          projectId={project.id}
-          onClose={() => {
-            setShowSettings(false);
-            // Re-fetch project to pick up name/URL changes
-            fetch(`/api/projects/${project.id}`)
-              .then((r) => r.ok ? r.json() : null)
-              .then((p) => { if (p) setProject(p); });
-          }}
-        />
-      )}
-
       {/* Page detail panel */}
       {activePageId && report && project && (
         <PageDetailPanel
@@ -321,7 +305,7 @@ function ReportPageInner() {
             {/* Settings icon */}
             {project && (
               <button
-                onClick={() => setShowSettings(true)}
+                onClick={() => router.push(`/projects/${project.id}/settings`)}
                 className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
                 title="Project settings"
               >

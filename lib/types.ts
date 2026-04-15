@@ -13,6 +13,10 @@ export interface SiteTest {
   flows: FlowEntry[];
   createdAt: string;
   lastRunAt: string | null;
+  /** Per-test breakpoint overrides */
+  breakpoints?: number[];
+  /** Per-test variant captures */
+  variants?: TestVariant[];
 }
 
 export interface Project {
@@ -42,6 +46,8 @@ export interface Project {
 export interface UserSettings {
   /** Default breakpoints for new projects */
   defaultBreakpoints: number[];
+  /** Persisted sidebar project order */
+  projectOrder?: string[];
   /** Default variants for new projects */
   defaultVariants?: string[];
 }

@@ -8,6 +8,7 @@ import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
 import ProjectFavicon from "./ProjectFavicon";
 import { reportDotColor } from "@/lib/colors";
+import { formatRelativeTimeShort } from "@/lib/relative-time";
 import type { Project, SiteTest, Report } from "@/lib/types";
 
 function getDomain(url: string): string {
@@ -23,77 +24,14 @@ interface ProjectWithReports {
   reports: Report[];
 }
 
-/** Group tests by recency of their last run */
-function groupTestsByRecency(
-  tests: SiteTest[],
-  reports: Report[]
-): { label: string; tests: { test: SiteTest; latestReport: Report | null }[] }[] {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekStart = new Date(todayStart);
-  weekStart.setDate(weekStart.getDate() - 7);
-
-  const groups: Record<string, { test: SiteTest; latestReport: Report | null }[]> = {
-    Today: [],
-    "This week": [],
-    Older: [],
-  };
-
-  for (const test of tests) {
-    const testReports = reports
-      .filter((r) => r.siteTestId === test.id)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    const latestReport = testReports[0] || null;
-
-    const lastDate = latestReport
-      ? new Date(latestReport.createdAt)
-      : test.lastRunAt
-        ? new Date(test.lastRunAt)
-        : null;
-
-    if (lastDate && lastDate >= todayStart) {
-      groups["Today"].push({ test, latestReport });
-    } else if (lastDate && lastDate >= weekStart) {
-      groups["This week"].push({ test, latestReport });
-    } else {
-      groups["Older"].push({ test, latestReport });
-    }
-  }
-
-  return Object.entries(groups)
-    .filter(([, items]) => items.length > 0)
-    .map(([label, items]) => ({ label, tests: items }));
+function getTestWithLatestReport(test: SiteTest, reports: Report[]) {
+  const testReports = reports
+    .filter((r) => r.siteTestId === test.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return { test, latestReport: testReports[0] || null };
 }
 
-function AnimatedCollapse({ open, children }: { open: boolean; children: React.ReactNode }) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | undefined>(open ? undefined : 0);
-
-  useEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    if (open) {
-      setHeight(el.scrollHeight);
-      const onEnd = () => setHeight(undefined);
-      el.addEventListener("transitionend", onEnd, { once: true });
-      return () => el.removeEventListener("transitionend", onEnd);
-    } else {
-      // Force a layout read so the browser knows the starting height
-      setHeight(el.scrollHeight);
-      requestAnimationFrame(() => setHeight(0));
-    }
-  }, [open]);
-
-  return (
-    <div
-      ref={contentRef}
-      className="overflow-hidden transition-[height] duration-200 ease-in-out"
-      style={{ height: height !== undefined ? height : "auto" }}
-    >
-      {children}
-    </div>
-  );
-}
+const MAX_VISIBLE_TESTS = 3;
 
 export default function Sidebar() {
   const { refreshKey, refreshProjects } = useSidebar();
@@ -103,14 +41,25 @@ export default function Sidebar() {
   const user = session?.user;
   const [data, setData] = useState<ProjectWithReports[]>([]);
   const [showNewProject, setShowNewProject] = useState(false);
+  const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
+
+  // Drag state for reordering sites
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragNode = useRef<HTMLDivElement | null>(null);
 
   // Load projects + reports (keep previous data visible during refresh)
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const res = await fetch("/api/projects");
-      if (!res.ok || cancelled) return;
-      const projects: Project[] = await res.json();
+      const [projRes, settingsRes] = await Promise.all([
+        fetch("/api/projects"),
+        fetch("/api/settings"),
+      ]);
+      if (!projRes.ok || cancelled) return;
+      const projects: Project[] = await projRes.json();
+      const settings = settingsRes.ok ? await settingsRes.json() : {};
+      const projectOrder: string[] = settings.projectOrder || [];
 
       const items = await Promise.all(
         projects.map(async (project) => {
@@ -121,10 +70,14 @@ export default function Sidebar() {
       );
       if (cancelled) return;
 
+      // Sort by saved order; unordered projects go to the end sorted by creation date
       items.sort((a, b) => {
-        const aDate = a.reports[0]?.createdAt || a.project.createdAt;
-        const bDate = b.reports[0]?.createdAt || b.project.createdAt;
-        return new Date(bDate).getTime() - new Date(aDate).getTime();
+        const aIdx = projectOrder.indexOf(a.project.id);
+        const bIdx = projectOrder.indexOf(b.project.id);
+        if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+        if (aIdx !== -1) return -1;
+        if (bIdx !== -1) return 1;
+        return new Date(b.project.createdAt).getTime() - new Date(a.project.createdAt).getTime();
       });
 
       setData(items);
@@ -132,32 +85,6 @@ export default function Sidebar() {
     load();
     return () => { cancelled = true; };
   }, [refreshKey]);
-
-  // Track which projectId the current report belongs to (even if not yet in sidebar data)
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  useEffect(() => {
-    const match = pathname.match(/^\/reports\/([^/]+)/);
-    if (match) {
-      // Check if this report is already in our data
-      const known = data.some(({ reports }) => reports.some((r) => r.id === match[1]));
-      if (!known) {
-        // Fetch the report to get its projectId
-        fetch(`/api/reports/${match[1]}`).then((r) => r.ok ? r.json() : null).then((report) => {
-          if (report?.projectId) setActiveProjectId(report.projectId);
-        });
-      } else {
-        setActiveProjectId(null);
-      }
-    } else {
-      setActiveProjectId(null);
-    }
-  }, [pathname, data]);
-
-  const isProjectActive = (project: Project, reports: Report[]) =>
-    pathname === `/projects/${project.id}` ||
-    pathname.startsWith(`/projects/${project.id}/`) ||
-    reports.some((r) => pathname.startsWith(`/reports/${r.id}`)) ||
-    activeProjectId === project.id;
 
   const isTestActive = (test: SiteTest, reports: Report[]) => {
     const testReports = reports.filter((r) => r.siteTestId === test.id);
@@ -181,21 +108,71 @@ export default function Sidebar() {
     }
   };
 
+  // Persist project order to settings
+  const saveProjectOrder = (items: ProjectWithReports[]) => {
+    const order = items.filter(({ project }) => !project.archived).map(({ project }) => project.id);
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectOrder: order }),
+    });
+  };
+
+  const handleDragStart = (index: number, e: React.DragEvent<HTMLDivElement>) => {
+    setDragIndex(index);
+    dragNode.current = e.currentTarget;
+    e.dataTransfer.effectAllowed = "move";
+    requestAnimationFrame(() => {
+      if (dragNode.current) dragNode.current.style.opacity = "0.4";
+    });
+  };
+
+  const handleDragEnter = (index: number) => {
+    if (dragIndex === null || index === dragIndex) return;
+    setDragOverIndex(index);
+    setData((prev) => {
+      const next = [...prev];
+      const item = next.splice(dragIndex, 1)[0];
+      next.splice(index, 0, item);
+      setDragIndex(index);
+      return next;
+    });
+  };
+
+  const handleDragEnd = () => {
+    if (dragNode.current) dragNode.current.style.opacity = "1";
+    dragNode.current = null;
+    setDragIndex(null);
+    setDragOverIndex(null);
+    saveProjectOrder(data);
+  };
+
   const userInitial = user?.name?.charAt(0).toUpperCase() || "?";
+  const visibleData = data.filter(({ project }) => !project.archived);
 
   return (
     <>
-      <aside className="sticky top-0 z-20 flex h-screen w-[240px] shrink-0 flex-col justify-between bg-surface-primary px-[1rem] py-[2rem]">
+      <aside className="sticky top-0 z-20 flex h-screen w-[240px] shrink-0 flex-col justify-between bg-surface-tertiary px-[16px] py-[32px]">
         {/* Top section: sites + tests */}
         <nav className="flex flex-1 flex-col gap-[24px] overflow-y-auto p-[2px]">
-          {data.filter(({ project }) => !project.archived).map(({ project, reports }, index, arr) => {
-            const active = isProjectActive(project, reports);
+          {visibleData.map(({ project, reports }, index) => {
             const domain = getDomain(project.prodUrl);
             const tests = project.tests || [];
+            const isExpanded = expandedTests.has(project.id);
+            const testsWithReports = tests.map((t) => getTestWithLatestReport(t, reports));
+            const visibleTests = isExpanded ? testsWithReports : testsWithReports.slice(0, MAX_VISIBLE_TESTS);
+            const hasMore = testsWithReports.length > MAX_VISIBLE_TESTS;
 
             return (
               <div key={project.id}>
-                <div className="flex flex-col gap-[12px] py-[12px]">
+                <div
+                  className="flex flex-col gap-[16px]"
+                  draggable
+                  onDragStart={(e) => handleDragStart(index, e)}
+                  onDragEnter={() => handleDragEnter(index)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnd={handleDragEnd}
+                >
                   {/* Site header row */}
                   <button
                     onClick={() => handleProjectClick(project, reports)}
@@ -204,82 +181,105 @@ export default function Sidebar() {
                     <ProjectFavicon
                       url={project.prodUrl}
                       fallbackUrl={project.devUrl}
-                      size={32}
-                      className={active ? "ring-1 ring-foreground" : ""}
+                      size={24}
+                      className=""
                     />
-                    <span
-                      className={`text-[20px] truncate ${
-                        active ? "text-foreground" : "text-foreground/70"
-                      }`}
-                    >
+                    <span className="text-[20px] font-semibold truncate text-foreground">
                       {project.name || domain}
                     </span>
                   </button>
 
-                  {/* Tests (animated expand/collapse) */}
+                  {/* Tests */}
                   {tests.length > 0 && (
-                    <AnimatedCollapse open={active}>
-                      <div className="flex flex-col gap-[4px]">
-                        {groupTestsByRecency(tests, reports).map((group) => (
-                          <div key={group.label} className="flex flex-col gap-[4px]">
-                            {/* Time group label */}
-                            <div className="px-[8px]">
-                              <span className="text-[14px] text-foreground/40">
-                                {group.label}
-                              </span>
-                            </div>
+                    <div className="flex flex-col gap-[4px]">
+                      {visibleTests.map(({ test, latestReport }) => {
+                        const testActive = isTestActive(test, reports);
+                        const dotColor = latestReport
+                          ? reportDotColor(latestReport)
+                          : "bg-foreground/20";
+                        const timeAgo = latestReport
+                          ? formatRelativeTimeShort(latestReport.createdAt)
+                          : test.lastRunAt
+                            ? formatRelativeTimeShort(test.lastRunAt)
+                            : null;
 
-                            {/* Test rows */}
-                            {group.tests.map(({ test, latestReport }) => {
-                              const testActive = isTestActive(test, reports);
-                              const dotColor = latestReport
-                                ? reportDotColor(latestReport)
-                                : "bg-foreground/20";
-
-                              return (
-                                <button
-                                  key={test.id}
-                                  onClick={() => handleTestClick(test, reports)}
-                                  className={`flex items-center gap-[8px] px-[8px] py-[4px] rounded-[4px] cursor-pointer transition-colors text-left ${
-                                    testActive
-                                      ? "bg-surface-tertiary"
-                                      : "hover:bg-foreground/5"
-                                  }`}
-                                >
-                                  <span
-                                    className={`shrink-0 w-[8px] h-[8px] rounded-full ${dotColor}`}
-                                  />
-                                  <span className="text-[16px] text-foreground truncate">
-                                    {test.name}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ))}
-
-                        {/* Add new test */}
-                        <button
-                          onClick={() => router.push(`/projects/${project.id}`)}
-                          className="flex items-center justify-between px-[8px] py-[4px] cursor-pointer text-foreground transition-colors hover:bg-foreground/5 rounded-[4px]"
-                        >
-                          <span className="text-[16px]">Add new test</span>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/40">
-                            <path
-                              d="M12 5v14M5 12h14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
+                        return (
+                          <div
+                            key={test.id}
+                            onClick={() => handleTestClick(test, reports)}
+                            className={`group/test flex items-center gap-[8px] rounded-[4px] cursor-pointer transition-colors px-[8px] py-[4px] ${
+                              testActive
+                                ? "bg-white dark:bg-white/10"
+                                : "hover:bg-foreground/5"
+                            }`}
+                          >
+                            <span
+                              className={`shrink-0 w-[8px] h-[8px] rounded-full ${dotColor}`}
                             />
-                          </svg>
+                            <span className="flex-1 text-[16px] text-foreground truncate min-w-0">
+                              {test.name}
+                            </span>
+                            {timeAgo && (
+                              <span className="shrink-0 text-[12px] text-foreground/40 whitespace-nowrap group-hover/test:hidden">
+                                {timeAgo}
+                              </span>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/projects/${project.id}/settings/tests`);
+                              }}
+                              className="shrink-0 hidden items-center justify-center w-[20px] h-[20px] rounded-[4px] group-hover/test:flex transition-opacity hover:bg-foreground/10"
+                              title="Test settings"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-foreground/60">
+                                <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                                <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                                <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                              </svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+
+                      {/* See more / see less */}
+                      {hasMore && (
+                        <button
+                          onClick={() => setExpandedTests((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(project.id)) next.delete(project.id);
+                            else next.add(project.id);
+                            return next;
+                          })}
+                          className="px-[8px] py-[4px] text-[14px] text-foreground/40 text-left transition-colors hover:text-foreground/60"
+                        >
+                          {isExpanded
+                            ? "See less"
+                            : `See ${testsWithReports.length - MAX_VISIBLE_TESTS} more`}
                         </button>
-                      </div>
-                    </AnimatedCollapse>
+                      )}
+
+                      {/* Add new test */}
+                      <button
+                        onClick={() => router.push(`/projects/${project.id}`)}
+                        className="flex items-center justify-between px-[8px] py-[4px] cursor-pointer text-[14px] text-foreground/40 transition-colors hover:text-foreground/60 rounded-[4px]"
+                      >
+                        <span>Add new test</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
                 {/* Keyline between sites */}
-                {index < arr.length - 1 && (
-                  <div className="h-px bg-black/[0.1]" />
+                {index < visibleData.length - 1 && (
+                  <div className="mt-[24px] h-px bg-black/[0.1]" />
                 )}
               </div>
             );
@@ -292,8 +292,10 @@ export default function Sidebar() {
             onClick={() => setShowNewProject(true)}
             className="flex items-center gap-[8px] px-[4px] cursor-pointer text-foreground/70 transition-colors hover:text-foreground"
           >
-            <span className="text-[20px]">+</span>
-            <span className="text-[20px]">Add new site</span>
+            <span className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-[20px] text-foreground/70">
+              +
+            </span>
+            <span className="text-[20px] text-foreground/70">Add new site</span>
           </button>
         </nav>
 
@@ -313,7 +315,7 @@ export default function Sidebar() {
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[14px] font-bold text-foreground">
+              <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[14px] font-semibold text-foreground">
                 {userInitial}
               </span>
             )}

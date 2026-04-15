@@ -11,7 +11,7 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <SessionProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden bg-surface-tertiary">
         <SidebarProvider>
           <Sidebar />
           <main className="min-w-0 flex-1 py-[12px] pr-[12px]">

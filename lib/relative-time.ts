@@ -30,6 +30,28 @@ export function formatRelativeTime(iso: string): string {
 }
 
 /**
+ * Formats an ISO date string as compact relative time (e.g. "20m", "3h", "2d").
+ */
+export function formatRelativeTimeShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30);
+  const years = Math.floor(days / 365);
+
+  if (seconds < 60) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  if (weeks < 5) return `${weeks}w`;
+  if (months < 12) return `${months}mo`;
+  return `${years}y`;
+}
+
+/**
  * Formats an ISO date string as a full human-readable date-time
  * for tooltip display (e.g. "January 15, 2025 at 3:42 PM").
  */

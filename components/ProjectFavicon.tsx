@@ -77,18 +77,15 @@ export default function ProjectFavicon({
   const initial = domain.charAt(0).toUpperCase();
   const hue = domainHue(domain);
 
-  const iconSize = Math.round(size * 0.7);
-  const borderRadius = Math.round(size * 0.25);
-
   if (failed || urls.length === 0) {
     return (
       <span
-        className={`flex shrink-0 items-center justify-center font-bold text-white ${className || ""}`}
+        className={`flex shrink-0 items-center justify-center font-semibold text-white ${className || ""}`}
         style={{
           width: size,
           height: size,
           fontSize: size * 0.38,
-          borderRadius,
+          borderRadius: 4,
           backgroundColor: `hsl(${hue}, 50%, 65%)`,
         }}
       >
@@ -101,27 +98,28 @@ export default function ProjectFavicon({
 
   return (
     <span
-      className={`flex shrink-0 items-center justify-center bg-surface-tertiary ${className || ""}`}
-      style={{
-        width: size,
-        height: size,
-        borderRadius,
-      }}
+      className={`flex shrink-0 items-center justify-center ${className || ""}`}
+      style={{ width: size, height: size }}
     >
-      <img
-        src={`/api/favicon?domain=${activeHostname}`}
-        alt={domain}
-        width={iconSize}
-        height={iconSize}
-        className="shrink-0 object-contain"
-        onError={() => {
-          if (attemptIndex < urls.length - 1) {
-            setAttemptIndex(attemptIndex + 1);
-          } else {
-            setFailed(true);
-          }
-        }}
-      />
+      <span
+        className="flex h-full w-full items-center justify-center overflow-hidden"
+        style={{ borderRadius: 4 }}
+      >
+        <img
+          src={`/api/favicon?domain=${activeHostname}`}
+          alt={domain}
+          width={size}
+          height={size}
+          className="h-full w-full object-cover"
+          onError={() => {
+            if (attemptIndex < urls.length - 1) {
+              setAttemptIndex(attemptIndex + 1);
+            } else {
+              setFailed(true);
+            }
+          }}
+        />
+      </span>
     </span>
   );
 }
