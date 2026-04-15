@@ -82,15 +82,19 @@ export async function runReport(project: Project, reportId: string, userId: stri
   // Base directory for relative paths (user's data dir)
   const dataBase = userDir(userId);
 
-  // Use project-level breakpoints if set, otherwise global defaults
-  const projectBreakpoints = project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
+  // Use test-level breakpoints if set, then fall back to project-level (legacy), then global defaults
+  const projectBreakpoints = siteTest?.breakpoints?.length
+    ? siteTest.breakpoints
+    : project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
 
   // Resolve pages and flows from siteTest (preferred) or project (legacy)
   const testPages = siteTest?.pages ?? project.pages;
   const testFlows = siteTest?.flows ?? project.flows ?? [];
 
+  // Use test-level variants if set, then fall back to project-level (legacy)
+  const testVariants = siteTest?.variants ?? project.variants ?? [];
   // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
-  const variantCount = (project.variants || []).length;
+  const variantCount = testVariants.length;
   // Count screenshot steps across all flows
   const flowScreenshotSteps = testFlows.reduce((sum, flow) =>
     sum + getScreenshotStepIds(flow).length, 0);
@@ -151,10 +155,10 @@ export async function runReport(project: Project, reportId: string, userId: stri
       // --- Additional variants (e.g., light/dark) ---
       let variants: Record<string, Record<string, BreakpointResult>> | undefined;
 
-      if (project.variants && project.variants.length > 0) {
+      if (testVariants && testVariants.length > 0) {
         variants = {};
 
-        for (const variant of project.variants) {
+        for (const variant of testVariants) {
           checkCancelled();
 
           variants[variant.id] = await captureAndDiff({
@@ -210,9 +214,9 @@ export async function runReport(project: Project, reportId: string, userId: stri
 
         // --- Variant captures for flows ---
         let flowVariants: Record<string, typeof flowBreakpoints> | undefined;
-        if (project.variants && project.variants.length > 0) {
+        if (testVariants && testVariants.length > 0) {
           flowVariants = {};
-          for (const variant of project.variants) {
+          for (const variant of testVariants) {
             checkCancelled();
             flowVariants[variant.id] = await captureAndDiffFlow({
               flow,

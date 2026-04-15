@@ -11,12 +11,14 @@ export interface SiteTest {
   name: string;
   pages: PageEntry[];
   flows: FlowEntry[];
+  /** Micro-test compositions (new-style flows using reusable script steps) */
+  compositions?: TestComposition[];
+  /** Breakpoints for this test (uses user/global defaults if omitted) */
+  breakpoints?: number[];
+  /** Optional theme/variant captures (e.g., light + dark) */
+  variants?: TestVariant[];
   createdAt: string;
   lastRunAt: string | null;
-  /** Per-test breakpoint overrides */
-  breakpoints?: number[];
-  /** Per-test variant captures */
-  variants?: TestVariant[];
 }
 
 export interface Project {
@@ -29,11 +31,11 @@ export interface Project {
   pages: PageEntry[];
   createdAt: string;
   lastDiffAt: string | null;
-  /** When true, Playwright injects auth cookies for localhost captures */
+  /** @deprecated Auth is now handled via micro-test scripts. */
   requiresAuth?: boolean;
-  /** Optional theme/variant captures (e.g., light + dark) */
+  /** @deprecated Use tests[].variants instead. Kept for backward compat during migration. */
   variants?: TestVariant[];
-  /** Per-project breakpoint overrides (uses user/global defaults if omitted) */
+  /** @deprecated Use tests[].breakpoints instead. Kept for backward compat during migration. */
   breakpoints?: number[];
   /** Soft-deleted / hidden from sidebar */
   archived?: boolean;
@@ -41,6 +43,8 @@ export interface Project {
   flows?: FlowEntry[];
   /** Named tests for this site. Each test has its own pages + flows. */
   tests?: SiteTest[];
+  /** Reusable Playwright script steps shared across all tests for this site */
+  microTests?: MicroTest[];
 }
 
 export interface UserSettings {
@@ -55,6 +59,35 @@ export interface UserSettings {
 export interface PageEntry {
   id: string;
   path: string;
+}
+
+// --- Micro-test types ---
+
+export interface MicroTest {
+  id: string;
+  /** Short identifier used in code references */
+  name: string;
+  /** Human-readable label shown in the UI */
+  displayName: string;
+  /** The function body — receives `page` (Playwright Page) as its argument */
+  script: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TestCompositionStep {
+  id: string;
+  /** References a MicroTest.id from the project's microTests library */
+  microTestId: string;
+  /** Whether to capture a screenshot after this step completes */
+  captureScreenshot: boolean;
+}
+
+export interface TestComposition {
+  id: string;
+  name: string;
+  startPath: string;
+  steps: TestCompositionStep[];
 }
 
 // --- Flow types ---

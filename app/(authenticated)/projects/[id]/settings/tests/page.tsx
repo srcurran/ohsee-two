@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor } from "@/components/FlowEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
@@ -25,6 +25,7 @@ function normalizePath(input: string): string {
 
 export default function ProjectTestsSettings() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
@@ -57,7 +58,9 @@ export default function ProjectTestsSettings() {
         setProject(p);
         const tests = p.tests || [];
         if (tests.length > 0 && !selectedTestId) {
-          setSelectedTestId(tests[0].id);
+          const queryTestId = searchParams.get("testId");
+          const target = queryTestId && tests.find((t: SiteTest) => t.id === queryTestId);
+          setSelectedTestId(target ? target.id : tests[0].id);
         }
       });
   }, [params.id]);

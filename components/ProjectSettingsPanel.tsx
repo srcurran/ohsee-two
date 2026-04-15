@@ -6,7 +6,7 @@ import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { FlowEditor } from "@/components/FlowEditor";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import { useSidebar } from "@/components/SidebarProvider";
-import type { Project, SiteTest, FlowEntry } from "@/lib/types";
+import type { Project, SiteTest, FlowEntry, TestVariant } from "@/lib/types";
 
 function getDomain(url: string): string {
   try {
@@ -22,9 +22,11 @@ interface Props {
   projectId: string;
   onClose: () => void;
   initialTab?: Tab;
+  /** If provided, opens the test editor for this test immediately */
+  initialTestId?: string;
 }
 
-export default function ProjectSettingsPanel({ projectId, onClose, initialTab = "general" }: Props) {
+export default function ProjectSettingsPanel({ projectId, onClose, initialTab = "general", initialTestId }: Props) {
   const router = useRouter();
   const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
@@ -35,7 +37,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
   const [name, setName] = useState("");
   const [prodUrl, setProdUrl] = useState("");
   const [devUrl, setDevUrl] = useState("");
-  const [requiresAuth, setRequiresAuth] = useState(false);
+
+  // Per-test fields (loaded when editing a specific test)
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
 
@@ -57,8 +60,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for latest state (used in save to avoid stale closures)
-  const stateRef = useRef({ name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows, tests });
-  stateRef.current = { name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows, tests };
+  const stateRef = useRef({ name, prodUrl, devUrl, selectedVariants, breakpoints, paths, flows, tests });
+  stateRef.current = { name, prodUrl, devUrl, selectedVariants, breakpoints, paths, flows, tests };
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}`)
@@ -68,13 +71,23 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
         setName(p.name || "");
         setProdUrl(p.prodUrl);
         setDevUrl(p.devUrl);
-        setRequiresAuth(p.requiresAuth || false);
-        setSelectedVariants((p.variants || []).map((v) => v.id));
-        setBreakpoints(p.breakpoints?.length ? p.breakpoints : [...BREAKPOINTS]);
-        setTests(p.tests || []);
+        const loadedTests = p.tests || [];
+        setTests(loadedTests);
         // Legacy compat: populate paths/flows from project-level fields
         setPaths(p.pages.map((pg: { path: string }) => pg.path));
         setFlows(p.flows || []);
+        // Auto-open test editor if initialTestId provided
+        if (initialTestId) {
+          const target = loadedTests.find((t: SiteTest) => t.id === initialTestId);
+          if (target) {
+            setTab("tests");
+            setEditingTestId(target.id);
+            setPaths(target.pages.map((pg: { path: string }) => pg.path));
+            setFlows(target.flows || []);
+            setBreakpoints(target.breakpoints?.length ? target.breakpoints : [...BREAKPOINTS]);
+            setSelectedVariants((target.variants || []).map((v: { id: string }) => v.id));
+          }
+        }
       });
   }, [projectId]);
 
@@ -111,9 +124,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
         name: s.name.trim() || undefined,
         prodUrl: s.prodUrl.replace(/\/$/, ""),
         devUrl: s.devUrl.replace(/\/$/, ""),
-        requiresAuth: s.requiresAuth,
-        variants: BUILT_IN_VARIANTS.filter((v) => s.selectedVariants.includes(v.id)),
-        breakpoints: s.breakpoints,
         pages: updatedPages,
         flows: s.flows,
         tests: s.tests,
@@ -169,22 +179,31 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     save({ paths: next });
   };
 
-  const toggleAuth = (checked: boolean) => {
-    setRequiresAuth(checked);
-    debouncedSave({ requiresAuth: checked });
-  };
-
   const toggleVariant = (id: string, checked: boolean) => {
+    if (!editingTestId) return;
     const next = checked
       ? [...selectedVariants, id]
       : selectedVariants.filter((v) => v !== id);
     setSelectedVariants(next);
-    debouncedSave({ selectedVariants: next });
+    // Update the test's variants and save
+    const updatedTests = tests.map((t) =>
+      t.id === editingTestId
+        ? { ...t, variants: BUILT_IN_VARIANTS.filter((v) => next.includes(v.id)) }
+        : t
+    );
+    setTests(updatedTests);
+    debouncedSave({ tests: updatedTests, selectedVariants: next });
   };
 
   const updateBreakpoints = (next: number[]) => {
+    if (!editingTestId) return;
     setBreakpoints(next);
-    debouncedSave({ breakpoints: next });
+    // Update the test's breakpoints and save
+    const updatedTests = tests.map((t) =>
+      t.id === editingTestId ? { ...t, breakpoints: next } : t
+    );
+    setTests(updatedTests);
+    debouncedSave({ tests: updatedTests, breakpoints: next });
   };
 
   const updateFlow = (idx: number, updated: FlowEntry) => {
@@ -211,6 +230,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     setEditingTestId(test.id);
     setPaths(test.pages.map((p) => p.path));
     setFlows(test.flows || []);
+    setBreakpoints(test.breakpoints?.length ? test.breakpoints : [...BREAKPOINTS]);
+    setSelectedVariants((test.variants || []).map((v) => v.id));
   };
 
   const closeTestEditor = () => {
@@ -229,7 +250,13 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     });
 
     const updatedTests = tests.map((t) =>
-      t.id === editingTestId ? { ...t, pages: updatedPages, flows } : t
+      t.id === editingTestId ? {
+        ...t,
+        pages: updatedPages,
+        flows,
+        breakpoints,
+        variants: BUILT_IN_VARIANTS.filter((v) => selectedVariants.includes(v.id)),
+      } : t
     );
     setTests(updatedTests);
     save({ tests: updatedTests });
@@ -241,6 +268,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
       name: "New Test",
       pages: [{ id: crypto.randomUUID(), path: "/" }],
       flows: [],
+      breakpoints: [...BREAKPOINTS],
+      variants: [],
       createdAt: new Date().toISOString(),
       lastRunAt: null,
     };
@@ -373,27 +402,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                 <label className="mb-[4px] block text-[14px] text-foreground">Development URL</label>
                 <input type="text" value={devUrl} onChange={(e) => setDevUrl(e.target.value)} onBlur={handleBlur} className={inputClass} />
               </div>
-              <BreakpointEditor breakpoints={breakpoints} onChange={updateBreakpoints} />
-              <div>
-                <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
-                <div className="flex gap-[16px]">
-                  {BUILT_IN_VARIANTS.map((v) => (
-                    <label key={v.id} className="flex items-center gap-[8px] text-[14px] text-foreground">
-                      <input
-                        type="checkbox"
-                        checked={selectedVariants.includes(v.id)}
-                        onChange={(e) => toggleVariant(v.id, e.target.checked)}
-                        className="h-[16px] w-[16px]"
-                      />
-                      {v.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <label className="flex items-center gap-[8px] text-[14px] text-foreground">
-                <input type="checkbox" checked={requiresAuth} onChange={(e) => toggleAuth(e.target.checked)} className="h-[16px] w-[16px]" />
-                Requires authentication (for localhost testing)
-              </label>
             </div>
           ) : tab === "tests" ? (
             <div className="max-w-[560px]">
@@ -472,6 +480,29 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                         >
                           + Add Flow
                         </button>
+                      </div>
+
+                      {/* Breakpoints */}
+                      <div className="mt-[32px]">
+                        <BreakpointEditor breakpoints={breakpoints} onChange={updateBreakpoints} />
+                      </div>
+
+                      {/* Variants */}
+                      <div className="mt-[24px]">
+                        <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
+                        <div className="flex gap-[16px]">
+                          {BUILT_IN_VARIANTS.map((v) => (
+                            <label key={v.id} className="flex items-center gap-[8px] text-[14px] text-foreground">
+                              <input
+                                type="checkbox"
+                                checked={selectedVariants.includes(v.id)}
+                                onChange={(e) => toggleVariant(v.id, e.target.checked)}
+                                className="h-[16px] w-[16px]"
+                              />
+                              {v.label}
+                            </label>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
