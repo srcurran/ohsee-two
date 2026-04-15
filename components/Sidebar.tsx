@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
 import ProjectFavicon from "./ProjectFavicon";
+import { reportDotColor } from "@/lib/colors";
 import type { Project, SiteTest, Report } from "@/lib/types";
 
 function getDomain(url: string): string {
@@ -17,45 +18,80 @@ function getDomain(url: string): string {
   }
 }
 
-
 interface ProjectWithReports {
   project: Project;
   reports: Report[];
 }
 
-function UserAvatarLink({
-  showTooltip,
-  hideTooltip,
-}: {
-  showTooltip: (e: React.MouseEvent, text: string) => void;
-  hideTooltip: () => void;
-}) {
-  const { data: session } = useSession();
-  const user = session?.user;
-  const initial = user?.name?.charAt(0).toUpperCase() || "?";
+/** Group tests by recency of their last run */
+function groupTestsByRecency(
+  tests: SiteTest[],
+  reports: Report[]
+): { label: string; tests: { test: SiteTest; latestReport: Report | null }[] }[] {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - 7);
+
+  const groups: Record<string, { test: SiteTest; latestReport: Report | null }[]> = {
+    Today: [],
+    "This week": [],
+    Older: [],
+  };
+
+  for (const test of tests) {
+    const testReports = reports
+      .filter((r) => r.siteTestId === test.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const latestReport = testReports[0] || null;
+
+    const lastDate = latestReport
+      ? new Date(latestReport.createdAt)
+      : test.lastRunAt
+        ? new Date(test.lastRunAt)
+        : null;
+
+    if (lastDate && lastDate >= todayStart) {
+      groups["Today"].push({ test, latestReport });
+    } else if (lastDate && lastDate >= weekStart) {
+      groups["This week"].push({ test, latestReport });
+    } else {
+      groups["Older"].push({ test, latestReport });
+    }
+  }
+
+  return Object.entries(groups)
+    .filter(([, items]) => items.length > 0)
+    .map(([label, items]) => ({ label, tests: items }));
+}
+
+function AnimatedCollapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | undefined>(open ? undefined : 0);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    if (open) {
+      setHeight(el.scrollHeight);
+      const onEnd = () => setHeight(undefined);
+      el.addEventListener("transitionend", onEnd, { once: true });
+      return () => el.removeEventListener("transitionend", onEnd);
+    } else {
+      // Force a layout read so the browser knows the starting height
+      setHeight(el.scrollHeight);
+      requestAnimationFrame(() => setHeight(0));
+    }
+  }, [open]);
 
   return (
-    <Link
-      href="/settings"
-      onMouseEnter={(e) => showTooltip(e, user?.name || "Settings")}
-      onMouseLeave={hideTooltip}
-      className="flex h-[56px] w-[56px] cursor-pointer items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-80"
+    <div
+      ref={contentRef}
+      className="overflow-hidden transition-[height] duration-200 ease-in-out"
+      style={{ height: height !== undefined ? height : "auto" }}
     >
-      {user?.image ? (
-        <img
-          src={user.image}
-          alt={user.name || "User"}
-          width={56}
-          height={56}
-          className="h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[20px] font-bold text-foreground">
-          {initial}
-        </span>
-      )}
-    </Link>
+      {children}
+    </div>
   );
 }
 
@@ -63,19 +99,17 @@ export default function Sidebar() {
   const { refreshKey, refreshProjects } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [data, setData] = useState<ProjectWithReports[]>([]);
   const [showNewProject, setShowNewProject] = useState(false);
-  const [tooltip, setTooltip] = useState<{
-    text: string;
-    top: number;
-    left: number;
-  } | null>(null);
 
-  // Load projects + reports
+  // Load projects + reports (keep previous data visible during refresh)
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       const res = await fetch("/api/projects");
-      if (!res.ok) return;
+      if (!res.ok || cancelled) return;
       const projects: Project[] = await res.json();
 
       const items = await Promise.all(
@@ -85,6 +119,7 @@ export default function Sidebar() {
           return { project, reports };
         })
       );
+      if (cancelled) return;
 
       items.sort((a, b) => {
         const aDate = a.reports[0]?.createdAt || a.project.createdAt;
@@ -95,11 +130,39 @@ export default function Sidebar() {
       setData(items);
     }
     load();
+    return () => { cancelled = true; };
   }, [refreshKey]);
+
+  // Track which projectId the current report belongs to (even if not yet in sidebar data)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  useEffect(() => {
+    const match = pathname.match(/^\/reports\/([^/]+)/);
+    if (match) {
+      // Check if this report is already in our data
+      const known = data.some(({ reports }) => reports.some((r) => r.id === match[1]));
+      if (!known) {
+        // Fetch the report to get its projectId
+        fetch(`/api/reports/${match[1]}`).then((r) => r.ok ? r.json() : null).then((report) => {
+          if (report?.projectId) setActiveProjectId(report.projectId);
+        });
+      } else {
+        setActiveProjectId(null);
+      }
+    } else {
+      setActiveProjectId(null);
+    }
+  }, [pathname, data]);
 
   const isProjectActive = (project: Project, reports: Report[]) =>
     pathname === `/projects/${project.id}` ||
-    reports.some((r) => pathname.startsWith(`/reports/${r.id}`));
+    pathname.startsWith(`/projects/${project.id}/`) ||
+    reports.some((r) => pathname.startsWith(`/reports/${r.id}`)) ||
+    activeProjectId === project.id;
+
+  const isTestActive = (test: SiteTest, reports: Report[]) => {
+    const testReports = reports.filter((r) => r.siteTestId === test.id);
+    return testReports.some((r) => pathname.startsWith(`/reports/${r.id}`));
+  };
 
   const handleProjectClick = (project: Project, reports: Report[]) => {
     if (reports.length > 0) {
@@ -109,84 +172,157 @@ export default function Sidebar() {
     }
   };
 
-  const showTooltip = (e: React.MouseEvent, text: string) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setTooltip({
-      text,
-      top: rect.top + rect.height / 2,
-      left: rect.right + 12,
-    });
+  const handleTestClick = (test: SiteTest, reports: Report[]) => {
+    const testReports = reports
+      .filter((r) => r.siteTestId === test.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (testReports.length > 0) {
+      router.push(`/reports/${testReports[0].id}`);
+    }
   };
 
-  const hideTooltip = () => setTooltip(null);
+  const userInitial = user?.name?.charAt(0).toUpperCase() || "?";
 
   return (
     <>
-      <aside className="sticky top-0 z-20 flex h-screen w-[96px] shrink-0 flex-col items-center">
-        <div className="pt-[24px] pb-[12px]" />
-
-        {/* Project icons */}
-        <nav className="flex flex-1 flex-col items-center gap-[8px] overflow-y-auto px-[4px]">
-          {data.filter(({ project }) => !project.archived).map(({ project, reports }) => {
+      <aside className="sticky top-0 z-20 flex h-screen w-[240px] shrink-0 flex-col justify-between bg-surface-primary px-[1rem] py-[2rem]">
+        {/* Top section: sites + tests */}
+        <nav className="flex flex-1 flex-col gap-[24px] overflow-y-auto p-[2px]">
+          {data.filter(({ project }) => !project.archived).map(({ project, reports }, index, arr) => {
             const active = isProjectActive(project, reports);
             const domain = getDomain(project.prodUrl);
+            const tests = project.tests || [];
 
             return (
-              <button
-                key={project.id}
-                onClick={() => handleProjectClick(project, reports)}
-                onMouseEnter={(e) => showTooltip(e, project.name || domain)}
-                onMouseLeave={hideTooltip}
-                className={`relative flex h-[64px] w-[64px] shrink-0 cursor-pointer items-center justify-center rounded-[18px] transition-all active:scale-[0.97] ${
-                  active ? "" : "hover:bg-foreground/5 hover:shadow-elevation-sm"
-                }`}
-              >
-                <ProjectFavicon
-                  url={project.prodUrl}
-                  fallbackUrl={project.devUrl}
-                  size={56}
-                  className={active ? "ring-2 ring-foreground" : ""}
-                />
-                {/* Arrow indicator on hover */}
-                <div className="pointer-events-none absolute right-[-2px] top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
+              <div key={project.id}>
+                <div className="flex flex-col gap-[12px] py-[12px]">
+                  {/* Site header row */}
+                  <button
+                    onClick={() => handleProjectClick(project, reports)}
+                    className="flex items-center gap-[8px] px-[4px] cursor-pointer transition-opacity hover:opacity-80"
+                  >
+                    <ProjectFavicon
+                      url={project.prodUrl}
+                      fallbackUrl={project.devUrl}
+                      size={32}
+                      className={active ? "ring-1 ring-foreground" : ""}
+                    />
+                    <span
+                      className={`text-[20px] truncate ${
+                        active ? "text-foreground" : "text-foreground/70"
+                      }`}
+                    >
+                      {project.name || domain}
+                    </span>
+                  </button>
+
+                  {/* Tests (animated expand/collapse) */}
+                  {tests.length > 0 && (
+                    <AnimatedCollapse open={active}>
+                      <div className="flex flex-col gap-[4px]">
+                        {groupTestsByRecency(tests, reports).map((group) => (
+                          <div key={group.label} className="flex flex-col gap-[4px]">
+                            {/* Time group label */}
+                            <div className="px-[8px]">
+                              <span className="text-[14px] text-foreground/40">
+                                {group.label}
+                              </span>
+                            </div>
+
+                            {/* Test rows */}
+                            {group.tests.map(({ test, latestReport }) => {
+                              const testActive = isTestActive(test, reports);
+                              const dotColor = latestReport
+                                ? reportDotColor(latestReport)
+                                : "bg-foreground/20";
+
+                              return (
+                                <button
+                                  key={test.id}
+                                  onClick={() => handleTestClick(test, reports)}
+                                  className={`flex items-center gap-[8px] px-[8px] py-[4px] rounded-[4px] cursor-pointer transition-colors text-left ${
+                                    testActive
+                                      ? "bg-surface-tertiary"
+                                      : "hover:bg-foreground/5"
+                                  }`}
+                                >
+                                  <span
+                                    className={`shrink-0 w-[8px] h-[8px] rounded-full ${dotColor}`}
+                                  />
+                                  <span className="text-[16px] text-foreground truncate">
+                                    {test.name}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ))}
+
+                        {/* Add new test */}
+                        <button
+                          onClick={() => router.push(`/projects/${project.id}`)}
+                          className="flex items-center justify-between px-[8px] py-[4px] cursor-pointer text-foreground transition-colors hover:bg-foreground/5 rounded-[4px]"
+                        >
+                          <span className="text-[16px]">Add new test</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/40">
+                            <path
+                              d="M12 5v14M5 12h14"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </AnimatedCollapse>
+                  )}
                 </div>
-              </button>
+                {/* Keyline between sites */}
+                {index < arr.length - 1 && (
+                  <div className="h-px bg-black/[0.1]" />
+                )}
+              </div>
             );
           })}
 
-          {/* Add project button */}
+          <div className="h-px bg-black/[0.1]" />
+
+          {/* Add new site */}
           <button
             onClick={() => setShowNewProject(true)}
-            onMouseEnter={(e) => showTooltip(e, "New Project")}
-            onMouseLeave={hideTooltip}
-            className="flex h-[56px] w-[56px] shrink-0 cursor-pointer items-center justify-center rounded-[14px] text-text-subtle transition-all active:scale-[0.97] hover:bg-foreground/5 hover:text-text-muted hover:shadow-elevation-sm"
+            className="flex items-center gap-[8px] px-[4px] cursor-pointer text-foreground/70 transition-colors hover:text-foreground"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
+            <span className="text-[20px]">+</span>
+            <span className="text-[20px]">Add new site</span>
           </button>
         </nav>
 
-        {/* User avatar → links to settings */}
-        <div className="pb-[24px] pt-[16px]">
-          <UserAvatarLink showTooltip={showTooltip} hideTooltip={hideTooltip} />
-        </div>
-      </aside>
-
-      {/* Tooltip */}
-      {tooltip && (
-        <div
-          className="pointer-events-none fixed z-50 -translate-y-1/2 rounded-[8px] bg-black/90 px-[12px] py-[6px] text-[13px] font-medium text-white shadow-lg whitespace-nowrap"
-          style={{ top: tooltip.top, left: tooltip.left }}
+        {/* User avatar + name at bottom */}
+        <Link
+          href="/settings"
+          className="flex items-center gap-[8px] px-[4px] pt-[16px] cursor-pointer transition-opacity hover:opacity-80"
         >
-          {tooltip.text}
-        </div>
-      )}
+          <div className="flex h-[32px] w-[32px] shrink-0 items-center justify-center overflow-hidden rounded-full">
+            {user?.image ? (
+              <img
+                src={user.image}
+                alt={user?.name || "User"}
+                width={32}
+                height={32}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center bg-accent-yellow text-[14px] font-bold text-foreground">
+                {userInitial}
+              </span>
+            )}
+          </div>
+          <span className="text-[20px] text-foreground/70 truncate">
+            {user?.name || "Settings"}
+          </span>
+        </Link>
+      </aside>
 
       {showNewProject && (
         <NewProjectOverlay
