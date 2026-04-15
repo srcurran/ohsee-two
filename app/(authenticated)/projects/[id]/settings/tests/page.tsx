@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor } from "@/components/FlowEditor";
-import TestCompositionEditor from "@/components/TestCompositionEditor";
-import MicroTestImportModal from "@/components/MicroTestImportModal";
+import { splitIntoSteps } from "@/components/MicroTestImportModal";
+import MicroTestEditor from "@/components/MicroTestEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
-import type { Project, SiteTest, FlowEntry, MicroTest, TestComposition } from "@/lib/types";
+import type { Project, SiteTest, FlowEntry, MicroTest, TestComposition, TestCompositionStep } from "@/lib/types";
 
 function normalizePath(input: string): string {
   let p = input.trim();
@@ -42,13 +42,21 @@ export default function ProjectTestsSettings() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
 
-  // Flows state
+  // Flows state (legacy)
   const [flows, setFlows] = useState<FlowEntry[]>([]);
 
-  // Compositions + micro-tests
-  const [compositions, setCompositions] = useState<TestComposition[]>([]);
+  // Single composition per test + micro-tests
+  const [composition, setComposition] = useState<TestComposition | null>(null);
   const [microTests, setMicroTests] = useState<MicroTest[]>([]);
-  const [showImportModal, setShowImportModal] = useState(false);
+
+  // Import state (inline, not modal)
+  const [importCode, setImportCode] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // Step detail popup
+  const [editingStepMicroTestId, setEditingStepMicroTestId] = useState<string | null>(null);
+  const [addingNewStep, setAddingNewStep] = useState(false);
 
   // Breakpoints + variants
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
@@ -81,7 +89,8 @@ export default function ProjectTestsSettings() {
       setTestName(test.name);
       setPaths(test.pages.map((pg) => pg.path));
       setFlows(test.flows || []);
-      setCompositions(test.compositions ?? []);
+      // Use first composition or null
+      setComposition(test.compositions?.[0] ?? null);
       setBreakpoints(
         test.breakpoints?.length
           ? test.breakpoints
@@ -94,6 +103,11 @@ export default function ProjectTestsSettings() {
           ? test.variants.map((v) => v.id)
           : (project.variants || []).map((v) => v.id)
       );
+      // Reset import/editing state
+      setImportCode("");
+      setImportError(null);
+      setEditingStepMicroTestId(null);
+      setAddingNewStep(false);
     }
   }, [project, selectedTestId]);
 
@@ -168,14 +182,7 @@ export default function ProjectTestsSettings() {
     setDragOverIndex(null);
   };
 
-  // Flows handlers
-  const addFlow = () => {
-    setFlows([
-      ...flows,
-      { id: crypto.randomUUID(), name: "", startPath: "/", steps: [] },
-    ]);
-  };
-
+  // Legacy flows handlers
   const updateFlow = (idx: number, updated: FlowEntry) => {
     const next = [...flows];
     next[idx] = updated;
@@ -186,22 +193,122 @@ export default function ProjectTestsSettings() {
     setFlows(flows.filter((_, i) => i !== idx));
   };
 
-  // Composition handlers
-  const addComposition = () => {
-    setCompositions([
-      ...compositions,
-      { id: crypto.randomUUID(), name: "", startPath: "/", steps: [] },
-    ]);
+  // Import handler — creates micro-tests + sets the single composition
+  const handleImport = async () => {
+    const steps = importCode.trim() ? splitIntoSteps(importCode) : null;
+    if (!steps) return;
+    setImporting(true);
+    setImportError(null);
+
+    const created: MicroTest[] = [];
+    for (const step of steps) {
+      const res = await fetch(`/api/projects/${params.id}/micro-tests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: step.name,
+          displayName: step.displayName,
+          script: step.lines.filter((l) => !l.trim().startsWith("//")).join("\n"),
+        }),
+      });
+
+      if (res.ok) {
+        const mt: MicroTest = await res.json();
+        created.push(mt);
+      } else {
+        const data = await res.json().catch(() => null);
+        setImportError(data?.error ?? `Failed to create step "${step.displayName}"`);
+        setImporting(false);
+        return;
+      }
+    }
+
+    setMicroTests([...microTests, ...created]);
+    const comp: TestComposition = {
+      id: crypto.randomUUID(),
+      name: testName || "Flow",
+      startPath: "/",
+      steps: created.map((mt) => ({
+        id: crypto.randomUUID(),
+        microTestId: mt.id,
+        captureScreenshot: true,
+      })),
+    };
+    setComposition(comp);
+    setImportCode("");
+    setImporting(false);
   };
 
-  const updateComposition = (idx: number, updated: TestComposition) => {
-    const next = [...compositions];
-    next[idx] = updated;
-    setCompositions(next);
+  // Step management
+  const getMicroTestName = useCallback((microTestId: string): string => {
+    const mt = microTests.find((m) => m.id === microTestId);
+    return mt?.displayName ?? "Unknown step";
+  }, [microTests]);
+
+  const updateStep = (stepId: string, updates: Partial<TestCompositionStep>) => {
+    if (!composition) return;
+    setComposition({
+      ...composition,
+      steps: composition.steps.map((s) =>
+        s.id === stepId ? { ...s, ...updates } : s
+      ),
+    });
   };
 
-  const removeComposition = (idx: number) => {
-    setCompositions(compositions.filter((_, i) => i !== idx));
+  const removeStep = (stepId: string) => {
+    if (!composition) return;
+    setComposition({
+      ...composition,
+      steps: composition.steps.filter((s) => s.id !== stepId),
+    });
+  };
+
+  const moveStep = (index: number, direction: -1 | 1) => {
+    if (!composition) return;
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= composition.steps.length) return;
+    const steps = [...composition.steps];
+    [steps[index], steps[newIndex]] = [steps[newIndex], steps[index]];
+    setComposition({ ...composition, steps });
+  };
+
+  const handleAddNewStep = async () => {
+    const res = await fetch(`/api/projects/${params.id}/micro-tests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: `step${(composition?.steps.length ?? 0) + 1}`,
+        displayName: `Step ${(composition?.steps.length ?? 0) + 1}`,
+        script: '// Your Playwright script here\nawait page.waitForTimeout(1000);',
+      }),
+    });
+
+    if (res.ok) {
+      const mt: MicroTest = await res.json();
+      setMicroTests([...microTests, mt]);
+      const newStep: TestCompositionStep = {
+        id: crypto.randomUUID(),
+        microTestId: mt.id,
+        captureScreenshot: true,
+      };
+      if (composition) {
+        setComposition({ ...composition, steps: [...composition.steps, newStep] });
+      } else {
+        setComposition({
+          id: crypto.randomUUID(),
+          name: testName || "Flow",
+          startPath: "/",
+          steps: [newStep],
+        });
+      }
+      setEditingStepMicroTestId(mt.id);
+      setAddingNewStep(false);
+    }
+  };
+
+  // Remove the entire flow
+  const handleRemoveFlow = () => {
+    setComposition(null);
   };
 
   // Save all fields for the selected test
@@ -223,7 +330,7 @@ export default function ProjectTestsSettings() {
             name: testName.trim() || t.name,
             pages: updatedPages,
             flows,
-            compositions,
+            compositions: composition ? [composition] : [],
             breakpoints,
             variants: BUILT_IN_VARIANTS.filter((v) => selectedVariants.includes(v.id)),
           }
@@ -261,30 +368,33 @@ export default function ProjectTestsSettings() {
     );
   }
 
+  const editingMicroTest = editingStepMicroTestId
+    ? microTests.find((mt) => mt.id === editingStepMicroTestId)
+    : null;
+
+  const parsedImportSteps = importCode.trim() ? splitIntoSteps(importCode) : null;
+
   return (
     <>
-    {showImportModal && (
-      <MicroTestImportModal
-        projectId={params.id}
-        onImport={(imported) => {
-          setMicroTests([...microTests, ...imported]);
-          // Auto-create a composition with the imported steps
-          const comp: TestComposition = {
-            id: crypto.randomUUID(),
-            name: imported.length > 0 ? "Imported Flow" : "",
-            startPath: "/",
-            steps: imported.map((mt) => ({
-              id: crypto.randomUUID(),
-              microTestId: mt.id,
-              captureScreenshot: true,
-            })),
-          };
-          setCompositions([...compositions, comp]);
-          setShowImportModal(false);
-        }}
-        onClose={() => setShowImportModal(false)}
-      />
+    {/* Step detail popup */}
+    {editingMicroTest && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        onClick={(e) => { if (e.target === e.currentTarget) setEditingStepMicroTestId(null); }}
+      >
+        <div className="w-full max-w-[640px] max-h-[80vh] overflow-auto rounded-[12px] bg-surface-content p-[24px]">
+          <MicroTestEditor
+            projectId={params.id}
+            microTest={editingMicroTest}
+            onSave={(updated) => {
+              setMicroTests(microTests.map((mt) => (mt.id === updated.id ? updated : mt)));
+            }}
+            onClose={() => setEditingStepMicroTestId(null)}
+          />
+        </div>
+      </div>
     )}
+
     <div className="flex gap-[1px]">
       {/* Left: test list */}
       <div className="w-[180px] shrink-0 pr-[24px] border-r border-border-secondary">
@@ -431,69 +541,189 @@ export default function ProjectTestsSettings() {
               </div>
             </section>
 
-            {/* Compositions section (micro-test based) */}
+            {/* Flow section */}
             <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[14px] text-foreground">Compositions</h2>
-              <p className="mb-[16px] text-[14px] text-text-muted">
-                Compose reusable Playwright script steps into multi-step tests.
-              </p>
+              <h2 className="mb-[8px] text-[14px] text-foreground">Flow</h2>
 
-              <div className="mb-[16px] space-y-[12px]">
-                {compositions.map((comp, idx) => (
-                  <TestCompositionEditor
-                    key={comp.id}
-                    projectId={params.id}
-                    composition={comp}
-                    microTests={microTests}
-                    onChange={(updated) => updateComposition(idx, updated)}
-                    onRemove={() => removeComposition(idx)}
-                    onMicroTestsChange={setMicroTests}
-                  />
-                ))}
-              </div>
+              {composition && composition.steps.length > 0 ? (
+                <>
+                  {/* Steps list */}
+                  <div className="mb-[12px] space-y-[4px]">
+                    {composition.steps.map((step, idx) => (
+                      <div
+                        key={step.id}
+                        className="flex items-center gap-[8px] rounded-[4px] bg-surface-tertiary/50 px-[12px] py-[8px]"
+                      >
+                        <span className="shrink-0 text-[12px] text-text-muted w-[20px]">
+                          {idx + 1}.
+                        </span>
 
-              <div className="flex gap-[8px]">
-                <button
-                  onClick={addComposition}
-                  className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-                >
-                  + Add Composition
-                </button>
-                <button
-                  onClick={() => setShowImportModal(true)}
-                  className="rounded-[8px] border border-border-primary px-[16px] py-[8px] text-[14px] text-text-muted transition-colors hover:text-foreground hover:bg-surface-tertiary"
-                >
-                  Import from Playwright
-                </button>
-              </div>
-            </section>
+                        <button
+                          onClick={() => setEditingStepMicroTestId(step.microTestId)}
+                          className="flex-1 text-left text-[14px] text-foreground hover:text-accent-blue transition-colors truncate"
+                          title="Click to edit script"
+                        >
+                          {getMicroTestName(step.microTestId)}
+                        </button>
 
-            {/* Micro-test library */}
-            {microTests.length > 0 && (
-              <section className="mb-[32px]">
-                <h2 className="mb-[8px] text-[14px] text-foreground">Micro-test Library</h2>
-                <p className="mb-[12px] text-[14px] text-text-muted">
-                  {microTests.length} reusable step{microTests.length !== 1 ? "s" : ""} available for compositions.
-                </p>
-                <div className="flex flex-wrap gap-[4px]">
-                  {microTests.map((mt) => (
-                    <span
-                      key={mt.id}
-                      className="rounded-[6px] bg-surface-tertiary px-[10px] py-[4px] text-[13px] text-foreground"
+                        {/* Screenshot toggle */}
+                        <button
+                          onClick={() => updateStep(step.id, { captureScreenshot: !step.captureScreenshot })}
+                          className={`shrink-0 transition-colors ${
+                            step.captureScreenshot ? "text-foreground" : "text-text-muted/40"
+                          }`}
+                          title={step.captureScreenshot ? "Screenshot enabled" : "Screenshot disabled"}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                          </svg>
+                        </button>
+
+                        {/* Reorder */}
+                        <div className="flex shrink-0 gap-[2px]">
+                          <button
+                            onClick={() => moveStep(idx, -1)}
+                            disabled={idx === 0}
+                            className="text-text-muted transition-colors hover:text-foreground disabled:opacity-30"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M18 15l-6-6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => moveStep(idx, 1)}
+                            disabled={idx === composition.steps.length - 1}
+                            className="text-text-muted transition-colors hover:text-foreground disabled:opacity-30"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Remove */}
+                        <button
+                          onClick={() => removeStep(step.id)}
+                          className="shrink-0 text-text-muted transition-colors hover:text-status-error"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-[8px]">
+                    <button
+                      onClick={handleAddNewStep}
+                      className="text-[13px] text-text-muted transition-colors hover:text-foreground"
                     >
-                      {mt.displayName}
-                    </span>
-                  ))}
+                      + Add Step
+                    </button>
+                    <span className="text-text-muted/30">|</span>
+                    <button
+                      onClick={handleRemoveFlow}
+                      className="text-[13px] text-text-muted transition-colors hover:text-status-error"
+                    >
+                      Remove Flow
+                    </button>
+                  </div>
+                </>
+              ) : (
+                /* No flow yet — show inline import */
+                <div>
+                  <p className="mb-[12px] text-[14px] text-text-muted">
+                    Paste output from{" "}
+                    <code className="rounded bg-surface-tertiary px-[4px] py-[1px] font-mono text-[12px]">npx playwright codegen</code>{" "}
+                    and we&apos;ll split it into steps with screenshots at each navigation.
+                  </p>
+
+                  {/* Tips */}
+                  <div className="mb-[12px] rounded-[8px] border border-border-primary bg-surface-tertiary/30 p-[12px]">
+                    <p className="mb-[6px] text-[12px] font-bold text-text-muted">Tips for better results</p>
+                    <ul className="space-y-[4px] text-[12px] text-text-muted">
+                      <li>
+                        Add <code className="rounded bg-surface-tertiary px-[3px] py-[1px] font-mono text-[11px]">{"// Step 1: Page Name"}</code> comments to name each step
+                      </li>
+                      <li>Use AI (Claude, ChatGPT) to clean up the codegen output — replace fragile selectors, add waits</li>
+                      <li>Replace hardcoded values with dynamic ones (e.g. random email for signup)</li>
+                    </ul>
+                    <div className="mt-[8px] flex gap-[8px]">
+                      <button
+                        onClick={() => navigator.clipboard.writeText("npx playwright codegen https://your-site.com")}
+                        className="rounded-[6px] bg-surface-tertiary px-[8px] py-[3px] text-[11px] font-mono text-foreground transition-colors hover:bg-foreground/10"
+                      >
+                        npx playwright codegen https://your-site.com
+                        <span className="ml-[4px] text-text-muted">📋</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={importCode}
+                    onChange={(e) => { setImportCode(e.target.value); setImportError(null); }}
+                    placeholder={`// Step 1: Landing\nawait page.goto('https://example.com');\n\n// Step 2: Login\nawait page.getByRole('textbox', { name: 'Email' }).fill('user@test.com');\nawait page.getByRole('button', { name: 'Submit' }).click();`}
+                    className="mb-[12px] h-[200px] w-full resize-none rounded-[8px] border border-border-primary bg-surface-tertiary p-[12px] font-mono text-[13px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+                  />
+
+                  {/* Steps preview */}
+                  {parsedImportSteps && (
+                    <div className="mb-[12px] rounded-[8px] border border-accent-green/30 bg-accent-green/[0.05] p-[12px]">
+                      <p className="mb-[8px] text-[13px] font-bold text-foreground">
+                        {parsedImportSteps.length} step{parsedImportSteps.length !== 1 ? "s" : ""} detected
+                      </p>
+                      <div className="flex flex-col gap-[4px]">
+                        {parsedImportSteps.map((step, i) => (
+                          <div key={i} className="flex items-center gap-[8px] text-[13px]">
+                            <span className="shrink-0 w-[20px] text-text-muted text-right">{i + 1}.</span>
+                            <span className="text-foreground">{step.displayName}</span>
+                            <span className="text-text-muted">({step.lines.length} line{step.lines.length !== 1 ? "s" : ""})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {importCode.trim() && !parsedImportSteps && (
+                    <p className="mb-[12px] text-[13px] text-status-error">
+                      Could not parse the pasted code. Paste Playwright code containing <code>page.</code> or <code>expect()</code> calls.
+                    </p>
+                  )}
+
+                  {importError && (
+                    <p className="mb-[12px] text-[13px] text-status-error">{importError}</p>
+                  )}
+
+                  {parsedImportSteps && (
+                    <button
+                      onClick={handleImport}
+                      disabled={importing}
+                      className="rounded-[8px] bg-foreground px-[20px] py-[8px] text-[14px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
+                    >
+                      {importing ? `Importing ${parsedImportSteps.length} steps...` : `Import ${parsedImportSteps.length} step${parsedImportSteps.length !== 1 ? "s" : ""}`}
+                    </button>
+                  )}
+
+                  {!importCode.trim() && (
+                    <button
+                      onClick={handleAddNewStep}
+                      className="text-[13px] text-text-muted transition-colors hover:text-foreground"
+                    >
+                      or start with a blank step
+                    </button>
+                  )}
                 </div>
-              </section>
-            )}
+              )}
+            </section>
 
             {/* Legacy flows section */}
             {flows.length > 0 && (
               <section className="mb-[32px]">
                 <h2 className="mb-[8px] text-[14px] text-foreground">Flows (Legacy)</h2>
                 <p className="mb-[16px] text-[14px] text-text-muted">
-                  WYSIWYG browser interactions. Use compositions above for new tests.
+                  WYSIWYG browser interactions. Use the flow section above for new tests.
                 </p>
 
                 <div className="mb-[16px] space-y-[12px]">
@@ -506,13 +736,6 @@ export default function ProjectTestsSettings() {
                     />
                   ))}
                 </div>
-
-                <button
-                  onClick={addFlow}
-                  className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-                >
-                  + Add Flow
-                </button>
               </section>
             )}
 

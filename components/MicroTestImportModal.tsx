@@ -12,7 +12,7 @@ interface Props {
 /** Words in button/link text that indicate a navigation boundary */
 const NAV_PATTERNS = /\b(next|submit|continue|get started|sign up|sign in|log in|login|create|register|confirm|finish|done|save|send|go|proceed|start)\b/i;
 
-interface ParsedStep {
+export interface ParsedStep {
   name: string;
   displayName: string;
   lines: string[];
@@ -148,7 +148,7 @@ function extractActionLines(code: string): string[] {
  * Splits raw Playwright code into logical step groups.
  * Each group captures a screenshot.
  */
-function splitIntoSteps(code: string): ParsedStep[] | null {
+export function splitIntoSteps(code: string): ParsedStep[] | null {
   const lines = extractActionLines(code);
   if (lines.length === 0) return null;
 
