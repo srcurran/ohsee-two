@@ -79,8 +79,8 @@ export default function ProjectGeneralSettings() {
   }
 
   return (
-    <div>
-      <h1 className="mb-[32px] text-[24px] font-bold text-foreground">General</h1>
+    <div className="max-w-[560px]">
+      <p className="mb-[24px] text-[14px] text-text-muted">Project configuration and defaults.</p>
 
       <div className="flex flex-col gap-[24px]">
         {/* Project Name */}
