@@ -55,8 +55,8 @@ export default function ProjectAdvancedSettings() {
   }
 
   return (
-    <div>
-      <h1 className="mb-[32px] text-[24px] font-bold text-foreground">Advanced</h1>
+    <div className="max-w-[560px]">
+      <p className="mb-[24px] text-[14px] text-text-muted">Danger zone — archive or delete this project.</p>
 
       <div className="flex flex-col gap-[20px]">
         {/* Archive */}
