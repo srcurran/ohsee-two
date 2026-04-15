@@ -8,7 +8,7 @@ import { userProjectsFile } from "./constants";
  * its existing `pages[]` + `flows[]`. Returns true if migration happened.
  */
 export function migrateProjectToSiteTests(project: Project): boolean {
-  if (project.tests && project.tests.length > 0) return false;
+  if (project.tests) return false;
 
   const defaultTest: SiteTest = {
     id: uuidv4(),

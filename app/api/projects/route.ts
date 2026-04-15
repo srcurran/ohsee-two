@@ -20,42 +20,29 @@ export async function POST(request: Request) {
   try {
     const userId = await requireUserId();
     const body = await request.json();
-    const { prodUrl, devUrl, pages, requiresAuth, variants, flows } = body as {
+    const { name, prodUrl, devUrl, requiresAuth, variants, breakpoints } = body as {
+      name?: string;
       prodUrl: string;
       devUrl: string;
-      pages?: { path: string }[];
       requiresAuth?: boolean;
       variants?: { id: string; label: string; colorScheme?: "light" | "dark"; initScript?: string }[];
-      flows?: Project["flows"];
+      breakpoints?: number[];
     };
 
     const now = new Date().toISOString();
-    const pageEntries = (pages || [{ path: "/" }]).map((p) => ({
-      id: uuidv4(),
-      path: p.path,
-    }));
-    const flowEntries = flows && flows.length > 0 ? flows : [];
 
     const project: Project = {
       id: uuidv4(),
+      ...(name ? { name } : {}),
       prodUrl,
       devUrl,
-      pages: pageEntries,
+      pages: [],
       createdAt: now,
       lastDiffAt: null,
       ...(requiresAuth ? { requiresAuth } : {}),
       ...(variants && variants.length > 0 ? { variants } : {}),
-      ...(flowEntries.length > 0 ? { flows: flowEntries } : {}),
-      tests: [
-        {
-          id: uuidv4(),
-          name: "Default",
-          pages: pageEntries,
-          flows: flowEntries,
-          createdAt: now,
-          lastRunAt: null,
-        },
-      ],
+      ...(breakpoints ? { breakpoints } : {}),
+      tests: [],
     };
 
     const projects = await readProjectsWithMigration(userId);

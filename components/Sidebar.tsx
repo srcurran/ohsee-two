@@ -191,9 +191,10 @@ export default function Sidebar() {
       {showNewProject && (
         <NewProjectOverlay
           onClose={() => setShowNewProject(false)}
-          onCreated={() => {
+          onCreated={(projectId) => {
             setShowNewProject(false);
             refreshProjects();
+            router.push(`/projects/${projectId}`);
           }}
         />
       )}

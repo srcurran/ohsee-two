@@ -21,13 +21,14 @@ type Tab = "general" | "tests" | "advanced";
 interface Props {
   projectId: string;
   onClose: () => void;
+  initialTab?: Tab;
 }
 
-export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
+export default function ProjectSettingsPanel({ projectId, onClose, initialTab = "general" }: Props) {
   const router = useRouter();
   const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
-  const [tab, setTab] = useState<Tab>("general");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [visible, setVisible] = useState(false);
 
   // General fields
@@ -53,6 +54,7 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
 
   // Save indicator
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for latest state (used in save to avoid stale closures)
   const stateRef = useRef({ name, prodUrl, devUrl, requiresAuth, selectedVariants, breakpoints, paths, flows, tests });
@@ -87,6 +89,8 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
   };
 
   // --- Save all fields ---
+  const saveRef = useRef<(overrides?: Partial<typeof stateRef.current>) => void>(undefined);
+
   const save = useCallback(async (overrides?: Partial<typeof stateRef.current>) => {
     if (!project) return;
     const s = { ...stateRef.current, ...overrides };
@@ -127,6 +131,16 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
     }
   }, [project, refreshProjects]);
 
+  saveRef.current = save;
+
+  // Debounced version: batches rapid changes (toggles, breakpoints, etc.)
+  const debouncedSave = useCallback((overrides?: Partial<typeof stateRef.current>) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveRef.current?.(overrides);
+    }, 800);
+  }, []);
+
   // Helpers that update state AND save immediately
   const addPath = () => {
     let p = newPath.trim();
@@ -157,7 +171,7 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
 
   const toggleAuth = (checked: boolean) => {
     setRequiresAuth(checked);
-    save({ requiresAuth: checked });
+    debouncedSave({ requiresAuth: checked });
   };
 
   const toggleVariant = (id: string, checked: boolean) => {
@@ -165,12 +179,12 @@ export default function ProjectSettingsPanel({ projectId, onClose }: Props) {
       ? [...selectedVariants, id]
       : selectedVariants.filter((v) => v !== id);
     setSelectedVariants(next);
-    save({ selectedVariants: next });
+    debouncedSave({ selectedVariants: next });
   };
 
   const updateBreakpoints = (next: number[]) => {
     setBreakpoints(next);
-    save({ breakpoints: next });
+    debouncedSave({ breakpoints: next });
   };
 
   const updateFlow = (idx: number, updated: FlowEntry) => {
