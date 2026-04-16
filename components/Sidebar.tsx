@@ -99,12 +99,14 @@ export default function Sidebar() {
     }
   };
 
-  const handleTestClick = (test: SiteTest, reports: Report[]) => {
+  const handleTestClick = (test: SiteTest, project: Project, reports: Report[]) => {
     const testReports = reports
       .filter((r) => r.siteTestId === test.id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     if (testReports.length > 0) {
       router.push(`/reports/${testReports[0].id}`);
+    } else {
+      router.push(`/projects/${project.id}/tests/${test.id}`);
     }
   };
 
@@ -206,7 +208,7 @@ export default function Sidebar() {
                         return (
                           <div
                             key={test.id}
-                            onClick={() => handleTestClick(test, reports)}
+                            onClick={() => handleTestClick(test, project, reports)}
                             className={`group/test flex items-center gap-[8px] rounded-[4px] cursor-pointer transition-colors px-[8px] py-[4px] ${
                               testActive
                                 ? "bg-surface-content"
@@ -261,7 +263,7 @@ export default function Sidebar() {
 
                       {/* Add new test */}
                       <button
-                        onClick={() => router.push(`/projects/${project.id}`)}
+                        onClick={() => router.push(`/projects/${project.id}/settings/tests`)}
                         className="flex items-center justify-between px-[8px] py-[4px] cursor-pointer text-[14px] text-foreground/40 transition-colors hover:text-foreground/60 rounded-[4px]"
                       >
                         <span>Add new test</span>

@@ -314,7 +314,11 @@ function ReportPageInner() {
             {/* Settings icon */}
             {project && (
               <button
-                onClick={() => router.push(`/projects/${project.id}/settings`)}
+                onClick={() => router.push(
+                  report?.siteTestId
+                    ? `/projects/${project.id}/settings/tests?testId=${report.siteTestId}`
+                    : `/projects/${project.id}/settings`
+                )}
                 className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
                 title="Project settings"
               >
