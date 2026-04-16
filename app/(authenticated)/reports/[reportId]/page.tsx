@@ -185,6 +185,15 @@ function ReportPageInner() {
     return page.breakpoints[bp];
   };
 
+  // Derive the breakpoints actually used in this report from the data itself
+  const reportBreakpoints: number[] = (() => {
+    const bpSet = new Set<number>();
+    for (const page of report.pages) {
+      for (const bp of Object.keys(page.breakpoints)) bpSet.add(Number(bp));
+    }
+    return [...bpSet].sort((a, b) => a - b);
+  })();
+
   // Sum change counts per breakpoint across all pages (variant-aware)
   const bpChangeCounts: Record<string, number> = {};
   for (const page of report.pages) {
@@ -350,7 +359,7 @@ function ReportPageInner() {
             active={activeBp}
             onChange={handleBpChange}
             changeCounts={bpChangeCounts}
-            breakpoints={project?.breakpoints}
+            breakpoints={reportBreakpoints}
             align="start"
           />
         </div>

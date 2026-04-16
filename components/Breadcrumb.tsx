@@ -7,7 +7,7 @@ interface BreadcrumbItem {
 
 export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <p className="text-[14px] text-black">
+    <p className="text-[14px] text-foreground">
       {items.map((item, i) => (
         <span key={i}>
           {i > 0 && <span> / </span>}

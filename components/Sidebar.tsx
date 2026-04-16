@@ -209,7 +209,7 @@ export default function Sidebar() {
                             onClick={() => handleTestClick(test, reports)}
                             className={`group/test flex items-center gap-[8px] rounded-[4px] cursor-pointer transition-colors px-[8px] py-[4px] ${
                               testActive
-                                ? "bg-white dark:bg-white/10"
+                                ? "bg-surface-content"
                                 : "hover:bg-foreground/5"
                             }`}
                           >
@@ -292,7 +292,7 @@ export default function Sidebar() {
             onClick={() => setShowNewProject(true)}
             className="flex items-center gap-[8px] px-[4px] cursor-pointer text-foreground/70 transition-colors hover:text-foreground"
           >
-            <span className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-white text-[20px] text-foreground/70">
+            <span className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-surface-content text-[20px] text-foreground/70">
               +
             </span>
             <span className="text-[20px] text-foreground/70">Add new site</span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import SaveButton from "@/components/SaveButton";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 
@@ -87,18 +88,7 @@ export default function DefaultsSettingsPage() {
       </section>
 
       {/* Save */}
-      <div className="flex items-center gap-[12px]">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-[12px] bg-black px-[32px] py-[10px] text-[16px] font-bold text-white transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50 dark:bg-white dark:text-black"
-        >
-          {saving ? "Saving..." : "Save"}
-        </button>
-        {saved && (
-          <span className="text-[14px] text-accent-green">Saved</span>
-        )}
-      </div>
+      <SaveButton onClick={handleSave} saving={saving} saved={saved} />
     </div>
   );
 }

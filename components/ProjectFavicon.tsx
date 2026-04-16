@@ -80,16 +80,22 @@ export default function ProjectFavicon({
   if (failed || urls.length === 0) {
     return (
       <span
-        className={`flex shrink-0 items-center justify-center font-semibold text-white ${className || ""}`}
-        style={{
-          width: size,
-          height: size,
-          fontSize: size * 0.38,
-          borderRadius: 4,
-          backgroundColor: `hsl(${hue}, 50%, 65%)`,
-        }}
+        className={`flex shrink-0 items-center justify-center text-text-muted ${className || ""}`}
+        style={{ width: size, height: size }}
       >
-        {initial}
+        <svg
+          width={size * 0.65}
+          height={size * 0.65}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
       </span>
     );
   }
