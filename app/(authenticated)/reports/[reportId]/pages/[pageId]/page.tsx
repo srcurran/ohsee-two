@@ -28,6 +28,7 @@ function PageDetailInner() {
   const searchParams = useSearchParams();
   const { refreshProjects: _refreshProjects } = useSidebar();
   const [report, setReport] = useState<Report | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
   const [allReports, setAllReports] = useState<Report[]>([]);
   const [showPageNav, setShowPageNav] = useState(false);
@@ -42,8 +43,15 @@ function PageDetailInner() {
 
   useEffect(() => {
     fetch(`/api/reports/${params.reportId}`)
-      .then((r) => r.json())
+      .then((res) => {
+        if (!res.ok) {
+          setNotFound(true);
+          return null;
+        }
+        return res.json();
+      })
       .then((r) => {
+        if (!r || !Array.isArray(r.pages)) return;
         setReport(r);
         fetch(`/api/projects/${r.projectId}`)
           .then((pr) => pr.json())
@@ -55,6 +63,13 @@ function PageDetailInner() {
           });
       });
   }, [params.reportId]);
+
+  useEffect(() => {
+    if (notFound) {
+      localStorage.removeItem("ohsee-last-path");
+      router.replace("/");
+    }
+  }, [notFound, router]);
 
   useEffect(() => {
     if (!report) return;
