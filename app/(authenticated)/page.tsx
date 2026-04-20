@@ -28,7 +28,6 @@ export default function Home() {
         return;
       }
 
-      // Only use saved path if user actually has projects
       const lastPath = localStorage.getItem("ohsee-last-path");
       if (lastPath && lastPath !== "/") {
         router.replace(lastPath);
@@ -37,7 +36,6 @@ export default function Home() {
 
       setHasProjects(true);
 
-      // Find the project with the most recent report
       let latestReportId: string | null = null;
       let latestDate = 0;
       let firstProjectId: string | null = null;
@@ -68,8 +66,8 @@ export default function Home() {
 
   if (loading && hasProjects) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
@@ -77,33 +75,28 @@ export default function Home() {
   if (!hasProjects && !loading) {
     return (
       <>
-        <div className="flex h-full items-center justify-center px-[24px]">
-          <div className="flex max-w-[480px] flex-col items-center gap-[24px] text-center">
-            <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[16px] bg-foreground/5">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-foreground/60">
-                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M3 9h18" stroke="currentColor" strokeWidth="1.5" />
-                <circle cx="6" cy="7" r="0.5" fill="currentColor" />
-                <circle cx="8" cy="7" r="0.5" fill="currentColor" />
-                <circle cx="10" cy="7" r="0.5" fill="currentColor" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-[28px] font-bold text-foreground">Get started with Ohsee</h1>
-              <p className="mt-[12px] text-[15px] text-text-muted">
-                Ohsee compares screenshots of your production and dev sites to catch visual regressions before they ship.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowNewProject(true)}
-              className="rounded-[12px] bg-foreground px-[28px] py-[12px] text-[15px] font-bold text-surface-content transition-all hover:-translate-y-[1px] hover:shadow-elevation-md"
-            >
-              Create your first project
-            </button>
-            <p className="text-[13px] text-text-muted/70">
-              You&apos;ll add a production URL and a dev or staging URL. Ohsee handles the rest.
+        <div className="empty-state empty-state--flush">
+          <div className="empty-state__badge">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M3 9h18" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="6" cy="7" r="0.5" fill="currentColor" />
+              <circle cx="8" cy="7" r="0.5" fill="currentColor" />
+              <circle cx="10" cy="7" r="0.5" fill="currentColor" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="empty-state__title">Get started with Ohsee</h1>
+            <p className="empty-state__body">
+              Ohsee compares screenshots of your production and dev sites to catch visual regressions before they ship.
             </p>
           </div>
+          <button onClick={() => setShowNewProject(true)} className="btn btn--primary">
+            Create your first project
+          </button>
+          <p className="empty-state__footnote">
+            You&apos;ll add a production URL and a dev or staging URL. Ohsee handles the rest.
+          </p>
         </div>
 
         {showNewProject && (
@@ -121,8 +114,8 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-full items-center justify-center">
-      <p className="text-text-muted">Redirecting...</p>
+    <div className="center" style={{ height: "100%" }}>
+      <p className="loader-text">Redirecting...</p>
     </div>
   );
 }

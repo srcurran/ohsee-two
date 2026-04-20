@@ -6,7 +6,7 @@ import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { FlowEditor } from "@/components/FlowEditor";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import { useSidebar } from "@/components/SidebarProvider";
-import type { Project, SiteTest, FlowEntry, TestVariant } from "@/lib/types";
+import type { Project, SiteTest, FlowEntry } from "@/lib/types";
 
 function getDomain(url: string): string {
   try {
@@ -22,7 +22,6 @@ interface Props {
   projectId: string;
   onClose: () => void;
   initialTab?: Tab;
-  /** If provided, opens the test editor for this test immediately */
   initialTestId?: string;
 }
 
@@ -33,33 +32,26 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
   const [tab, setTab] = useState<Tab>(initialTab);
   const [visible, setVisible] = useState(false);
 
-  // General fields
   const [name, setName] = useState("");
   const [prodUrl, setProdUrl] = useState("");
   const [devUrl, setDevUrl] = useState("");
 
-  // Per-test fields (loaded when editing a specific test)
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
 
-  // Tests
   const [tests, setTests] = useState<SiteTest[]>([]);
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
 
-  // Test-scoped pages/flows (for the currently editing test)
   const [paths, setPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
   const [flows, setFlows] = useState<FlowEntry[]>([]);
 
-  // Advanced
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Save indicator
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Refs for latest state (used in save to avoid stale closures)
   const stateRef = useRef({ name, prodUrl, devUrl, selectedVariants, breakpoints, paths, flows, tests });
   stateRef.current = { name, prodUrl, devUrl, selectedVariants, breakpoints, paths, flows, tests };
 
@@ -73,10 +65,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
         setDevUrl(p.devUrl);
         const loadedTests = p.tests || [];
         setTests(loadedTests);
-        // Legacy compat: populate paths/flows from project-level fields
         setPaths(p.pages.map((pg: { path: string }) => pg.path));
         setFlows(p.flows || []);
-        // Auto-open test editor if initialTestId provided
         if (initialTestId) {
           const target = loadedTests.find((t: SiteTest) => t.id === initialTestId);
           if (target) {
@@ -89,9 +79,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
           }
         }
       });
-  }, [projectId]);
+  }, [projectId, initialTestId]);
 
-  // Animate in
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
@@ -101,7 +90,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     setTimeout(onClose, 300);
   };
 
-  // --- Save all fields ---
   const saveRef = useRef<(overrides?: Partial<typeof stateRef.current>) => void>(undefined);
 
   const save = useCallback(async (overrides?: Partial<typeof stateRef.current>) => {
@@ -143,7 +131,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
 
   saveRef.current = save;
 
-  // Debounced version: batches rapid changes (toggles, breakpoints, etc.)
   const debouncedSave = useCallback((overrides?: Partial<typeof stateRef.current>) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
@@ -151,18 +138,16 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     }, 800);
   }, []);
 
-  // Helpers that update state AND save immediately
   const addPath = () => {
     let p = newPath.trim();
     if (!p) return;
-    // Strip domain info from full URLs
     try {
       const parsed = new URL(p);
       if (parsed.hostname) {
         p = parsed.pathname + parsed.search + parsed.hash;
       }
     } catch {
-      // Not a full URL — treat as a path
+      // Not a full URL
     }
     if (!p.startsWith("/")) p = `/${p}`;
     if (!paths.includes(p)) {
@@ -185,7 +170,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
       ? [...selectedVariants, id]
       : selectedVariants.filter((v) => v !== id);
     setSelectedVariants(next);
-    // Update the test's variants and save
     const updatedTests = tests.map((t) =>
       t.id === editingTestId
         ? { ...t, variants: BUILT_IN_VARIANTS.filter((v) => next.includes(v.id)) }
@@ -198,7 +182,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
   const updateBreakpoints = (next: number[]) => {
     if (!editingTestId) return;
     setBreakpoints(next);
-    // Update the test's breakpoints and save
     const updatedTests = tests.map((t) =>
       t.id === editingTestId ? { ...t, breakpoints: next } : t
     );
@@ -225,7 +208,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     save({ flows: next });
   };
 
-  // --- Test management ---
   const openTestEditor = (test: SiteTest) => {
     setEditingTestId(test.id);
     setPaths(test.pages.map((p) => p.path));
@@ -292,7 +274,6 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     save({ tests: next });
   };
 
-  // Save text fields on blur
   const handleBlur = () => save();
 
   const handleArchive = async () => {
@@ -326,35 +307,27 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
     { id: "advanced", label: "Advanced" },
   ];
 
-  const inputClass =
-    "w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground";
-
   return (
     <div
-      className={`fixed inset-0 z-20 transition-all duration-300 ease-out ${
-        visible ? "bg-black/30" : "bg-transparent pointer-events-none"
-      }`}
+      className={`page-detail-scrim ${visible ? "page-detail-scrim--visible" : "page-detail-scrim--hidden"}`}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div
-        className={`fixed top-[24px] right-[20px] bottom-[24px] w-[608px] max-w-[calc(100%-48px)] flex flex-col rounded-[12px] bg-surface-content shadow-elevation-lg transition-transform duration-300 ease-out ${
-          visible ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`project-settings-panel ${visible ? "project-settings-panel--visible" : "project-settings-panel--hidden"}`}
       >
-        {/* Header */}
-        <div className="relative flex items-center justify-between px-[24px] py-[20px]">
-          <div className="flex items-center gap-[12px]">
-            <p className="text-[28px] font-bold text-foreground">Settings</p>
+        <div className="project-settings-panel__header">
+          <div className="row row--md">
+            <p className="project-settings-panel__title">Settings</p>
             {saveStatus === "saving" && (
-              <span className="text-[12px] text-text-muted">Saving...</span>
+              <span className="project-settings-panel__save-hint">Saving...</span>
             )}
             {saveStatus === "saved" && (
-              <span className="text-[12px] text-accent-green">Saved</span>
+              <span className="project-settings-panel__save-hint project-settings-panel__save-hint--success">Saved</span>
             )}
           </div>
           <button
             onClick={handleClose}
-            className="absolute top-[12px] right-[16px] flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
+            className="icon-btn icon-btn--lg project-settings-panel__close"
             title="Close settings"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -363,59 +336,48 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
           </button>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex gap-[4px] px-[24px] pb-[16px]">
+        <div className="project-settings-panel__tabs">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => { setTab(t.id); setShowDeleteConfirm(false); }}
-              className={`rounded-[8px] px-[14px] py-[6px] text-[14px] transition-colors ${
-                tab === t.id
-                  ? "bg-surface-tertiary font-bold text-foreground"
-                  : "text-text-muted hover:bg-foreground/[0.04] hover:text-foreground"
-              }`}
+              className={`tab-pill ${tab === t.id ? "tab-pill--active" : ""}`}
             >
               {t.label}
             </button>
           ))}
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-border-primary" />
+        <div className="divider" />
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-[24px] py-[24px]">
+        <div className="project-settings-panel__body">
           {!project ? (
-            <p className="text-text-muted">Loading...</p>
+            <p style={{ color: "var(--text-muted)" }}>Loading...</p>
           ) : tab === "general" ? (
-            <div className="flex max-w-[560px] flex-col gap-[24px]">
-              <div>
-                <label className="mb-[4px] block text-[14px] text-foreground">Project Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} onBlur={handleBlur} placeholder={getDomain(prodUrl)} className={inputClass} />
-                <p className="mt-[4px] text-[12px] text-text-muted">Leave blank to use the domain name.</p>
+            <div className="project-settings-panel__section stack stack--xl">
+              <div className="field">
+                <label className="field__label">Project Name</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} onBlur={handleBlur} placeholder={getDomain(prodUrl)} className="input" />
+                <p className="field__hint">Leave blank to use the domain name.</p>
               </div>
-              <div>
-                <label className="mb-[4px] block text-[14px] text-foreground">Production URL</label>
-                <input type="text" value={prodUrl} onChange={(e) => setProdUrl(e.target.value)} onBlur={handleBlur} className={inputClass} />
+              <div className="field">
+                <label className="field__label">Production URL</label>
+                <input type="text" value={prodUrl} onChange={(e) => setProdUrl(e.target.value)} onBlur={handleBlur} className="input" />
               </div>
-              <div>
-                <label className="mb-[4px] block text-[14px] text-foreground">Development URL</label>
-                <input type="text" value={devUrl} onChange={(e) => setDevUrl(e.target.value)} onBlur={handleBlur} className={inputClass} />
+              <div className="field">
+                <label className="field__label">Development URL</label>
+                <input type="text" value={devUrl} onChange={(e) => setDevUrl(e.target.value)} onBlur={handleBlur} className="input" />
               </div>
             </div>
           ) : tab === "tests" ? (
-            <div className="max-w-[560px]">
+            <div className="project-settings-panel__section">
               {editingTestId ? (
-                /* Editing a specific test's pages + flows */
                 (() => {
                   const editingTest = tests.find((t) => t.id === editingTestId);
                   if (!editingTest) return null;
                   return (
                     <div>
-                      <button
-                        onClick={closeTestEditor}
-                        className="mb-[16px] flex items-center gap-[4px] text-[13px] text-text-muted transition-colors hover:text-foreground"
-                      >
+                      <button onClick={closeTestEditor} className="btn btn--text" style={{ marginBottom: "var(--space-4)" }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                           <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -427,44 +389,44 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                         value={editingTest.name}
                         onChange={(e) => renameTest(editingTestId, e.target.value)}
                         onBlur={() => saveTestEdits()}
-                        className="mb-[24px] text-[20px] font-bold text-foreground bg-transparent outline-none border-b border-transparent focus:border-foreground w-full"
+                        className="input input--underline"
+                        style={{ marginBottom: "var(--space-6)", fontSize: "var(--font-size-2xl)", fontWeight: "var(--weight-bold)" }}
                       />
 
-                      {/* Pages section */}
-                      <div className="mb-[32px]">
-                        <h4 className="mb-[8px] text-[14px] font-bold text-foreground">Pages</h4>
-                        <p className="mb-[16px] text-[13px] text-text-muted">URL paths to capture during each scan.</p>
-                        <div className="mb-[12px] flex gap-[8px]">
+                      <div className="section-block">
+                        <h4 className="section-heading">Pages</h4>
+                        <p className="section-body">URL paths to capture during each scan.</p>
+                        <div className="row" style={{ gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
                           <input
                             type="text"
                             value={newPath}
                             onChange={(e) => setNewPath(e.target.value)}
                             onKeyDown={(e) => { if (e.key === "Enter") { addPath(); setTimeout(saveTestEdits, 50); } }}
                             placeholder="/about"
-                            className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+                            className="input input--compact"
+                            style={{ flex: 1 }}
                           />
-                          <button onClick={() => { addPath(); setTimeout(saveTestEdits, 50); }} className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10">
+                          <button onClick={() => { addPath(); setTimeout(saveTestEdits, 50); }} className="btn btn--secondary">
                             Add
                           </button>
                         </div>
                         <div>
                           {paths.map((p) => (
-                            <div key={p} className="flex items-center justify-between border-b border-border-primary py-[8px] text-[14px] text-foreground">
+                            <div key={p} className="path-row">
                               <span>{p}</span>
-                              <button onClick={() => { removePath(p); setTimeout(saveTestEdits, 50); }} className="text-[12px] text-text-muted transition-colors hover:text-foreground">
+                              <button onClick={() => { removePath(p); setTimeout(saveTestEdits, 50); }} className="flow-step__remove">
                                 Remove
                               </button>
                             </div>
                           ))}
-                          {paths.length === 0 && <p className="py-[12px] text-center text-[13px] text-text-muted">Add at least one page path.</p>}
+                          {paths.length === 0 && <p className="flow-editor__empty" style={{ paddingBlock: "var(--space-3)" }}>Add at least one page path.</p>}
                         </div>
                       </div>
 
-                      {/* Flows section */}
                       <div>
-                        <h4 className="mb-[8px] text-[14px] font-bold text-foreground">Flows</h4>
-                        <p className="mb-[16px] text-[13px] text-text-muted">Scripted browser interactions for multi-step testing.</p>
-                        <div className="mb-[12px] space-y-[12px]">
+                        <h4 className="section-heading">Flows</h4>
+                        <p className="section-body">Scripted browser interactions for multi-step testing.</p>
+                        <div className="stack stack--md" style={{ marginBottom: "var(--space-3)" }}>
                           {flows.map((flow, idx) => (
                             <FlowEditor
                               key={flow.id}
@@ -477,28 +439,26 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                         </div>
                         <button
                           onClick={() => { addFlow(); setTimeout(saveTestEdits, 50); }}
-                          className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+                          className="btn btn--secondary"
                         >
                           + Add Flow
                         </button>
                       </div>
 
-                      {/* Breakpoints */}
-                      <div className="mt-[32px]">
+                      <div style={{ marginTop: "var(--space-8)" }}>
                         <BreakpointEditor breakpoints={breakpoints} onChange={updateBreakpoints} />
                       </div>
 
-                      {/* Variants */}
-                      <div className="mt-[24px]">
-                        <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
-                        <div className="flex gap-[16px]">
+                      <div style={{ marginTop: "var(--space-6)" }}>
+                        <p className="section-heading">Variants</p>
+                        <div className="variant-list">
                           {BUILT_IN_VARIANTS.map((v) => (
-                            <label key={v.id} className="flex items-center gap-[8px] text-[14px] text-foreground">
+                            <label key={v.id} className="variant-option">
                               <input
                                 type="checkbox"
                                 checked={selectedVariants.includes(v.id)}
                                 onChange={(e) => toggleVariant(v.id, e.target.checked)}
-                                className="h-[16px] w-[16px]"
+                                className="checkbox"
                               />
                               {v.label}
                             </label>
@@ -509,38 +469,35 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                   );
                 })()
               ) : (
-                /* Test list */
                 <div>
-                  <p className="mb-[24px] text-[14px] text-text-muted">
+                  <p className="section-body" style={{ marginBottom: "var(--space-6)" }}>
                     Each test has its own set of pages and flows. Run them independently to get separate reports.
                   </p>
-                  <div className="space-y-[8px]">
+                  <div className="test-list">
                     {tests.map((test) => (
-                      <div
-                        key={test.id}
-                        className="flex items-center justify-between rounded-[8px] border border-border-primary p-[16px]"
-                      >
+                      <div key={test.id} className="settings-row">
                         <button
                           onClick={() => openTestEditor(test)}
-                          className="flex flex-col gap-[4px] text-left min-w-0 flex-1"
+                          className="settings-row__info"
                         >
-                          <span className="text-[14px] font-bold text-foreground">{test.name}</span>
-                          <span className="text-[12px] text-text-muted">
+                          <span className="settings-row__name-base">{test.name}</span>
+                          <span className="settings-row__meta">
                             {test.pages.length} page{test.pages.length !== 1 ? "s" : ""}
                             {test.flows.length > 0 && ` · ${test.flows.length} flow${test.flows.length !== 1 ? "s" : ""}`}
                           </span>
                         </button>
-                        <div className="flex items-center gap-[8px]">
+                        <div className="settings-row__actions">
                           <button
                             onClick={() => openTestEditor(test)}
-                            className="text-[12px] text-text-muted transition-colors hover:text-foreground"
+                            className="flow-step__remove"
                           >
                             Edit
                           </button>
                           {tests.length > 1 && (
                             <button
                               onClick={() => removeTest(test.id)}
-                              className="text-[12px] text-text-muted transition-colors hover:text-status-error"
+                              className="flow-step__remove"
+                              style={{ color: "var(--text-muted)" }}
                             >
                               Remove
                             </button>
@@ -551,7 +508,8 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                   </div>
                   <button
                     onClick={addTest}
-                    className="mt-[16px] rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+                    className="btn btn--secondary"
+                    style={{ marginTop: "var(--space-4)" }}
                   >
                     + Add Test
                   </button>
@@ -559,31 +517,31 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
               )}
             </div>
           ) : (
-            <div className="flex max-w-[560px] flex-col gap-[20px]">
-              <div className="rounded-[12px] border border-border-primary p-[20px]">
-                <h3 className="mb-[4px] text-[14px] font-bold text-foreground">
+            <div className="project-settings-panel__section stack stack--xl">
+              <div className="card card--bordered">
+                <h3 className="card__title">
                   {project.archived ? "Unarchive Project" : "Archive Project"}
                 </h3>
-                <p className="mb-[12px] text-[13px] text-text-muted">
+                <p className="card__body">
                   {project.archived ? "Restore this project to the sidebar." : "Hide this project from the sidebar. Reports are preserved."}
                 </p>
-                <button onClick={handleArchive} className="rounded-[8px] border border-border-strong px-[16px] py-[6px] text-[13px] text-foreground transition-colors hover:bg-surface-tertiary">
+                <button onClick={handleArchive} className="btn btn--outline">
                   {project.archived ? "Unarchive" : "Archive"}
                 </button>
               </div>
-              <div className="rounded-[12px] border border-status-error-border p-[20px]">
-                <h3 className="mb-[4px] text-[14px] font-bold text-foreground">Delete Project</h3>
-                <p className="mb-[12px] text-[13px] text-text-muted">Permanently remove this project and all its reports. This cannot be undone.</p>
+              <div className="card card--danger">
+                <h3 className="card__title">Delete Project</h3>
+                <p className="card__body">Permanently remove this project and all its reports. This cannot be undone.</p>
                 {!showDeleteConfirm ? (
-                  <button onClick={() => setShowDeleteConfirm(true)} className="rounded-[8px] border border-status-error-border px-[16px] py-[6px] text-[13px] text-status-error transition-colors hover:bg-status-error-muted">
+                  <button onClick={() => setShowDeleteConfirm(true)} className="btn btn--danger-outline">
                     Delete Project
                   </button>
                 ) : (
-                  <div className="flex items-center gap-[8px]">
-                    <button onClick={handleDelete} disabled={deleting} className="rounded-[8px] bg-status-error px-[16px] py-[6px] text-[13px] font-bold text-white disabled:opacity-50">
+                  <div className="row row--sm">
+                    <button onClick={handleDelete} disabled={deleting} className="btn btn--danger">
                       {deleting ? "Deleting..." : "Confirm Delete"}
                     </button>
-                    <button onClick={() => setShowDeleteConfirm(false)} className="text-[13px] text-text-muted hover:text-foreground">Cancel</button>
+                    <button onClick={() => setShowDeleteConfirm(false)} className="btn btn--text">Cancel</button>
                   </div>
                 )}
               </div>

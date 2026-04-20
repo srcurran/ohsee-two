@@ -1,0 +1,21 @@
+/* Elevation mixins — the hover-lift pattern used on primary CTAs
+   and interactive outlined cards. Keeps the motion consistent. */
+
+@mixin hover-lift {
+  transition:
+    var(--transition-colors),
+    var(--transition-transform),
+    var(--transition-shadow);
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--elevation-md);
+    transform: translateY(-1px);
+  }
+}
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+}

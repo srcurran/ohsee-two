@@ -28,7 +28,6 @@ export default function SettingsOverlay() {
 
   useEffect(() => setMounted(true), []);
 
-  // Animate in when opened; lazy-load settings on first open.
   useEffect(() => {
     if (!settingsOpen) return;
     setAnimState("entering");
@@ -40,7 +39,6 @@ export default function SettingsOverlay() {
     }
   }, [settingsOpen, settings]);
 
-  // Escape to close
   useEffect(() => {
     if (!settingsOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -48,6 +46,7 @@ export default function SettingsOverlay() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsOpen]);
 
   const handleClose = () => {
@@ -55,7 +54,6 @@ export default function SettingsOverlay() {
     setTimeout(closeSettings, EXIT_MS);
   };
 
-  // Autosave for any settings change (no explicit Save button).
   const saveSettings = (next: UserSettings) => {
     setSettings(next);
     fetch("/api/settings", {
@@ -106,29 +104,19 @@ export default function SettingsOverlay() {
 
   return (
     <div
-      className={`fixed inset-0 z-30 transition-colors ${
-        animState === "visible" ? "bg-black/30" : "bg-transparent pointer-events-none"
-      }`}
+      className={`settings-overlay ${animState === "visible" ? "settings-overlay--visible" : "settings-overlay--hidden"}`}
       style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ANIM_MS}ms` }}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div
-        className="flex overflow-hidden bg-surface-content shadow-elevation-lg"
-        style={panelStyle}
-      >
-        {/* Left nav column — sections stack vertically. */}
-        <aside className="flex w-[200px] shrink-0 flex-col gap-[4px] border-r border-black/[0.1] bg-[#fafafa] p-[16px]">
+      <div className="settings-overlay__panel" style={panelStyle}>
+        <aside className="settings-overlay__nav">
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-[8px] px-[12px] py-[8px] text-left text-[14px] transition-colors ${
-                  active
-                    ? "bg-foreground/[0.06] font-semibold text-foreground"
-                    : "text-text-secondary hover:bg-foreground/[0.03] hover:text-foreground"
-                }`}
+                className={`settings-overlay__nav-item ${active ? "settings-overlay__nav-item--active" : ""}`}
               >
                 {tab.label}
               </button>
@@ -136,12 +124,11 @@ export default function SettingsOverlay() {
           })}
         </aside>
 
-        {/* Right content column. Close button floats top-right. */}
-        <div className="relative flex flex-1 flex-col overflow-hidden">
+        <div className="settings-overlay__content">
           <button
             onClick={handleClose}
             title="Close settings"
-            className="absolute right-[16px] top-[16px] z-10 flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
+            className="icon-btn icon-btn--lg settings-overlay__close"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6 6 18" />
@@ -149,23 +136,20 @@ export default function SettingsOverlay() {
             </svg>
           </button>
 
-          <div className="flex-1 overflow-y-auto px-[32px] py-[32px]">
-            <div className="max-w-[560px]">
+          <div className="settings-overlay__body">
+            <div style={{ maxWidth: 560 }}>
               {activeTab === "general" && (
                 <div>
                   {mounted && (
-                    <section className="mb-[32px]">
-                      <p className="mb-[8px] text-[14px] text-foreground">Theme</p>
-                      <div className="flex w-fit rounded-[8px] bg-surface-tertiary p-[3px]">
+                    <section className="section-block">
+                      <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Theme</p>
+                      <div className="segmented" style={{ width: "fit-content" }}>
                         {(["light", "dark", "system"] as const).map((opt) => (
                           <button
                             key={opt}
                             onClick={() => setTheme(opt)}
-                            className={`rounded-[6px] px-[16px] py-[6px] text-[14px] capitalize transition-colors ${
-                              theme === opt
-                                ? "bg-surface-content font-bold"
-                                : "text-text-muted hover:text-foreground"
-                            }`}
+                            className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
+                            style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
                           >
                             {opt}
                           </button>
@@ -174,11 +158,11 @@ export default function SettingsOverlay() {
                     </section>
                   )}
 
-                  <section className="mb-[32px]">
-                    <div className="flex items-center justify-between gap-[16px]">
+                  <section className="section-block">
+                    <div className="row row--between row--lg">
                       <div>
-                        <p className="text-[14px] text-foreground">Alert notifications</p>
-                        <p className="text-[13px] text-text-muted">Notify me when a report run finishes.</p>
+                        <p style={{ fontSize: "var(--font-size-base)", color: "var(--foreground)" }}>Alert notifications</p>
+                        <p style={{ fontSize: "var(--font-size-md)", color: "var(--text-muted)" }}>Notify me when a report run finishes.</p>
                       </div>
                       <Toggle
                         checked={settings?.alertNotifications ?? false}
@@ -192,7 +176,7 @@ export default function SettingsOverlay() {
                   <section>
                     <button
                       onClick={() => signOut({ callbackUrl: "/sign-in" })}
-                      className="rounded-[8px] px-[16px] py-[8px] text-[14px] text-text-muted transition-colors hover:bg-surface-tertiary hover:text-foreground"
+                      className="btn btn--ghost"
                     >
                       Sign out
                     </button>
@@ -206,27 +190,27 @@ export default function SettingsOverlay() {
                 <div>
                   {settings ? (
                     <>
-                      <p className="mb-[24px] text-[14px] text-text-muted">
+                      <p className="section-body" style={{ marginBottom: "var(--space-6)" }}>
                         Applied to new projects by default.
                       </p>
-                      <section className="mb-[32px]">
+                      <section className="section-block">
                         <BreakpointEditor
                           breakpoints={settings.defaultBreakpoints}
                           onChange={(bp) => saveSettings({ ...settings, defaultBreakpoints: bp })}
                         />
                       </section>
-                      <section className="mb-[32px]">
-                        <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
-                        <div className="flex gap-[16px]">
+                      <section className="section-block">
+                        <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Variants</p>
+                        <div className="variant-list">
                           {BUILT_IN_VARIANTS.map((v) => {
                             const active = (settings.defaultVariants || []).includes(v.id);
                             return (
-                              <label key={v.id} className="flex items-center gap-[8px] text-[14px] text-foreground">
+                              <label key={v.id} className="variant-option">
                                 <input
                                   type="checkbox"
                                   checked={active}
                                   onChange={() => toggleVariant(v.id)}
-                                  className="h-[16px] w-[16px]"
+                                  className="checkbox"
                                 />
                                 {v.label}
                               </label>
@@ -236,7 +220,7 @@ export default function SettingsOverlay() {
                       </section>
                     </>
                   ) : (
-                    <p className="text-text-muted">Loading...</p>
+                    <p className="loader-text">Loading...</p>
                   )}
                 </div>
               )}
@@ -266,15 +250,9 @@ function Toggle({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-[24px] w-[40px] shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${
-        checked ? "bg-foreground" : "bg-foreground/20"
-      }`}
+      className={`toggle ${checked ? "toggle--on" : "toggle--off"}`}
     >
-      <span
-        className={`inline-block h-[18px] w-[18px] rounded-full bg-surface-content transition-transform ${
-          checked ? "translate-x-[19px]" : "translate-x-[3px]"
-        }`}
-      />
+      <span className={`toggle__knob ${checked ? "toggle__knob--on" : "toggle__knob--off"}`} />
     </button>
   );
 }

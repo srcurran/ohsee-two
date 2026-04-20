@@ -29,10 +29,9 @@ export default function TestCompositionEditor({
     ? microTests.find((mt) => mt.id === editingMicroTestId)
     : null;
 
-  // If editing a micro-test, show the code editor
   if (editingMicroTest) {
     return (
-      <div className="rounded-[8px] border border-border-primary p-[16px]">
+      <div className="card card--sm card--bordered">
         <MicroTestEditor
           projectId={projectId}
           microTest={editingMicroTest}
@@ -109,86 +108,72 @@ export default function TestCompositionEditor({
   };
 
   return (
-    <div className="rounded-[8px] border border-border-primary">
-      {/* Header */}
-      <div className="flex items-center justify-between p-[12px]">
+    <div className="composition-editor">
+      <div className="composition-editor__header">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-[8px] text-left"
+          className="composition-editor__toggle"
         >
           <svg
             width="12"
             height="12"
             viewBox="0 0 24 24"
             fill="none"
-            className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+            className={`composition-editor__chevron ${expanded ? "composition-editor__chevron--open" : ""}`}
           >
             <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="text-[14px] font-bold text-foreground">
+          <span className="composition-editor__title">
             {composition.name || "Untitled Composition"}
           </span>
         </button>
-        <button
-          onClick={onRemove}
-          className="text-[12px] text-text-muted transition-colors hover:text-status-error"
-        >
+        <button onClick={onRemove} className="composition-editor__remove">
           Remove
         </button>
       </div>
 
       {expanded && (
-        <div className="border-t border-border-primary p-[12px]">
-          {/* Name + start path */}
-          <div className="mb-[16px] flex gap-[12px]">
+        <div className="composition-editor__body">
+          <div className="composition-editor__meta">
             <input
               type="text"
               value={composition.name}
               onChange={(e) => onChange({ ...composition, name: e.target.value })}
               placeholder="Composition name"
-              className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+              className="input input--compact"
+              style={{ flex: 1 }}
             />
             <input
               type="text"
               value={composition.startPath}
               onChange={(e) => onChange({ ...composition, startPath: e.target.value })}
               placeholder="/"
-              className="w-[120px] rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground font-mono"
+              className="input input--compact input--auto input--code"
+              style={{ width: 120 }}
             />
           </div>
 
-          {/* Steps list */}
           {composition.steps.length === 0 ? (
-            <p className="mb-[12px] text-center text-[13px] text-text-muted py-[12px]">
+            <p className="composition-editor__empty">
               Add steps to this composition.
             </p>
           ) : (
-            <div className="mb-[12px] space-y-[4px]">
+            <div className="composition-editor__steps">
               {composition.steps.map((step, idx) => (
-                <div
-                  key={step.id}
-                  className="flex items-center gap-[8px] rounded-[4px] bg-surface-tertiary/50 px-[12px] py-[8px]"
-                >
-                  {/* Step number */}
-                  <span className="shrink-0 text-[12px] text-text-muted w-[20px]">
-                    {idx + 1}.
-                  </span>
+                <div key={step.id} className="comp-step">
+                  <span className="comp-step__index">{idx + 1}.</span>
 
-                  {/* Micro-test name (clickable to edit) */}
                   <button
                     onClick={() => setEditingMicroTestId(step.microTestId)}
-                    className="flex-1 text-left text-[14px] text-foreground hover:text-accent-blue transition-colors truncate"
+                    className="comp-step__name"
                     title="Click to edit script"
                   >
                     {getMicroTestName(step.microTestId)}
                   </button>
 
-                  {/* Screenshot toggle */}
                   <button
                     onClick={() => updateStep(step.id, { captureScreenshot: !step.captureScreenshot })}
-                    className={`shrink-0 transition-colors ${
-                      step.captureScreenshot ? "text-foreground" : "text-text-muted/40"
-                    }`}
+                    className={`comp-step__camera ${step.captureScreenshot ? "" : "comp-step__camera--disabled"}`}
                     title={step.captureScreenshot ? "Screenshot enabled" : "Screenshot disabled"}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -197,12 +182,11 @@ export default function TestCompositionEditor({
                     </svg>
                   </button>
 
-                  {/* Reorder */}
-                  <div className="flex shrink-0 gap-[2px]">
+                  <div className="comp-step__reorder">
                     <button
                       onClick={() => moveStep(idx, -1)}
                       disabled={idx === 0}
-                      className="text-text-muted transition-colors hover:text-foreground disabled:opacity-30"
+                      className="comp-step__reorder-btn"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M18 15l-6-6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -211,7 +195,7 @@ export default function TestCompositionEditor({
                     <button
                       onClick={() => moveStep(idx, 1)}
                       disabled={idx === composition.steps.length - 1}
-                      className="text-text-muted transition-colors hover:text-foreground disabled:opacity-30"
+                      className="comp-step__reorder-btn"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -219,11 +203,7 @@ export default function TestCompositionEditor({
                     </button>
                   </div>
 
-                  {/* Remove */}
-                  <button
-                    onClick={() => removeStep(step.id)}
-                    className="shrink-0 text-text-muted transition-colors hover:text-status-error"
-                  >
+                  <button onClick={() => removeStep(step.id)} className="comp-step__remove">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -233,38 +213,31 @@ export default function TestCompositionEditor({
             </div>
           )}
 
-          {/* Add step */}
           {showAddStep ? (
-            <div className="rounded-[8px] border border-border-primary p-[12px]">
-              <p className="mb-[8px] text-[12px] text-text-muted">
+            <div className="composition-editor__add-panel">
+              <p className="composition-editor__add-hint">
                 Choose a micro-test from the library or create a new one:
               </p>
               {microTests.length > 0 && (
-                <div className="mb-[8px] flex flex-wrap gap-[4px]">
+                <div className="composition-editor__add-list">
                   {microTests
                     .filter((mt) => !composition.steps.some((s) => s.microTestId === mt.id))
                     .map((mt) => (
                       <button
                         key={mt.id}
                         onClick={() => addStep(mt.id)}
-                        className="rounded-[6px] border border-border-primary px-[10px] py-[4px] text-[13px] text-foreground transition-colors hover:bg-surface-tertiary"
+                        className="flow-chip"
                       >
                         {mt.displayName}
                       </button>
                     ))}
                 </div>
               )}
-              <div className="flex gap-[8px]">
-                <button
-                  onClick={createAndAddMicroTest}
-                  className="rounded-[6px] bg-surface-tertiary px-[12px] py-[4px] text-[13px] text-foreground transition-colors hover:bg-foreground/10"
-                >
+              <div className="composition-editor__add-actions">
+                <button onClick={createAndAddMicroTest} className="flow-chip">
                   + New micro-test
                 </button>
-                <button
-                  onClick={() => setShowAddStep(false)}
-                  className="text-[13px] text-text-muted hover:text-foreground"
-                >
+                <button onClick={() => setShowAddStep(false)} className="composition-editor__add-btn">
                   Cancel
                 </button>
               </div>
@@ -272,7 +245,7 @@ export default function TestCompositionEditor({
           ) : (
             <button
               onClick={() => setShowAddStep(true)}
-              className="text-[13px] text-text-muted transition-colors hover:text-foreground"
+              className="composition-editor__add-btn"
             >
               + Add Step
             </button>

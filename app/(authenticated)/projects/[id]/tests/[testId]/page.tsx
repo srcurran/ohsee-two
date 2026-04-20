@@ -43,8 +43,8 @@ export default function TestPage() {
 
   if (!project || !test) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
@@ -55,37 +55,35 @@ export default function TestPage() {
   const canRun = hasPages || hasCompositions || hasFlows;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-[24px]">
-      <h1 className="text-[24px] font-bold text-foreground">{test.name}</h1>
+    <div className="empty-state">
+      <h1 className="empty-state__title">{test.name}</h1>
 
       {canRun ? (
         <>
-          <p className="max-w-[400px] text-center text-[14px] text-text-muted">
+          <p className="empty-state__body">
             No reports yet. Run this test to capture your first set of screenshots.
           </p>
           <button
             onClick={handleRun}
             disabled={running}
-            className="flex items-center gap-[16px] rounded-[8px] border border-border-strong pl-[24px] pr-[20px] py-[8px] text-[16px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
+            className="run-pill"
           >
             {running ? "Starting..." : "Run now"}
-            <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="text-text-subtle">
+            <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="run-pill__icon">
               <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
             </svg>
           </button>
         </>
       ) : (
-        <>
-          <p className="max-w-[400px] text-center text-[14px] text-text-muted">
-            This test has no pages, compositions, or flows configured yet.
-            Add some in settings before running.
-          </p>
-        </>
+        <p className="empty-state__body">
+          This test has no pages, compositions, or flows configured yet.
+          Add some in settings before running.
+        </p>
       )}
 
       <Link
         href={`/projects/${params.id}/settings/tests?testId=${params.testId}`}
-        className="text-[14px] text-text-muted transition-colors hover:text-foreground"
+        className="btn btn--text"
       >
         Configure test settings
       </Link>

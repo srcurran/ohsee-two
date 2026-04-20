@@ -65,61 +65,49 @@ export default function ProjectGeneralSettings() {
 
   if (!project) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[560px]">
-      <p className="mb-[24px] text-[14px] text-text-muted">Project configuration and defaults.</p>
+    <div style={{ maxWidth: 560 }}>
+      <p className="section-body" style={{ marginBottom: "var(--space-6)" }}>Project configuration and defaults.</p>
 
-      <div className="flex flex-col gap-[24px]">
-        {/* Project Name */}
-        <div>
-          <label className="mb-[4px] block text-[14px] text-foreground">
-            Project Name
-          </label>
+      <div className="stack stack--xl">
+        <div className="field">
+          <label className="field__label">Project Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={getDomain(prodUrl)}
-            className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+            className="input"
           />
-          <p className="mt-[4px] text-[12px] text-text-muted">
-            Leave blank to use the domain name.
-          </p>
+          <p className="field__hint">Leave blank to use the domain name.</p>
         </div>
 
-        {/* Production URL */}
-        <div>
-          <label className="mb-[4px] block text-[14px] text-foreground">
-            Production URL
-          </label>
+        <div className="field">
+          <label className="field__label">Production URL</label>
           <input
             type="text"
             value={prodUrl}
             onChange={(e) => setProdUrl(e.target.value)}
-            className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
+            className="input"
           />
         </div>
 
-        {/* Development URL */}
-        <div>
-          <label className="mb-[4px] block text-[14px] text-foreground">
-            Development URL
-          </label>
+        <div className="field">
+          <label className="field__label">Development URL</label>
           <input
             type="text"
             value={devUrl}
             onChange={(e) => setDevUrl(e.target.value)}
-            className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] text-[14px] text-foreground outline-none transition-colors focus:border-foreground"
+            className="input"
           />
         </div>
 
-        {/* Autosave — no manual Save button. */}
       </div>
     </div>
   );

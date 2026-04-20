@@ -1,0 +1,182 @@
+@use "../mixins/elevation" as *;
+
+/* Base — shared by every variant. Modifiers only override differences. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--line-tight);
+  border: none;
+  border-radius: var(--radius-md);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-4);
+  cursor: pointer;
+  transition: var(--transition-colors);
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* ── Variants ────────────────────────────────────────────────── */
+
+  &--primary {
+    background: var(--foreground);
+    color: var(--surface-content);
+    border-radius: var(--radius-lg);
+    padding-inline: var(--space-8);
+    font-size: var(--font-size-lg);
+    @include hover-lift;
+  }
+
+  &--primary-sm {
+    background: var(--foreground);
+    color: var(--surface-content);
+    padding-inline: var(--space-5);
+    @include hover-lift;
+  }
+
+  &--secondary {
+    background: var(--surface-tertiary);
+    color: var(--foreground);
+    font-weight: var(--weight-regular);
+
+    &:hover:not(:disabled) {
+      background: var(--surface-hover);
+    }
+  }
+
+  &--outline {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--foreground);
+    padding-inline: var(--space-6);
+    font-weight: var(--weight-regular);
+    @include hover-lift;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-tertiary);
+    }
+  }
+
+  &--outline-soft {
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+    transition: var(--transition-colors);
+
+    &:hover:not(:disabled) {
+      background: var(--surface-tertiary);
+      color: var(--foreground);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+
+    &:hover:not(:disabled) {
+      background: var(--surface-tertiary);
+    }
+  }
+
+  &--danger {
+    background: var(--status-error);
+    color: #fff;
+    padding-block: var(--space-1-5);
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &--danger-outline {
+    background: transparent;
+    border: 1px solid var(--status-error-border);
+    color: var(--status-error);
+    padding-block: var(--space-1-5);
+    font-weight: var(--weight-regular);
+
+    &:hover:not(:disabled) {
+      background: var(--status-error-muted);
+    }
+  }
+
+  &--text {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+
+    &:hover:not(:disabled) {
+      color: var(--foreground);
+    }
+  }
+
+  &--link {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: var(--font-size-base);
+    color: var(--text-muted);
+    font-weight: var(--weight-regular);
+
+    &:hover:not(:disabled) {
+      color: var(--foreground);
+    }
+  }
+}
+
+/* Small square icon-only button used for nav arrows, close, settings */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: var(--transition-colors);
+
+  &:hover:not(:disabled) {
+    background: var(--surface-hover-soft);
+    color: var(--foreground);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  &--sm {
+    width: 24px;
+    height: 24px;
+  }
+
+  &--lg {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+  }
+
+  &--ghost-hover {
+    &:hover:not(:disabled) {
+      background: transparent;
+      color: var(--foreground);
+    }
+  }
+}

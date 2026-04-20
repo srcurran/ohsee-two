@@ -1,0 +1,128 @@
+/* ================================================================
+   Level 1 — Primitives
+   Raw palette + numeric scales. Dark mode overrides primitives in
+   _semantic.scss so semantic tokens swap automatically.
+   ================================================================ */
+
+:root {
+  /* ── Color palette ─────────────────────────────────────────────── */
+
+  /* Neutral / Dark (content) */
+  --neutral-dark-900: #000000;
+  --neutral-dark-800: rgba(0, 0, 0, 0.9);
+  --neutral-dark-700: rgba(0, 0, 0, 0.7);
+  --neutral-dark-500: rgba(0, 0, 0, 0.5);
+  --neutral-dark-400: rgba(0, 0, 0, 0.4);
+  --neutral-dark-200: rgba(0, 0, 0, 0.2);
+  --neutral-dark-150: rgba(0, 0, 0, 0.15);
+  --neutral-dark-100: rgba(0, 0, 0, 0.1);
+
+  /* Neutral / Light (surfaces) */
+  --neutral-light-100: #ffffff;
+  --neutral-light-200: #f5f4f3;
+  --neutral-light-300: #f2eee9;
+
+  /* Neutral / Taupe (comparison UI) */
+  --neutral-taupe-500: #9d9297;
+  --neutral-taupe-700: rgba(75, 75, 75, 0.5);
+
+  /* Brand */
+  --brand-primary-100: #fef3e7;
+  --brand-primary-200: #fdd9b0;
+  --brand-primary-300: #f4b76b;
+  --brand-primary-500: #e88f2f;
+  --brand-primary-700: #c67320;
+  --brand-primary-900: #8b4f13;
+
+  /* Status — success */
+  --status-success-100: #c8ffc7;
+  --status-success-500: #34e1a4;
+
+  /* Status — warning */
+  --status-warning-100: #faf5d4;
+  --status-warning-500: #e1d034;
+
+  /* Status — error */
+  --status-error-100: #fef2f2;
+  --status-error-200: #fecaca;
+  --status-error-500: #ef4444;
+  --status-error-800: #b91c1c;
+
+  /* Status — running */
+  --status-running-400: #60a5fa;
+
+  /* ── Spacing (4px base) ────────────────────────────────────────── */
+  --space-0:    0;
+  --space-px:   1px;
+  --space-0-5:  2px;
+  --space-0-75: 3px;
+  --space-1:    4px;
+  --space-1-5:  6px;
+  --space-2:    8px;
+  --space-2-5:  10px;
+  --space-3:    12px;
+  --space-3-5:  14px;
+  --space-4:    16px;
+  --space-5:    20px;
+  --space-6:    24px;
+  --space-7:    28px;
+  --space-8:    32px;
+  --space-9:    36px;
+  --space-10:   40px;
+  --space-11:   44px;
+  --space-12:   48px;
+  --space-14:   56px;
+
+  /* ── Typography ────────────────────────────────────────────────── */
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-md:   13px;
+  --font-size-base: 14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   18px;
+  --font-size-2xl:  20px;
+  --font-size-3xl:  24px;
+  --font-size-4xl:  28px;
+  --font-size-5xl:  32px;
+  --font-size-6xl:  36px;
+  --font-size-7xl:  48px;
+
+  --line-none:  1;
+  --line-tight: 1.2;
+  --line-base:  1.5;
+
+  --weight-regular:  400;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ── Radii ─────────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ── Z-index (primitives) ──────────────────────────────────────── */
+  --z-10: 10;
+  --z-20: 20;
+  --z-30: 30;
+  --z-40: 40;
+  --z-50: 50;
+  --z-60: 60;
+
+  /* ── Duration ──────────────────────────────────────────────────── */
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+
+  /* ── Easing ────────────────────────────────────────────────────── */
+  --ease-standard: ease-out;
+  --ease-decel:    cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Elevation ─────────────────────────────────────────────────── */
+  --elevation-sm: 0px 1px 2px rgba(0, 0, 0, 0.06), 0px 2px 4px rgba(0, 0, 0, 0.08);
+  --elevation-md: 0px 2px 4px rgba(0, 0, 0, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.10);
+  --elevation-lg: 0px 3px 7px rgba(0, 0, 0, 0.12), 0px 12px 12px rgba(0, 0, 0, 0.10), 0px 28px 17px rgba(0, 0, 0, 0.06);
+  --elevation-content: 0px 0px 2px rgba(0, 0, 0, 0.10), 0px 0px 6px rgba(0, 0, 0, 0.05), 0px 0px 18px rgba(0, 0, 0, 0.03);
+  --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+}

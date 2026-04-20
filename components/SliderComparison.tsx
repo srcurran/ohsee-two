@@ -25,35 +25,27 @@ export function ComparisonHeader({
   showingDev?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between text-[14px]">
-      <span className={`transition-colors duration-150 ${
-        showingDev ? "text-text-muted" : "font-bold text-foreground"
-      }`}>Prod</span>
-      <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-tertiary p-[3px]">
+    <div className="comparison-header">
+      <span className={`comparison-header__label ${showingDev ? "" : "comparison-header__label--active"}`}>
+        Prod
+      </span>
+      <div className="segmented">
         <button
           onClick={() => onModeChange("tap")}
-          className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
-            mode === "tap"
-              ? "bg-surface-content font-bold shadow-sm"
-              : "text-text-muted hover:text-foreground"
-          }`}
+          className={`segmented__item ${mode === "tap" ? "segmented__item--active" : ""}`}
         >
           Tap
         </button>
         <button
           onClick={() => onModeChange("slider")}
-          className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
-            mode === "slider"
-              ? "bg-surface-content font-bold shadow-sm"
-              : "text-text-muted hover:text-foreground"
-          }`}
+          className={`segmented__item ${mode === "slider" ? "segmented__item--active" : ""}`}
         >
           Slider
         </button>
       </div>
-      <span className={`transition-colors duration-150 ${
-        showingDev ? "font-bold text-foreground" : "text-text-muted"
-      }`}>Dev</span>
+      <span className={`comparison-header__label ${showingDev ? "comparison-header__label--active" : ""}`}>
+        Dev
+      </span>
     </div>
   );
 }
@@ -74,7 +66,7 @@ export default function SliderComparison({
   return (
     <div>
       {!hideHeader && (
-        <div className="mb-[8px]">
+        <div style={{ marginBottom: "var(--space-2)" }}>
           <ComparisonHeader mode={mode} onModeChange={setMode} />
         </div>
       )}
@@ -87,8 +79,6 @@ export default function SliderComparison({
     </div>
   );
 }
-
-/* ── Tap to reveal ────────────────────────────────────────────── */
 
 function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
   const [pressed, setPressed] = useState(false);
@@ -103,7 +93,7 @@ function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
 
   return (
     <div
-      className="relative cursor-pointer select-none overflow-hidden bg-surface-comparison"
+      className="comparison comparison--tap"
       onMouseDown={() => updatePressed(true)}
       onMouseUp={() => updatePressed(false)}
       onMouseLeave={() => updatePressed(false)}
@@ -111,19 +101,17 @@ function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
       onTouchEnd={() => updatePressed(false)}
       onTouchCancel={() => updatePressed(false)}
     >
-      <img src={devSrc} alt="Dev version" className="block w-full" draggable={false} />
+      <img src={devSrc} alt="Dev version" className="comparison__image" draggable={false} />
       <img
         src={prodSrc}
         alt="Prod version"
-        className="absolute inset-0 block w-full transition-opacity duration-150"
+        className="comparison__overlay"
         style={{ opacity: showingDev ? 0 : 1 }}
         draggable={false}
       />
     </div>
   );
 }
-
-/* ── Slider ───────────────────────────────────────────────────── */
 
 function SliderReveal({ prodSrc, devSrc }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -161,7 +149,7 @@ function SliderReveal({ prodSrc, devSrc }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative cursor-col-resize select-none overflow-hidden bg-surface-comparison"
+      className="comparison comparison--slider"
       onMouseDown={(e) => {
         setIsDragging(true);
         handleMove(e.clientX);
@@ -171,20 +159,14 @@ function SliderReveal({ prodSrc, devSrc }: Props) {
         handleMove(e.touches[0].clientX);
       }}
     >
-      {/* Dev image (full, behind) */}
-      <img src={devSrc} alt="Dev version" className="block w-full" draggable={false} />
+      <img src={devSrc} alt="Dev version" className="comparison__image" draggable={false} />
 
-      {/* Prod image (clipped to left of divider) */}
-      <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - dividerPos}% 0 0)` }}>
-        <img src={prodSrc} alt="Prod version" className="block w-full" draggable={false} />
+      <div className="comparison__clip" style={{ clipPath: `inset(0 ${100 - dividerPos}% 0 0)` }}>
+        <img src={prodSrc} alt="Prod version" className="comparison__image" draggable={false} />
       </div>
 
-      {/* Divider line */}
-      <div
-        className="absolute top-0 bottom-0 z-10 w-[2px] bg-white/80"
-        style={{ left: `${dividerPos}%`, transform: "translateX(-1px)" }}
-      >
-        <div className="absolute top-1/2 left-1/2 flex h-[36px] w-[36px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-slider-handle text-[14px] text-white backdrop-blur-[8.6px]">
+      <div className="comparison__divider" style={{ left: `${dividerPos}%` }}>
+        <div className="comparison__handle">
           <span>&lt;</span>
           <span>&gt;</span>
         </div>

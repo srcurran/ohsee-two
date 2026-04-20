@@ -11,8 +11,7 @@ import ChangeList from "@/components/ChangeList";
 import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SemanticChange } from "@/lib/types";
-import { reportDotColor } from "@/lib/colors";
-import { trackReportCompletion } from "@/lib/electron";
+import { reportDotModifier } from "@/lib/colors";
 import { countUniqueSemanticChanges } from "@/lib/change-identity";
 
 function getDomain(url: string): string {
@@ -27,7 +26,7 @@ function PageDetailInner() {
   const params = useParams<{ reportId: string; pageId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects: _refreshProjects } = useSidebar();
   const [report, setReport] = useState<Report | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [allReports, setAllReports] = useState<Report[]>([]);
@@ -50,7 +49,6 @@ function PageDetailInner() {
           .then((pr) => pr.json())
           .then((p) => {
             setProject(p);
-            // Fetch all reports for this project
             fetch(`/api/projects/${p.id}/reports`)
               .then((res) => res.json())
               .then((reports) => setAllReports(reports));
@@ -58,14 +56,12 @@ function PageDetailInner() {
       });
   }, [params.reportId]);
 
-  // Keyboard navigation: left/right arrows to page through pages
   useEffect(() => {
     if (!report) return;
     const idx = report.pages.findIndex((p) => p.pageId === params.pageId);
     if (idx < 0) return;
 
     const handleKey = (e: KeyboardEvent) => {
-      // Don't capture when typing in inputs
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "ArrowLeft" && idx > 0) {
         e.preventDefault();
@@ -85,20 +81,6 @@ function PageDetailInner() {
     router.push(`?${p.toString()}`, { scroll: false });
   };
 
-  const handleRun = async () => {
-    if (!project) return;
-    const res = await fetch(`/api/projects/${project.id}/reports`, {
-      method: "POST",
-    });
-    if (res.ok) {
-      const { reportId } = await res.json();
-      trackReportCompletion(reportId, project.name || getDomain(project.prodUrl));
-      refreshProjects();
-      router.push(`/reports/${reportId}`);
-    }
-  };
-
-  // Discover which variants exist in this report (must be before early returns)
   const reportVariants = useMemo(() => {
     if (!report) return [];
     const ids = new Set<string>();
@@ -112,8 +94,8 @@ function PageDetailInner() {
 
   if (!report) {
     return (
-      <div className="p-[24px]">
-        <p className="text-text-muted">Loading...</p>
+      <div style={{ padding: "var(--space-6)" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
@@ -123,8 +105,8 @@ function PageDetailInner() {
 
   if (!currentPage) {
     return (
-      <div className="p-[24px]">
-        <p className="text-text-muted">Page not found in report.</p>
+      <div style={{ padding: "var(--space-6)" }}>
+        <p className="loader-text">Page not found in report.</p>
       </div>
     );
   }
@@ -132,7 +114,6 @@ function PageDetailInner() {
   const prevPage = currentIndex > 0 ? report.pages[currentIndex - 1] : null;
   const nextPage = currentIndex < report.pages.length - 1 ? report.pages[currentIndex + 1] : null;
 
-  // Get breakpoint data respecting active variant
   const activeBpData = activeVariant && currentPage.variants?.[activeVariant]
     ? currentPage.variants[activeVariant]
     : currentPage.breakpoints;
@@ -156,58 +137,50 @@ function PageDetailInner() {
       ? "index"
       : currentPage.path.replace(/^\//, "");
 
-  // Total unique structural changes across every breakpoint for this page.
-  // The same change at multiple breakpoints (same selector + property + values)
-  // is collapsed to a single entry — so the badge reflects "number of distinct
-  // things that changed," not "sum of per-breakpoint rows."
   const totalUniqueChanges = countUniqueSemanticChanges(
     Object.values(activeBpData).map((bp) => bp.semanticChanges),
   );
 
-  // Per-breakpoint structural-change counts for the tab dots. Pixel-only
-  // differences (no semantic changes) render as green — "pixels moved but
-  // nothing structurally changed." -1 preserves the existing "no screenshot"
-  // signal from the report runner.
   const bpChangeCounts: Record<string, number> = {};
   for (const [key, val] of Object.entries(activeBpData)) {
     bpChangeCounts[key] = val.changeCount < 0 ? -1 : (val.semanticChanges?.length ?? 0);
   }
 
+  const badgeMod = totalUniqueChanges > 0 ? "badge--warning-tint" : "badge--success-tint";
+
   return (
-    <div className="animate-fade-in-up">
-      {/* Sticky top nav */}
-      <div className="sticky top-0 z-30 rounded-t-[12px] bg-surface-content">
-        <div className="flex flex-col gap-[16px] px-[20px] py-[24px] pb-0">
-          {/* Title row */}
-          <div className="flex items-center justify-between gap-[16px]">
-            {/* Left: domain link + page path dropdown + change count badge */}
-            <div className="flex min-w-0 max-w-[66%] items-center gap-[16px]">
-              <div className="flex min-w-0 items-baseline gap-[4px]">
-                {/* Domain — links back to report */}
+    <div className="report-page">
+      <div className="report-page__sticky">
+        <div className="report-page__header">
+          <div className="report-page__title-row">
+            <div className="report-page__title-group">
+              <div className="report-page__title-inner">
                 <Link
                   href={`/reports/${params.reportId}?bp=${activeBp}`}
-                  className="shrink-0 text-[36px] text-foreground hover:opacity-70"
+                  className="report-page__domain"
                 >
                   {displayUrl}
                 </Link>
-                <span className="shrink-0 text-[36px] text-text-subtle">/</span>
+                <span className="report-page__slash">/</span>
 
-                {/* Page path — opens page dropdown */}
-                <div className="relative min-w-0">
+                <div className="report-page__page-name-wrap">
                   <button
                     onClick={() => { setShowPageNav(!showPageNav); setShowReportNav(false); }}
-                    className="block max-w-full truncate rounded-[8px] transition-all hover:bg-foreground/[0.03]"
+                    className="report-page__page-btn"
                     title={pageName}
                   >
-                    <span className="text-[36px] text-foreground">{pageName}</span>
+                    <span className="report-page__page-name">{pageName}</span>
                   </button>
                   {showPageNav && (
                     <>
                       <div
-                        className="fixed inset-0 z-30"
+                        className="dropdown-backdrop"
                         onClick={() => setShowPageNav(false)}
                       />
-                      <div className="absolute left-0 top-[56px] z-40 flex min-w-[280px] max-w-[400px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
+                      <div
+                        className="dropdown-panel"
+                        style={{ position: "absolute", left: 0, top: 56, zIndex: 40 }}
+                      >
                         {report.pages.map((page) => {
                           const label = page.stepLabel
                             ? page.stepLabel
@@ -217,21 +190,16 @@ function PageDetailInner() {
                           const isCurrent = page.pageId === params.pageId;
                           const pageBpResult = page.breakpoints[String(activeBp)];
                           const pageChanges = pageBpResult?.changeCount ?? 0;
+                          const dotMod = pageChanges > 0 ? "warning" : "success";
                           return (
                             <Link
                               key={page.pageId}
                               href={`/reports/${report.id}/pages/${page.pageId}?bp=${activeBp}`}
                               onClick={() => setShowPageNav(false)}
-                              className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[6px] text-[14px] text-foreground ${
-                                isCurrent
-                                  ? "bg-surface-tertiary font-bold"
-                                  : "font-normal hover:bg-surface-tertiary"
-                              }`}
+                              className={`dropdown-item ${isCurrent ? "dropdown-item--active" : ""}`}
                             >
-                              <span className="truncate">{label}</span>
-                              <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${
-                                pageChanges > 0 ? "bg-accent-yellow" : "bg-accent-green"
-                              }`} />
+                              <span className="dropdown-item__truncate">{label}</span>
+                              <span className={`status-dot status-dot--${dotMod}`} />
                             </Link>
                           );
                         })}
@@ -241,34 +209,28 @@ function PageDetailInner() {
                 </div>
               </div>
 
-              {/* Change count badge — total unique structural changes across
-                  all breakpoints, deduped by change identity. */}
-              <span className={`flex h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-full px-[8px] text-[20px] text-foreground ${
-                totalUniqueChanges > 0 ? "bg-accent-yellow-tint" : "bg-accent-green-tint"
-              }`}>
+              <span className={`badge badge--xl ${badgeMod}`}>
                 {totalUniqueChanges}
               </span>
             </div>
 
-            {/* Right: time dropdown + arrows + close */}
-            <div className="flex shrink-0 items-center gap-[24px]">
-              {/* Date — opens report dropdown */}
-              <div className="relative">
+            <div className="report-page__nav">
+              <div style={{ position: "relative" }}>
                 <button
                   onClick={() => { setShowReportNav(!showReportNav); setShowPageNav(false); }}
-                  className="flex items-center gap-[8px] text-[16px] text-foreground hover:opacity-70"
+                  className="report-page__date-btn"
                   title={formatFullDateTime(report.createdAt)}
                 >
                   {dateStr}
-                  <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${reportDotColor(report)}`} />
+                  <span className={`status-dot status-dot--${reportDotModifier(report)}`} />
                 </button>
                 {showReportNav && (
                   <>
                     <div
-                      className="fixed inset-0 z-30"
+                      className="dropdown-backdrop"
                       onClick={() => setShowReportNav(false)}
                     />
-                    <div className="absolute right-0 top-[32px] z-40 flex min-w-[280px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
+                    <div className="dropdown-panel" style={{ position: "absolute", right: 0, top: 32, zIndex: 40 }}>
                       {allReports.map((r) => {
                         const isCurrent = r.id === report.id;
                         return (
@@ -277,14 +239,10 @@ function PageDetailInner() {
                             href={`/reports/${r.id}/pages/${params.pageId}?bp=${activeBp}`}
                             onClick={() => setShowReportNav(false)}
                             title={formatFullDateTime(r.createdAt)}
-                            className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-[14px] ${
-                              isCurrent
-                                ? "bg-surface-tertiary font-bold text-foreground"
-                                : "text-text-secondary hover:bg-surface-tertiary"
-                            }`}
+                            className={`dropdown-item ${isCurrent ? "dropdown-item--active" : "dropdown-item--muted"}`}
                           >
-                            <span className="flex-1">{formatRelativeTime(r.createdAt)}</span>
-                            <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${reportDotColor(r)}`} />
+                            <span className="dropdown-item__label">{formatRelativeTime(r.createdAt)}</span>
+                            <span className={`status-dot status-dot--${reportDotModifier(r)}`} />
                           </Link>
                         );
                       })}
@@ -293,11 +251,10 @@ function PageDetailInner() {
                 )}
               </div>
 
-              {/* Prev arrow */}
               {prevPage ? (
                 <Link
                   href={`/reports/${report.id}/pages/${prevPage.pageId}?bp=${activeBp}`}
-                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-foreground"
+                  className="report-page__arrow"
                   title={prevPage.path === "/" ? "index" : prevPage.path.replace(/^\//, "")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -305,18 +262,17 @@ function PageDetailInner() {
                   </svg>
                 </Link>
               ) : (
-                <span className="flex h-[24px] w-[24px] items-center justify-center text-text-disabled">
+                <span className="report-page__arrow report-page__arrow--disabled">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
               )}
 
-              {/* Next arrow */}
               {nextPage ? (
                 <Link
                   href={`/reports/${report.id}/pages/${nextPage.pageId}?bp=${activeBp}`}
-                  className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-foreground"
+                  className="report-page__arrow"
                   title={nextPage.path === "/" ? "index" : nextPage.path.replace(/^\//, "")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -324,17 +280,16 @@ function PageDetailInner() {
                   </svg>
                 </Link>
               ) : (
-                <span className="flex h-[24px] w-[24px] items-center justify-center text-text-disabled">
+                <span className="report-page__arrow report-page__arrow--disabled">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
               )}
 
-              {/* Close (back to report) */}
               <Link
                 href={`/reports/${params.reportId}?bp=${activeBp}`}
-                className="flex h-[24px] w-[24px] items-center justify-center text-text-subtle transition-colors hover:text-foreground"
+                className="report-page__arrow"
                 title="Back to report"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -351,8 +306,7 @@ function PageDetailInner() {
           onChange={handleVariantChange}
         />
 
-        {/* Breakpoint tabs */}
-        <div className="px-[20px]">
+        <div style={{ padding: "0 var(--space-5)" }}>
           <BreakpointTabs
             active={activeBp}
             onChange={handleBpChange}
@@ -361,25 +315,22 @@ function PageDetailInner() {
           />
         </div>
 
-        {/* Column headers */}
         {bpResult && (
-          <div className="flex gap-[29px] px-[20px] pb-[8px] pt-[16px]">
-            <div className="flex flex-1 items-center text-[14px] text-foreground">
+          <div className="report-page__headers">
+            <div className="report-page__header-col">
               <span>Changes</span>
             </div>
-            <div className="flex-1">
+            <div className="report-page__header-col">
               <ComparisonHeader mode={comparisonMode} onModeChange={setComparisonMode} showingDev={showingDev} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex flex-col gap-[16px] px-[20px] py-[24px]">
+      <div className="report-page__body">
         {bpResult ? (
-          <div className="flex gap-[29px]">
-            {/* Changes (diff) column */}
-            <div className="flex-1">
+          <div className="report-page__compare-row">
+            <div className="report-page__compare-col">
               <DiffViewer
                 src={`/api/screenshots/${bpResult.diffScreenshot}`}
                 alt={`Diff for ${currentPage.path}`}
@@ -387,8 +338,7 @@ function PageDetailInner() {
                 highlightedChangeId={highlightedChangeId}
               />
             </div>
-            {/* Prod / Dev comparison column */}
-            <div className="flex-1">
+            <div className="report-page__compare-col">
               <SliderComparison
                 prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
                 devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
@@ -400,12 +350,11 @@ function PageDetailInner() {
             </div>
           </div>
         ) : (
-          <p className="text-center text-[14px] text-text-muted">
+          <p className="loader-text" style={{ textAlign: "center" }}>
             No screenshot available for this breakpoint.
           </p>
         )}
 
-        {/* Issues list (collapsible) */}
         {bpResult?.semanticChanges && bpResult.semanticChanges.length > 0 && (
           <CollapsibleIssues
             changes={bpResult.semanticChanges}
@@ -417,7 +366,6 @@ function PageDetailInner() {
           />
         )}
 
-        {/* Jump to top */}
         <ScrollToTopButton />
       </div>
     </div>
@@ -438,7 +386,7 @@ function ScrollToTopButton() {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-[32px] right-[32px] z-50 flex h-[44px] w-[44px] items-center justify-center rounded-full bg-black/70 text-white shadow-lg transition-opacity hover:bg-black"
+      className="scroll-to-top"
       aria-label="Scroll to top"
     >
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -483,10 +431,10 @@ function CollapsibleIssues({
 
   return (
     <div>
-      <div className="relative">
+      <div className="report-page__collapsible">
         <div
           ref={contentRef}
-          className="overflow-hidden transition-[max-height] duration-300"
+          className="report-page__collapsible-inner"
           style={{ maxHeight: collapsed ? "40vh" : "none" }}
         >
           <ChangeList
@@ -496,10 +444,10 @@ function CollapsibleIssues({
           />
         </div>
         {collapsed && (
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center bg-gradient-to-t from-surface-fade-from via-surface-fade-via to-transparent pt-[40px] pb-[8px]">
+          <div className="report-page__fade">
             <button
               onClick={() => setExpanded(true)}
-              className="rounded-full border border-border-primary bg-surface-content px-[20px] py-[8px] text-[13px] text-foreground shadow-sm transition-all hover:bg-surface-tertiary hover:shadow-elevation-sm"
+              className="report-page__show-all"
             >
               Show all {changes.length} issues
             </button>
@@ -509,7 +457,7 @@ function CollapsibleIssues({
       {expanded && isOverflowing && (
         <button
           onClick={() => setExpanded(false)}
-          className="mt-[8px] text-[13px] text-text-muted underline hover:text-foreground"
+          className="report-page__collapse"
         >
           Collapse
         </button>
@@ -522,8 +470,8 @@ export default function PageDetailPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-[24px]">
-          <p className="text-text-muted">Loading...</p>
+        <div style={{ padding: "var(--space-6)" }}>
+          <p className="loader-text">Loading...</p>
         </div>
       }
     >

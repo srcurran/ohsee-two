@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import ThemeProvider from "@/components/ThemeProvider";
-import "./globals.css";
+import "./globals.scss";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${dmSans.variable} font-sans antialiased`}>
+      <body className={dmSans.variable}>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

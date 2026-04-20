@@ -7,12 +7,12 @@ interface BreadcrumbItem {
 
 export default function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
   return (
-    <p className="text-[14px] text-foreground">
+    <p className="breadcrumb">
       {items.map((item, i) => (
         <span key={i}>
-          {i > 0 && <span> / </span>}
+          {i > 0 && <span className="breadcrumb__separator"> / </span>}
           {item.href ? (
-            <Link href={item.href} className="underline">
+            <Link href={item.href} className="breadcrumb__link">
               {item.label}
             </Link>
           ) : (

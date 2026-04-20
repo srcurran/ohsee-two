@@ -17,7 +17,6 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
-  // Defaults state
   const [settings, setSettings] = useState<UserSettings | null>(null);
 
   const user = session?.user;
@@ -57,75 +56,74 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex flex-col gap-[16px] px-[24px] py-[20px] animate-card-in">
-        <h1 className="text-[48px] text-foreground">Settings</h1>
+    <div className="page-shell">
+      <div className="page-header animate-card-in">
+        <h1 className="page-header__title page-header__title--xl">Settings</h1>
 
-        {/* Tabs */}
-        <div className="border-b border-border-secondary">
-          <div className="flex items-center gap-[24px]">
+        <div className="tab-bar">
+          <div className="tab-bar__list">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative py-[12px] text-[14px] text-foreground ${
-                  activeTab === tab.id ? "font-bold" : "font-normal"
-                }`}
+                className={`tab ${activeTab === tab.id ? "tab--active" : ""}`}
               >
                 {tab.label}
-                {activeTab === tab.id && (
-                  <span className="absolute bottom-[-1px] left-0 right-0 h-[4px] bg-foreground" />
-                )}
+                {activeTab === tab.id && <span className="tab__indicator" />}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-[24px] py-[24px]">
-        <div className="max-w-[560px]">
+      <div className="page-shell__body">
+        <div style={{ maxWidth: 560 }}>
           {activeTab === "general" && (
             <div>
-              {/* Profile */}
-              <section className="mb-[32px] animate-card-in" style={{ animationDelay: "0ms" }}>
-                <div className="flex items-center gap-[16px]">
+              <section className="section-block animate-card-in" style={{ animationDelay: "0ms" }}>
+                <div className="row row--lg">
                   {user?.image ? (
                     <img
                       src={user.image}
                       alt={user.name || "User"}
                       width={48}
                       height={48}
-                      className="rounded-full"
+                      style={{ borderRadius: "var(--radius-full)" }}
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <span className="flex h-[48px] w-[48px] items-center justify-center rounded-full bg-accent-yellow text-[18px] font-bold text-foreground">
+                    <span
+                      className="center"
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: "var(--radius-full)",
+                        background: "var(--accent-yellow)",
+                        fontSize: 18,
+                        fontWeight: "var(--weight-bold)",
+                        color: "var(--foreground)",
+                      }}
+                    >
                       {user?.name?.charAt(0).toUpperCase() || "?"}
                     </span>
                   )}
                   <div>
-                    <p className="text-[16px] font-bold text-foreground">{user?.name}</p>
-                    <p className="text-[14px] text-text-muted">{user?.email}</p>
+                    <p style={{ fontSize: "var(--font-size-lg)", fontWeight: "var(--weight-bold)", color: "var(--foreground)" }}>{user?.name}</p>
+                    <p style={{ fontSize: "var(--font-size-base)", color: "var(--text-muted)" }}>{user?.email}</p>
                   </div>
                 </div>
               </section>
 
-              {/* Theme */}
               {mounted && (
-                <section className="mb-[32px] animate-card-in" style={{ animationDelay: "50ms" }}>
-                  <p className="mb-[8px] text-[14px] text-foreground">Theme</p>
-                  <div className="flex w-fit rounded-[8px] bg-surface-tertiary p-[3px]">
+                <section className="section-block animate-card-in" style={{ animationDelay: "50ms" }}>
+                  <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Theme</p>
+                  <div className="segmented" style={{ width: "fit-content" }}>
                     {(["light", "dark", "system"] as const).map((opt) => (
                       <button
                         key={opt}
                         onClick={() => setTheme(opt)}
-                        className={`rounded-[6px] px-[16px] py-[6px] text-[14px] capitalize transition-colors ${
-                          theme === opt
-                            ? "bg-surface-content font-bold shadow-sm"
-                            : "text-text-muted hover:text-foreground"
-                        }`}
+                        className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
+                        style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
                       >
                         {opt}
                       </button>
@@ -134,27 +132,22 @@ export default function SettingsPage() {
                 </section>
               )}
 
-              {/* Alert notifications */}
-              <section className="mb-[32px] animate-card-in" style={{ animationDelay: "75ms" }}>
-                <p className="mb-[8px] text-[14px] text-foreground">Alert notifications</p>
-                <label className="flex items-center gap-[8px] text-[14px] text-foreground">
+              <section className="section-block animate-card-in" style={{ animationDelay: "75ms" }}>
+                <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Alert notifications</p>
+                <label className="variant-option">
                   <input
                     type="checkbox"
                     checked={settings?.alertNotifications ?? false}
                     onChange={(e) => settings && saveSettings({ ...settings, alertNotifications: e.target.checked })}
-                    className="h-[16px] w-[16px]"
+                    className="checkbox"
                     disabled={!settings}
                   />
                   Notify me when a report run finishes
                 </label>
               </section>
 
-              {/* Sign out */}
               <section className="animate-card-in" style={{ animationDelay: "100ms" }}>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/sign-in" })}
-                  className="rounded-[8px] px-[16px] py-[8px] text-[14px] text-text-muted transition-colors hover:bg-surface-tertiary hover:text-foreground"
-                >
+                <button onClick={() => signOut({ callbackUrl: "/sign-in" })} className="btn btn--ghost">
                   Sign out
                 </button>
               </section>
@@ -167,34 +160,29 @@ export default function SettingsPage() {
             <div>
               {settings ? (
                 <>
-                  <p className="mb-[24px] text-[14px] text-text-muted animate-card-in">
+                  <p className="section-body animate-card-in" style={{ marginBottom: "var(--space-6)" }}>
                     Applied to new projects by default.
                   </p>
 
-                  {/* Breakpoints */}
-                  <section className="mb-[32px] animate-card-in" style={{ animationDelay: "50ms" }}>
+                  <section className="section-block animate-card-in" style={{ animationDelay: "50ms" }}>
                     <BreakpointEditor
                       breakpoints={settings.defaultBreakpoints}
                       onChange={(bp) => saveSettings({ ...settings, defaultBreakpoints: bp })}
                     />
                   </section>
 
-                  {/* Variants */}
-                  <section className="mb-[32px] animate-card-in" style={{ animationDelay: "100ms" }}>
-                    <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
-                    <div className="flex gap-[16px]">
+                  <section className="section-block animate-card-in" style={{ animationDelay: "100ms" }}>
+                    <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Variants</p>
+                    <div className="variant-list">
                       {BUILT_IN_VARIANTS.map((v) => {
                         const active = (settings.defaultVariants || []).includes(v.id);
                         return (
-                          <label
-                            key={v.id}
-                            className="flex items-center gap-[8px] text-[14px] text-foreground"
-                          >
+                          <label key={v.id} className="variant-option">
                             <input
                               type="checkbox"
                               checked={active}
                               onChange={() => toggleVariant(v.id)}
-                              className="h-[16px] w-[16px]"
+                              className="checkbox"
                             />
                             {v.label}
                           </label>
@@ -204,7 +192,7 @@ export default function SettingsPage() {
                   </section>
                 </>
               ) : (
-                <p className="text-text-muted">Loading...</p>
+                <p className="loader-text">Loading...</p>
               )}
             </div>
           )}

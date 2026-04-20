@@ -9,7 +9,7 @@ import ChangeBadge from "@/components/ChangeBadge";
 import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
-import { reportDotColor } from "@/lib/colors";
+import { reportDotModifier } from "@/lib/colors";
 import PageDetailPanel from "@/components/PageDetailPanel";
 import { trackReportCompletion } from "@/lib/electron";
 
@@ -45,42 +45,38 @@ function ReportPageInner() {
     : null;
   usePageTitle(titleLabel);
 
-  const loadReport = async () => {
-    const res = await fetch(`/api/reports/${params.reportId}`);
-    if (!res.ok) {
-      setNotFound(true);
-      return;
-    }
-    const r = await res.json();
-    setReport(r);
-    if (!project) {
-      const pRes = await fetch(`/api/projects/${r.projectId}`);
-      if (pRes.ok) {
-        const p = await pRes.json();
-        setProject(p);
-        // Resolve the site test for this report
-        if (r.siteTestId && p.tests) {
-          const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
-          if (test) setSiteTest(test);
-        }
-        // Load reports filtered by siteTestId (or all if no test)
-        const reportsUrl = r.siteTestId
-          ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
-          : `/api/projects/${r.projectId}/reports`;
-        const allRes = await fetch(reportsUrl);
-        if (allRes.ok) setAllReports(await allRes.json());
-      }
-    }
-  };
-
   useEffect(() => {
+    const loadReport = async () => {
+      const res = await fetch(`/api/reports/${params.reportId}`);
+      if (!res.ok) {
+        setNotFound(true);
+        return;
+      }
+      const r = await res.json();
+      setReport(r);
+      if (!project) {
+        const pRes = await fetch(`/api/projects/${r.projectId}`);
+        if (pRes.ok) {
+          const p = await pRes.json();
+          setProject(p);
+          if (r.siteTestId && p.tests) {
+            const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
+            if (test) setSiteTest(test);
+          }
+          const reportsUrl = r.siteTestId
+            ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
+            : `/api/projects/${r.projectId}/reports`;
+          const allRes = await fetch(reportsUrl);
+          if (allRes.ok) setAllReports(await allRes.json());
+        }
+      }
+    };
     loadReport();
     const interval = setInterval(async () => {
       const res = await fetch(`/api/reports/${params.reportId}`);
       if (res.ok) {
         const r = await res.json();
         setReport((prev) => {
-          // Status changed out of "running" → tell the sidebar so dots/times update.
           if (prev?.status === "running" && r.status !== "running") {
             refreshProjects();
           }
@@ -90,6 +86,7 @@ function ReportPageInner() {
       }
     }, 3000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.reportId, refreshProjects]);
 
   const handleBpChange = (bp: number) => {
@@ -102,7 +99,6 @@ function ReportPageInner() {
     if (e) {
       const card = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setPageOriginRect(card);
-      // Find the thumbnail image inside the card
       const img = (e.currentTarget as HTMLElement).querySelector("img");
       if (img) {
         setPageOriginThumb({ rect: img.getBoundingClientRect(), src: img.src });
@@ -133,7 +129,6 @@ function ReportPageInner() {
 
   const handleRun = async () => {
     if (!project) return;
-    // Use test-scoped endpoint if we know which test this report belongs to
     const url = report?.siteTestId
       ? `/api/projects/${project.id}/tests/${report.siteTestId}/reports`
       : `/api/projects/${project.id}/reports`;
@@ -156,7 +151,6 @@ function ReportPageInner() {
     }
   };
 
-  // Discover which variants exist in this report (must be before early return)
   const reportVariants = useMemo(() => {
     if (!report) return [];
     const ids = new Set<string>();
@@ -168,7 +162,6 @@ function ReportPageInner() {
     return Array.from(ids);
   }, [report]);
 
-  // Report not found or not owned — clear stale path and go home
   useEffect(() => {
     if (notFound) {
       localStorage.removeItem("ohsee-last-path");
@@ -178,8 +171,8 @@ function ReportPageInner() {
 
   if (!report) {
     return (
-      <div className="p-[24px]">
-        <p className="text-text-muted">{notFound ? "Redirecting..." : "Loading..."}</p>
+      <div style={{ padding: "var(--space-6)" }}>
+        <p className="loader-text">{notFound ? "Redirecting..." : "Loading..."}</p>
       </div>
     );
   }
@@ -192,7 +185,6 @@ function ReportPageInner() {
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
-  // Helper: get breakpoint data for a page, respecting active variant
   const getPageBp = (page: ReportPage, bp: string) => {
     if (activeVariant && page.variants?.[activeVariant]) {
       return page.variants[activeVariant][bp];
@@ -200,7 +192,6 @@ function ReportPageInner() {
     return page.breakpoints[bp];
   };
 
-  // Derive the breakpoints actually used in this report from the data itself
   const reportBreakpoints: number[] = (() => {
     const bpSet = new Set<number>();
     for (const page of report.pages) {
@@ -209,9 +200,6 @@ function ReportPageInner() {
     return [...bpSet].sort((a, b) => a - b);
   })();
 
-  // Sum structural change counts per breakpoint across all pages (variant-aware).
-  // Pixel-only differences do not count — the dots track semantic changes so
-  // listing and detail views agree.
   const bpChangeCounts: Record<string, number> = {};
   for (const page of report.pages) {
     const bpData = activeVariant && page.variants?.[activeVariant]
@@ -223,8 +211,7 @@ function ReportPageInner() {
   }
 
   return (
-    <div className="relative min-h-full overflow-hidden">
-      {/* Page detail panel */}
+    <div className="report">
       {activePageId && report && project && (
         <PageDetailPanel
           report={report}
@@ -241,69 +228,57 @@ function ReportPageInner() {
         />
       )}
 
-      {/* Sticky top nav */}
-      <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content">
-        {/* Title row */}
-        <div className="flex items-center justify-between px-[24px] py-[20px]">
-          {/* Left: Run now pill */}
-          <div className="flex shrink-0 items-center">
+      <div className="report__sticky">
+        <div className="report__title-row">
+          <div className="report__left">
             {report.status !== "running" ? (
-              <button
-                onClick={handleRun}
-                className="flex items-center gap-[16px] rounded-[8px] border border-border-strong pl-[24px] pr-[20px] py-[8px] text-[16px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px]"
-              >
+              <button onClick={handleRun} className="run-pill">
                 Run now
-                <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="text-text-subtle">
+                <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="run-pill__icon">
                   <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
                 </svg>
               </button>
             ) : (
-              <div className="flex items-center gap-[12px]">
-                <div className="h-[6px] w-[120px] overflow-hidden rounded-full bg-surface-tertiary">
+              <div className="progress">
+                <div className="progress__bar">
                   <div
-                    className="h-full rounded-full bg-accent-primary transition-all duration-500"
+                    className="progress__fill"
                     style={{ width: `${(progressCompleted / progressTotal) * 100}%` }}
                   />
                 </div>
-                <span className="text-[13px] text-text-muted">
+                <span className="progress__text">
                   {progressCompleted}/{progressTotal}
                 </span>
-                <button
-                  onClick={handleCancel}
-                  className="text-[13px] text-status-error underline hover:text-status-error-text"
-                >
+                <button onClick={handleCancel} className="status-pill">
                   Cancel
                 </button>
               </div>
             )}
           </div>
 
-          {/* Center: Project name */}
-          <p className="absolute left-1/2 -translate-x-1/2 text-[24px] text-foreground whitespace-nowrap">{displayUrl}</p>
+          <p className="report__title">{displayUrl}</p>
 
-          {/* Right: Date + status dot + settings */}
-          <div className="flex shrink-0 items-center gap-[24px]">
-            {/* Date with report dropdown */}
-            <div className="relative">
+          <div className="report__right">
+            <div style={{ position: "relative" }}>
               <button
                 onClick={() => setShowReportNav(!showReportNav)}
-                className="flex items-center gap-[8px] rounded-[8px] px-[8px] py-[4px] transition-all hover:bg-foreground/[0.03]"
+                className="report__date-btn"
               >
                 <span
-                  className="text-[16px] text-foreground"
+                  className="report__date"
                   title={formatFullDateTime(report.createdAt)}
                 >
                   {formatRelativeTime(report.createdAt)}
                 </span>
-                <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${reportDotColor(report)}`} />
+                <span className={`status-dot status-dot--${reportDotModifier(report)}`} />
               </button>
               {showReportNav && (
                 <>
                   <div
-                    className="fixed inset-0 z-30"
+                    className="dropdown-backdrop"
                     onClick={() => setShowReportNav(false)}
                   />
-                  <div className="absolute right-0 top-[40px] z-40 flex min-w-[320px] flex-col gap-[4px] rounded-[12px] bg-surface-content p-[12px] shadow-elevation-lg">
+                  <div className="dropdown-panel" style={{ position: "absolute", right: 0, top: 40, zIndex: 40, minWidth: 320 }}>
                     {allReports.map((r) => {
                       const isCurrent = r.id === report.id;
                       return (
@@ -312,14 +287,10 @@ function ReportPageInner() {
                           href={`/reports/${r.id}?bp=${activeBp}`}
                           onClick={() => setShowReportNav(false)}
                           title={formatFullDateTime(r.createdAt)}
-                          className={`flex items-center gap-[8px] rounded-[8px] px-[12px] py-[8px] text-[14px] ${
-                            isCurrent
-                              ? "bg-surface-tertiary font-bold text-foreground"
-                              : "text-text-secondary hover:bg-surface-tertiary"
-                          }`}
+                          className={`dropdown-item ${isCurrent ? "dropdown-item--active" : "dropdown-item--muted"}`}
                         >
-                          <span className="flex-1">{formatRelativeTime(r.createdAt)}</span>
-                          <span className={`inline-block h-[8px] w-[8px] shrink-0 rounded-full ${reportDotColor(r)}`} />
+                          <span className="dropdown-item__label">{formatRelativeTime(r.createdAt)}</span>
+                          <span className={`status-dot status-dot--${reportDotModifier(r)}`} />
                         </Link>
                       );
                     })}
@@ -328,7 +299,6 @@ function ReportPageInner() {
               )}
             </div>
 
-            {/* Settings icon */}
             {project && (
               <button
                 onClick={() => router.push(
@@ -336,7 +306,7 @@ function ReportPageInner() {
                     ? `/projects/${project.id}/settings/tests?testId=${report.siteTestId}`
                     : `/projects/${project.id}/settings`
                 )}
-                className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
+                className="icon-btn icon-btn--lg"
                 title="Project settings"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -350,32 +320,27 @@ function ReportPageInner() {
           </div>
         </div>
 
-        {/* Status messages below title row */}
         {report.status === "cancelled" && (
-          <div className="mx-[32px] mb-[12px] rounded-[8px] border border-border-primary bg-surface-tertiary p-[16px]">
-            <p className="text-[13px] text-text-muted">This report was cancelled by the user.</p>
+          <div className="report__status-banner">
+            <p className="report__status-banner-title">This report was cancelled by the user.</p>
           </div>
         )}
         {report.status === "failed" && (
-          <div className="mx-[32px] mb-[12px] rounded-[8px] border border-status-error-border bg-status-error-muted p-[16px]">
-            <p className="text-[13px] font-bold text-status-error-strong">Report failed</p>
+          <div className="report__status-banner report__status-banner--error">
+            <p className="report__status-banner-title report__status-banner-title--error">Report failed</p>
             {report.error && (
-              <pre className="mt-[8px] max-h-[200px] overflow-auto whitespace-pre-wrap text-[12px] text-status-error-text">
-                {report.error}
-              </pre>
+              <pre className="report__status-banner-detail">{report.error}</pre>
             )}
           </div>
         )}
 
-        {/* Variant tabs (only shown when variants exist) */}
         <VariantTabs
           variants={reportVariants}
           active={activeVariant}
           onChange={handleVariantChange}
         />
 
-        {/* Breakpoint tabs */}
-        <div className="px-[24px]">
+        <div className="report__breakpoints">
           <BreakpointTabs
             active={activeBp}
             onChange={handleBpChange}
@@ -386,21 +351,17 @@ function ReportPageInner() {
         </div>
       </div>
 
-      {/* Page grid */}
-      <div className="p-[24px]">
+      <div className="report__grid-wrap">
         {(() => {
           const regularPages = report.pages.filter((p) => !p.flowId);
           const flowPages = report.pages.filter((p) => p.flowId);
 
-          // Group flow pages by flowId
           const flowGroups = new Map<string, ReportPage[]>();
           for (const fp of flowPages) {
             const group = flowGroups.get(fp.flowId!) || [];
             group.push(fp);
             flowGroups.set(fp.flowId!, group);
           }
-
-          const variantParam = activeVariant ? `&variant=${activeVariant}` : "";
 
           const renderPageCard = (page: ReportPage, index: number) => {
             const bpResult = getPageBp(page, String(activeBp));
@@ -414,25 +375,23 @@ function ReportPageInner() {
               <button
                 key={page.id}
                 onClick={(e) => openPage(page.pageId, e)}
-                className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97] animate-card-in"
+                className="page-tile animate-card-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[4px] bg-surface-tertiary flex justify-center">
+                <div className="page-tile__thumb page-tile__thumb--center">
                   {diffSrc ? (
                     <img
                       src={diffSrc}
                       alt={page.stepLabel || page.path}
-                      className="h-full object-cover object-top"
-                      style={{ maxWidth: activeBp, width: '100%' }}
+                      className="page-tile__thumb-img page-tile__thumb-img--clamped"
+                      style={{ maxWidth: activeBp }}
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-surface-tertiary text-[12px] text-text-subtle">
-                      No screenshot
-                    </div>
+                    <div className="page-tile__thumb-empty">No screenshot</div>
                   )}
                 </div>
-                <div className="flex items-center justify-between gap-[8px] px-[4px] py-[4px]">
-                  <span className="truncate text-[13px] text-text-secondary">
+                <div className="page-tile__footer">
+                  <span className="page-tile__label">
                     {page.stepLabel || page.path}
                   </span>
                   <ChangeBadge count={changeCount} noData={!hasScreenshot} />
@@ -443,26 +402,21 @@ function ReportPageInner() {
 
           return (
             <>
-              {/* Regular pages */}
               {regularPages.length > 0 && (
-                <div className="grid grid-cols-3 gap-[24px]">
+                <div className="page-grid">
                   {regularPages.map((page, i) => renderPageCard(page, i))}
                 </div>
               )}
 
-              {/* Flow sections */}
               {Array.from(flowGroups.entries()).map(([flowId, pages]) => {
-                // Extract flow name from the path (format: "FlowName > StepLabel")
                 const flowName = pages[0]?.path.split(" > ")[0] || "Flow";
                 return (
-                  <div key={flowId} className={regularPages.length > 0 ? "mt-[32px]" : ""}>
-                    <div className="mb-[12px] flex items-center gap-[8px]">
-                      <span className="rounded-[4px] bg-accent-primary/10 px-[8px] py-[2px] text-[12px] font-bold text-accent-primary">
-                        Flow
-                      </span>
-                      <h3 className="text-[16px] font-bold text-foreground">{flowName}</h3>
+                  <div key={flowId} className="report__flow-section">
+                    <div className="report__flow-header">
+                      <span className="badge badge--flow">Flow</span>
+                      <h3 className="report__flow-title">{flowName}</h3>
                     </div>
-                    <div className="grid grid-cols-3 gap-[24px]">
+                    <div className="page-grid">
                       {pages.map((page, i) => renderPageCard(page, regularPages.length + i))}
                     </div>
                   </div>
@@ -472,29 +426,25 @@ function ReportPageInner() {
           );
         })()}
 
-        {/* Empty states */}
         {report.pages.length === 0 && report.status === "running" && (
-          <div className="flex flex-col items-center gap-[16px] py-[40px]">
-            <div className="h-[32px] w-[32px] animate-spin rounded-full border-[3px] border-surface-tertiary border-t-accent-primary" />
-            <p className="text-[14px] text-text-muted">
-              Capturing screenshots...
-            </p>
+          <div className="loader-centered">
+            <div className="loader-spinner" />
+            <p className="loader-text">Capturing screenshots...</p>
           </div>
         )}
 
         {report.pages.length === 0 && report.status === "failed" && (
-          <p className="text-center text-[14px] text-text-muted">
+          <p className="loader-text" style={{ textAlign: "center" }}>
             No pages were processed before the report failed.
           </p>
         )}
 
         {report.pages.length === 0 && report.status === "completed" && (
-          <p className="text-center text-[14px] text-text-muted">
+          <p className="loader-text" style={{ textAlign: "center" }}>
             No pages in this report.
           </p>
         )}
       </div>
-
     </div>
   );
 }
@@ -503,8 +453,8 @@ export default function ReportPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-[24px]">
-          <p className="text-text-muted">Loading...</p>
+        <div style={{ padding: "var(--space-6)" }}>
+          <p className="loader-text">Loading...</p>
         </div>
       }
     >

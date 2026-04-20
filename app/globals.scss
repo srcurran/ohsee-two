@@ -1,0 +1,33 @@
+/* ============================================================
+   Root stylesheet — imports the full design system.
+   Tokens first, then base, then components, then utilities.
+   ============================================================ */
+
+@use "styles/tokens/primitives";
+@use "styles/tokens/semantic";
+
+@use "styles/base/reset";
+@use "styles/base/typography";
+@use "styles/base/animations";
+
+@use "styles/components/button";
+@use "styles/components/field";
+@use "styles/components/modal";
+@use "styles/components/card";
+@use "styles/components/badge";
+@use "styles/components/tab";
+@use "styles/components/sidebar";
+@use "styles/components/change-list";
+@use "styles/components/diff-viewer";
+@use "styles/components/slider";
+@use "styles/components/page-header";
+@use "styles/components/favicon";
+@use "styles/components/breakpoint-editor";
+@use "styles/components/flow-editor";
+@use "styles/components/page-detail";
+@use "styles/components/report";
+@use "styles/components/misc";
+@use "styles/components/shell";
+
+@use "styles/utilities/a11y";
+@use "styles/utilities/layout";

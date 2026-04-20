@@ -93,7 +93,7 @@ export default function CodegenRecorder({ defaultUrl, onScriptCaptured, label }:
     <>
       <button
         onClick={() => setState({ status: "prompting", url: defaultUrl })}
-        className="rounded-[6px] bg-foreground/10 px-[10px] py-[4px] text-[12px] font-bold text-foreground transition-colors hover:bg-foreground/20"
+        className="flow-chip flow-chip--accent"
       >
         ⏺ {label ?? "Record with Playwright"}
       </button>
@@ -132,32 +132,30 @@ function PromptModal({
 }) {
   const [url, setUrl] = useState(defaultUrl);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[480px] rounded-[12px] border border-border-primary bg-surface-primary p-[20px]">
-        <h3 className="mb-[8px] text-[16px] font-bold text-foreground">Record with Playwright</h3>
-        <p className="mb-[16px] text-[13px] text-text-muted">
+    <div className="modal">
+      <div className="modal__panel modal__panel--compact" style={{ width: 480, maxWidth: 480, border: "1px solid var(--border-primary)", background: "var(--surface-primary)" }}>
+        <h3 className="section-heading" style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-lg)" }}>Record with Playwright</h3>
+        <p className="section-body" style={{ marginBottom: "var(--space-4)" }}>
           Playwright will open a browser window and an inspector. Interact with the page; each action is captured as a Playwright step. Close the inspector or press Stop when done.
         </p>
-        <label className="mb-[8px] block text-[12px] font-bold text-text-muted">Starting URL</label>
+        <label className="field__label field__label--sm" style={{ fontWeight: "var(--weight-bold)" }}>Starting URL</label>
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com"
-          className="mb-[16px] w-full rounded-[8px] border border-border-primary bg-surface-tertiary px-[12px] py-[8px] text-[14px] text-foreground outline-none focus:border-foreground"
+          className="input input--compact input--solid-bg"
+          style={{ background: "var(--surface-tertiary)", marginBottom: "var(--space-4)" }}
           autoFocus
         />
-        <div className="flex justify-end gap-[8px]">
-          <button
-            onClick={onCancel}
-            className="rounded-[8px] px-[16px] py-[8px] text-[13px] text-text-muted transition-colors hover:text-foreground"
-          >
+        <div className="modal__actions modal__actions--sm">
+          <button onClick={onCancel} className="btn btn--ghost">
             Cancel
           </button>
           <button
             onClick={() => onStart(url)}
             disabled={!url.trim()}
-            className="rounded-[8px] bg-foreground px-[16px] py-[8px] text-[13px] font-bold text-surface-content transition-all hover:-translate-y-[1px] hover:shadow-elevation-md disabled:opacity-50"
+            className="btn btn--primary-sm"
           >
             Start Recording
           </button>
@@ -169,22 +167,19 @@ function PromptModal({
 
 function RecordingModal({ onStop, stopping }: { onStop?: () => void; stopping?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[420px] rounded-[12px] border border-border-primary bg-surface-primary p-[20px]">
-        <h3 className="mb-[8px] text-[16px] font-bold text-foreground">
+    <div className="modal">
+      <div className="modal__panel modal__panel--compact" style={{ width: 420, maxWidth: 420, border: "1px solid var(--border-primary)", background: "var(--surface-primary)" }}>
+        <h3 className="section-heading" style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-lg)" }}>
           {stopping ? "Finishing…" : "Recording"}
         </h3>
-        <p className="mb-[16px] text-[13px] text-text-muted">
+        <p className="section-body" style={{ marginBottom: "var(--space-4)" }}>
           {stopping
             ? "Fetching the captured script — one moment."
             : "Interact with the browser window. When you're done, close the Playwright Inspector or press Stop below."}
         </p>
         {!stopping && (
-          <div className="flex justify-end">
-            <button
-              onClick={onStop}
-              className="rounded-[8px] bg-status-error/10 px-[16px] py-[8px] text-[13px] font-bold text-status-error transition-colors hover:bg-status-error/20"
-            >
+          <div className="modal__actions modal__actions--sm">
+            <button onClick={onStop} className="btn btn--danger-outline">
               Stop Recording
             </button>
           </div>
@@ -196,15 +191,14 @@ function RecordingModal({ onStop, stopping }: { onStop?: () => void; stopping?: 
 
 function ErrorModal({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[420px] rounded-[12px] border border-status-error/40 bg-surface-primary p-[20px]">
-        <h3 className="mb-[8px] text-[16px] font-bold text-status-error">Recording failed</h3>
-        <p className="mb-[16px] text-[13px] text-text-muted">{message}</p>
-        <div className="flex justify-end">
-          <button
-            onClick={onDismiss}
-            className="rounded-[8px] bg-foreground px-[16px] py-[8px] text-[13px] font-bold text-surface-content"
-          >
+    <div className="modal">
+      <div className="modal__panel modal__panel--compact" style={{ width: 420, maxWidth: 420, border: "1px solid color-mix(in srgb, var(--status-error) 40%, transparent)", background: "var(--surface-primary)" }}>
+        <h3 className="section-heading" style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-lg)", color: "var(--status-error)" }}>
+          Recording failed
+        </h3>
+        <p className="section-body" style={{ marginBottom: "var(--space-4)" }}>{message}</p>
+        <div className="modal__actions modal__actions--sm">
+          <button onClick={onDismiss} className="btn btn--primary-sm">
             OK
           </button>
         </div>

@@ -68,21 +68,21 @@ export default function ProjectFlowsSettings() {
 
   if (!project) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="mb-[8px] text-[24px] font-bold text-foreground">Flows</h1>
-      <p className="mb-[32px] text-[14px] text-text-muted">
+      <h1 className="page-header__title" style={{ fontSize: "var(--font-size-3xl)", fontWeight: "var(--weight-bold)", marginBottom: "var(--space-2)" }}>Flows</h1>
+      <p className="section-body" style={{ marginBottom: "var(--space-8)" }}>
         Scripted browser interactions for testing multi-step flows.
         Each flow runs against both prod and dev URLs, capturing screenshots at defined points.
       </p>
 
-      <div className="mb-[16px] space-y-[12px]">
+      <div className="stack stack--md" style={{ marginBottom: "var(--space-4)" }}>
         {flows.map((flow, idx) => (
           <FlowEditor
             key={flow.id}
@@ -94,10 +94,7 @@ export default function ProjectFlowsSettings() {
         ))}
       </div>
 
-      <button
-        onClick={addFlow}
-        className="mb-[24px] rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-      >
+      <button onClick={addFlow} className="btn btn--secondary" style={{ marginBottom: "var(--space-6)" }}>
         + Add Flow
       </button>
     </div>

@@ -70,7 +70,7 @@ export default function SidebarFavicon({
   if (failed || urls.length === 0) {
     return (
       <span
-        className="flex shrink-0 items-center justify-center rounded-[8px] font-bold text-white"
+        className="sidebar-favicon__fallback"
         style={{
           width: size,
           height: size,
@@ -91,7 +91,7 @@ export default function SidebarFavicon({
       alt={domain}
       width={size}
       height={size}
-      className="shrink-0 object-contain"
+      className="sidebar-favicon"
       onError={() => {
         if (attemptIndex < urls.length - 1) {
           setAttemptIndex(attemptIndex + 1);

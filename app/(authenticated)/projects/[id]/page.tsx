@@ -15,11 +15,9 @@ export default function ProjectPage() {
 
   useEffect(() => {
     async function load() {
-      // Load project info
       const pRes = await fetch(`/api/projects/${params.id}`);
       if (pRes.ok) setProject(await pRes.json());
 
-      // Try to redirect to latest report
       const rRes = await fetch(`/api/projects/${params.id}/reports`);
       if (rRes.ok) {
         const reports: Report[] = await rRes.json();
@@ -55,73 +53,70 @@ export default function ProjectPage() {
 
   if (!project) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="flex h-full flex-col items-center justify-center gap-[24px]">
-        <div className="text-center">
-          <h1 className="text-[24px] font-bold text-foreground">{displayName}</h1>
-          {hasTests ? (
-            <>
-              <p className="mt-[8px] text-[14px] text-text-muted">
-                No reports yet. Run your first comparison.
-              </p>
-              <div className="mt-[20px] flex items-center justify-center gap-[12px]">
-                <button
-                  onClick={handleRun}
-                  disabled={running}
-                  className="flex items-center gap-[12px] rounded-[8px] border border-border-strong px-[24px] py-[12px] text-[18px] text-foreground transition-all hover:bg-surface-tertiary hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
-                >
-                  {running ? "Starting..." : "Run"}
-                  <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-                    <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => router.push(`/projects/${params.id}/settings`)}
-                  className="flex items-center gap-[8px] rounded-[8px] border border-border-primary px-[20px] py-[12px] text-[14px] text-text-muted transition-all hover:bg-surface-tertiary hover:text-foreground"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  Settings
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="mt-[8px] text-[14px] text-text-muted">
-                Add a site test to start comparing.
-              </p>
-              <div className="mt-[20px] flex items-center justify-center gap-[12px]">
-                <button
-                  onClick={() => router.push(`/projects/${params.id}/settings/tests`)}
-                  className="rounded-[12px] bg-foreground px-[28px] py-[10px] text-[16px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
-                >
-                  Add Test
-                </button>
-                <button
-                  onClick={() => router.push(`/projects/${params.id}/settings`)}
-                  className="flex items-center gap-[8px] rounded-[8px] border border-border-primary px-[20px] py-[10px] text-[14px] text-text-muted transition-all hover:bg-surface-tertiary hover:text-foreground"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                  Settings
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+    <div className="empty-state">
+      <div>
+        <h1 className="empty-state__title">{displayName}</h1>
+        {hasTests ? (
+          <>
+            <p className="empty-state__body">
+              No reports yet. Run your first comparison.
+            </p>
+            <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
+              <button
+                onClick={handleRun}
+                disabled={running}
+                className="run-pill run-pill--lg"
+              >
+                {running ? "Starting..." : "Run"}
+                <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+                  <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
+                </svg>
+              </button>
+              <button
+                onClick={() => router.push(`/projects/${params.id}/settings`)}
+                className="btn btn--outline-soft"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                Settings
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="empty-state__body">
+              Add a site test to start comparing.
+            </p>
+            <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
+              <button
+                onClick={() => router.push(`/projects/${params.id}/settings/tests`)}
+                className="btn btn--primary"
+              >
+                Add Test
+              </button>
+              <button
+                onClick={() => router.push(`/projects/${params.id}/settings`)}
+                className="btn btn--outline-soft"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                Settings
+              </button>
+            </div>
+          </>
+        )}
       </div>
-
-    </>
+    </div>
   );
 }

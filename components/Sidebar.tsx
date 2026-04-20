@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "./SidebarProvider";
 import NewProjectOverlay from "./NewProjectOverlay";
 import ProjectFavicon from "./ProjectFavicon";
-import { reportDotColor } from "@/lib/colors";
+import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
 import type { Project, SiteTest, Report } from "@/lib/types";
 
@@ -39,14 +39,10 @@ export default function Sidebar() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
 
-  // Drag state for reordering sites
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [, setDragOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
 
-  // Load projects + reports (keep previous data visible during refresh).
-  // `cache: "no-store"` because the last edit/run may have happened moments
-  // ago — we never want the browser handing us a stale copy.
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -83,8 +79,6 @@ export default function Sidebar() {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  // Poll while any report is running so the dot flips and the "x ago" ticks
-  // over without requiring the user to be on the report page.
   const hasRunningReport = data.some(({ reports }) =>
     reports.some((r) => r.status === "running")
   );
@@ -97,11 +91,6 @@ export default function Sidebar() {
   const isTestActive = (test: SiteTest, reports: Report[]) => {
     const testReports = reports.filter((r) => r.siteTestId === test.id);
     return testReports.some((r) => pathname.startsWith(`/reports/${r.id}`));
-  };
-
-  const isProjectActive = (project: Project, reports: Report[]) => {
-    if (pathname.startsWith(`/projects/${project.id}`)) return true;
-    return reports.some((r) => pathname.startsWith(`/reports/${r.id}`));
   };
 
   const handleProjectClick = (project: Project, reports: Report[]) => {
@@ -123,7 +112,6 @@ export default function Sidebar() {
     }
   };
 
-  // Persist project order to settings
   const saveProjectOrder = (items: ProjectWithReports[]) => {
     const order = items.filter(({ project }) => !project.archived).map(({ project }) => project.id);
     fetch("/api/settings", {
@@ -165,21 +153,13 @@ export default function Sidebar() {
   const visibleData = data.filter(({ project }) => !project.archived);
   const hasProjects = visibleData.length > 0;
 
-  const widthClass = collapsed ? "w-0" : "w-[240px]";
-  const paddingClass = collapsed ? "px-0" : "px-[16px]";
-  // Only animate width/padding after the first post-hydration commit — prevents
-  // the jarring 200ms "open → collapsed" swing on refresh for users whose last
-  // state was collapsed.
-  const transitionClass = ready ? "transition-[width,padding] duration-200" : "";
+  const stateMod = collapsed ? "sidebar--collapsed" : "sidebar--expanded";
+  const transitionMod = ready ? "sidebar--animated" : "";
 
   return (
     <>
-      <aside
-        className={`sticky top-0 z-20 flex h-screen ${widthClass} shrink-0 flex-col overflow-hidden border-r border-black/[0.1] bg-[#fafafa] ${paddingClass} pt-[44px] pb-[20px] ${transitionClass}`}
-      >
-        {/* Top section: sites + tests. When collapsed the aside is w-0; we
-            skip rendering entirely to avoid wasted work on hidden content. */}
-        <nav className="flex flex-1 flex-col gap-[24px] overflow-y-auto p-[2px]">
+      <aside className={`sidebar sidebar--flat ${stateMod} ${transitionMod}`}>
+        <nav className="sidebar__nav">
           {!collapsed && (
             <>
               {visibleData.map(({ project, reports }, index) => {
@@ -193,36 +173,29 @@ export default function Sidebar() {
                 return (
                   <div key={project.id}>
                     <div
-                      className="flex flex-col gap-[16px]"
+                      className="sidebar__group"
                       draggable
                       onDragStart={(e) => handleDragStart(index, e)}
                       onDragEnter={() => handleDragEnter(index)}
                       onDragOver={(e) => e.preventDefault()}
                       onDragEnd={handleDragEnd}
                     >
-                      {/* Site header row */}
                       <button
                         onClick={() => handleProjectClick(project, reports)}
-                        className="flex items-center gap-[8px] px-[4px] cursor-pointer transition-opacity hover:opacity-80"
+                        className="sidebar__header"
                       >
                         <ProjectFavicon
                           url={project.prodUrl}
                           fallbackUrl={project.devUrl}
                           size={32}
-                          className=""
                         />
-                        <span className="text-[20px] font-semibold truncate text-foreground">
-                          {project.name || domain}
-                        </span>
+                        <span className="sidebar__title">{project.name || domain}</span>
                       </button>
 
-                      {/* Tests */}
-                      <div className="flex flex-col gap-[4px]">
+                      <div className="sidebar__tests">
                         {visibleTests.map(({ test, latestReport }) => {
                           const testActive = isTestActive(test, reports);
-                          const dotColor = latestReport
-                            ? reportDotColor(latestReport)
-                            : "bg-foreground/20";
+                          const dotMod = latestReport ? reportDotModifier(latestReport) : "inactive";
                           const timeAgo = latestReport
                             ? formatRelativeTimeShort(latestReport.createdAt)
                             : test.lastRunAt
@@ -233,32 +206,22 @@ export default function Sidebar() {
                             <div
                               key={test.id}
                               onClick={() => handleTestClick(test, project, reports)}
-                              className={`group/test flex items-center gap-[8px] rounded-[4px] cursor-pointer transition-colors px-[8px] py-[4px] ${
-                                testActive
-                                  ? "bg-surface-content"
-                                  : "hover:bg-foreground/5"
-                              }`}
+                              className={`sidebar__test ${testActive ? "sidebar__test--active" : ""}`}
                             >
-                              <span
-                                className={`shrink-0 w-[8px] h-[8px] rounded-full ${dotColor}`}
-                              />
-                              <span className="flex-1 text-[16px] text-foreground truncate min-w-0">
-                                {test.name}
-                              </span>
+                              <span className={`status-dot status-dot--${dotMod}`} />
+                              <span className="sidebar__test-label">{test.name}</span>
                               {timeAgo && (
-                                <span className="shrink-0 text-[12px] text-foreground/40 whitespace-nowrap group-hover/test:hidden">
-                                  {timeAgo}
-                                </span>
+                                <span className="sidebar__test-time">{timeAgo}</span>
                               )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   router.push(`/projects/${project.id}/settings/tests`);
                                 }}
-                                className="shrink-0 hidden items-center justify-center w-[20px] h-[20px] rounded-[4px] group-hover/test:flex transition-opacity hover:bg-foreground/10"
+                                className="sidebar__test-action"
                                 title="Test settings"
                               >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-foreground/60">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                                   <circle cx="12" cy="5" r="1.5" fill="currentColor" />
                                   <circle cx="12" cy="12" r="1.5" fill="currentColor" />
                                   <circle cx="12" cy="19" r="1.5" fill="currentColor" />
@@ -268,7 +231,6 @@ export default function Sidebar() {
                           );
                         })}
 
-                        {/* See more / see less */}
                         {hasMore && (
                           <button
                             onClick={() => setExpandedTests((prev) => {
@@ -277,7 +239,7 @@ export default function Sidebar() {
                               else next.add(project.id);
                               return next;
                             })}
-                            className="px-[8px] py-[4px] text-[14px] text-foreground/40 text-left transition-colors hover:text-foreground/60"
+                            className="sidebar__show-more"
                           >
                             {isExpanded
                               ? "See less"
@@ -285,10 +247,9 @@ export default function Sidebar() {
                           </button>
                         )}
 
-                        {/* Add new test */}
                         <button
                           onClick={() => router.push(`/projects/${project.id}/settings/tests`)}
-                          className="flex items-center justify-between px-[8px] py-[4px] cursor-pointer text-[14px] text-foreground/40 transition-colors hover:text-foreground/60 rounded-[4px]"
+                          className="sidebar__add-test"
                         >
                           <span>Add new test</span>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -302,39 +263,32 @@ export default function Sidebar() {
                         </button>
                       </div>
                     </div>
-                    {/* Keyline between projects (only when there's a next one) */}
                     {index < visibleData.length - 1 && (
-                      <div className="mt-[24px] h-px bg-black/[0.1]" />
+                      <div className="sidebar__divider sidebar__divider--top" />
                     )}
                   </div>
                 );
               })}
 
-              {/* Separator before "Add new site" — only when there are projects */}
-              {hasProjects && <div className="h-px bg-black/[0.1]" />}
+              {hasProjects && <div className="sidebar__divider" />}
 
-              {/* Add new site */}
               <button
                 onClick={() => setShowNewProject(true)}
-                className="flex items-center gap-[8px] px-[4px] cursor-pointer text-foreground/70 transition-colors hover:text-foreground"
+                className="sidebar__add-site"
               >
-                <span className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] bg-surface-content text-[20px] text-foreground/70">
-                  +
-                </span>
-                <span className="text-[20px] text-foreground/70">Add new site</span>
+                <span className="sidebar__plus">+</span>
+                <span className="sidebar__add-label">Add new site</span>
               </button>
             </>
           )}
         </nav>
 
-        {/* Settings — minimal gear icon pinned to the bottom-right corner.
-            Opens the app-wide settings overlay (mounted in the layout). */}
-        <div className="flex justify-end">
+        <div className="sidebar__footer-row">
           <button
             onClick={openSettings}
             aria-label="Settings"
             title="Settings"
-            className="flex h-[32px] w-[32px] items-center justify-center rounded-[8px] text-text-subtle transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+            className="icon-btn"
           >
             <GearIcon />
           </button>
@@ -357,7 +311,7 @@ export default function Sidebar() {
 
 function GearIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M12 15a3 3 0 100-6 3 3 0 000 6z"
         stroke="currentColor"

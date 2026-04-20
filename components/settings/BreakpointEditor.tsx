@@ -50,27 +50,23 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
   }
 
   return (
-    <div>
-      <div className="mb-[8px] flex items-center gap-[8px]">
-        <span className="text-[14px] text-foreground">Breakpoints</span>
-        <span className="text-[12px] text-text-muted">
+    <div className="breakpoint-editor">
+      <div className="breakpoint-editor__header">
+        <span className="breakpoint-editor__label">Breakpoints</span>
+        <span className="breakpoint-editor__count">
           {breakpoints.length}/{max}
         </span>
       </div>
 
-      {/* Current breakpoints as removable chips */}
-      <div className="mb-[12px] flex flex-wrap gap-[8px]">
+      <div className="breakpoint-editor__chips">
         {sorted.map((bp) => (
-          <div
-            key={bp}
-            className="flex items-center gap-[6px] rounded-[8px] border border-border-primary px-[12px] py-[6px] text-[13px] text-foreground"
-          >
+          <div key={bp} className="bp-chip">
             {bp}px
             {breakpoints.length > 1 && (
               <button
                 type="button"
                 onClick={() => handleRemove(bp)}
-                className="text-text-muted transition-colors hover:text-foreground"
+                className="bp-chip__remove"
                 aria-label={`Remove ${bp}px`}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -83,9 +79,8 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
         ))}
       </div>
 
-      {/* Add input */}
       {breakpoints.length < max && (
-        <div className="flex items-center gap-[8px]">
+        <div className="breakpoint-editor__add">
           <input
             type="number"
             value={inputValue}
@@ -95,21 +90,20 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
             }}
             onKeyDown={handleKeyDown}
             placeholder="e.g. 1280"
-            className="w-[120px] rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+            className="input input--compact"
+            style={{ width: 120 }}
           />
           <button
             type="button"
             onClick={handleAdd}
-            className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
+            className="btn btn--secondary"
           >
             Add
           </button>
         </div>
       )}
 
-      {error && (
-        <p className="mt-[4px] text-[12px] text-status-error">{error}</p>
-      )}
+      {error && <p className="error-text error-text--xs" style={{ marginTop: "var(--space-1)" }}>{error}</p>}
     </div>
   );
 }

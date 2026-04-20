@@ -1,0 +1,140 @@
+/* .modal — centered overlay + panel. Used by:
+     NewProjectOverlay, FlowRecorderModal, MicroTestImportModal,
+     MicroTestEditor popup in tests/page.tsx, PageDetailPanel scrim. */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-backdrop);
+
+  &--light-scrim {
+    background: var(--overlay-backdrop-light);
+  }
+
+  &__panel {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface-content);
+    border-radius: var(--radius-lg);
+    padding: var(--space-8);
+
+    &--md { max-width: 540px; }
+    &--lg { max-width: 600px; }
+    &--xl {
+      max-width: 640px;
+      max-height: 80vh;
+      overflow: auto;
+      padding: var(--space-6);
+    }
+
+    &--compact {
+      padding: var(--space-6);
+    }
+  }
+
+  &__title {
+    margin: 0 0 var(--space-4) 0;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+  }
+
+  &__title--lg {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--space-6);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin-top: var(--space-7);
+  }
+
+  &__actions--sm {
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+}
+
+/* Generic dropdown panel — used inline (not through .modal). */
+.dropdown-panel {
+  background: var(--surface-content);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 280px;
+  max-width: 400px;
+
+  &--sm {
+    min-width: 280px;
+    padding: var(--space-2);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-colors);
+  font-weight: var(--weight-regular);
+
+  &:hover {
+    background: var(--surface-tertiary);
+  }
+
+  &--active {
+    background: var(--surface-tertiary);
+    font-weight: var(--weight-bold);
+
+    &:hover {
+      background: var(--surface-tertiary);
+    }
+  }
+
+  &--muted {
+    color: var(--text-secondary);
+  }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__truncate {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+  }
+}
+
+/* Invisible click-catcher behind dropdowns */
+.dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+}

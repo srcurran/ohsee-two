@@ -22,7 +22,7 @@ export default function TitlebarCollapseButton() {
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-      className="fixed left-[80px] top-[4px] z-50 flex h-[28px] w-[32px] items-center justify-center rounded-[6px] transition-colors hover:bg-foreground/10"
+      className="titlebar-collapse"
     >
       {collapsed ? <SidebarIconFilled /> : <SidebarIconOutlined />}
     </button>

@@ -1,0 +1,66 @@
+/* Layout primitives — used where spinning up a named component block
+   is overkill. Keep this file tight; don't reinvent Tailwind. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+
+  &--xs { gap: var(--space-1); }
+  &--sm { gap: var(--space-2); }
+  &--md { gap: var(--space-3); }
+  &--lg { gap: var(--space-4); }
+  &--xl { gap: var(--space-6); }
+  &--2xl { gap: var(--space-8); }
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+
+  &--xs { gap: var(--space-1); }
+  &--sm { gap: var(--space-2); }
+  &--md { gap: var(--space-3); }
+  &--lg { gap: var(--space-4); }
+  &--xl { gap: var(--space-6); }
+  &--2xl { gap: var(--space-8); }
+
+  &--between {
+    justify-content: space-between;
+  }
+
+  &--baseline {
+    align-items: baseline;
+  }
+
+  &--top {
+    align-items: flex-start;
+  }
+
+  &--wrap {
+    flex-wrap: wrap;
+  }
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

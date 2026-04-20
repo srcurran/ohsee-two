@@ -1,0 +1,137 @@
+/* Generic card block — used for settings sections and report thumbnails. */
+
+.card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+
+  &--bordered {
+    border: 1px solid var(--border-primary);
+  }
+
+  &--danger {
+    border: 1px solid var(--status-error-border);
+  }
+
+  &--tinted {
+    background: var(--surface-tertiary);
+  }
+
+  &--content {
+    background: var(--surface-content);
+  }
+
+  &--sm {
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+  }
+
+  &--compact {
+    padding: var(--space-4);
+  }
+
+  &__title {
+    margin: 0 0 var(--space-1) 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+  }
+
+  &__body {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+  }
+}
+
+/* Report page tile — interactive card with a thumbnail image */
+.page-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-primary);
+  padding: var(--space-2);
+  text-align: left;
+  box-shadow: var(--elevation-card);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--elevation-md);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &__thumb {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-xs);
+    background: var(--surface-tertiary);
+
+    &--center {
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  &__thumb-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: top;
+
+    &--clamped {
+      position: static;
+      inset: auto;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+    }
+  }
+
+  &__thumb-empty {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-subtle);
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-1);
+  }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}

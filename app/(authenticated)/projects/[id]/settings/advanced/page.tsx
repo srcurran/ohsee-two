@@ -36,9 +36,7 @@ export default function ProjectAdvancedSettings() {
   const handleDelete = async () => {
     if (!project) return;
     setDeleting(true);
-    const res = await fetch(`/api/projects/${project.id}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
     if (res.ok) {
       refreshProjects();
       router.push("/");
@@ -48,63 +46,46 @@ export default function ProjectAdvancedSettings() {
 
   if (!project) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-[560px]">
-      <p className="mb-[24px] text-[14px] text-text-muted">Danger zone — archive or delete this project.</p>
+    <div style={{ maxWidth: 560 }}>
+      <p className="section-body" style={{ marginBottom: "var(--space-6)" }}>Danger zone — archive or delete this project.</p>
 
-      <div className="flex flex-col gap-[20px]">
-        {/* Archive */}
-        <div className="rounded-[12px] border border-border-primary p-[20px]">
-          <h3 className="mb-[4px] text-[14px] font-bold text-foreground">
+      <div className="stack stack--xl">
+        <div className="card card--bordered">
+          <h3 className="card__title">
             {project.archived ? "Unarchive Project" : "Archive Project"}
           </h3>
-          <p className="mb-[12px] text-[13px] text-text-muted">
+          <p className="card__body">
             {project.archived
               ? "Restore this project to the sidebar."
               : "Hide this project from the sidebar. Reports are preserved."}
           </p>
-          <button
-            onClick={handleArchive}
-            className="rounded-[8px] border border-border-strong px-[16px] py-[6px] text-[13px] text-foreground transition-colors hover:bg-surface-tertiary"
-          >
+          <button onClick={handleArchive} className="btn btn--outline">
             {project.archived ? "Unarchive" : "Archive"}
           </button>
         </div>
 
-        {/* Delete */}
-        <div className="rounded-[12px] border border-status-error-border p-[20px]">
-          <h3 className="mb-[4px] text-[14px] font-bold text-foreground">
-            Delete Project
-          </h3>
-          <p className="mb-[12px] text-[13px] text-text-muted">
+        <div className="card card--danger">
+          <h3 className="card__title">Delete Project</h3>
+          <p className="card__body">
             Permanently remove this project and all its reports. This cannot be undone.
           </p>
           {!showDeleteConfirm ? (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="rounded-[8px] border border-status-error-border px-[16px] py-[6px] text-[13px] text-status-error transition-colors hover:bg-status-error-muted"
-            >
+            <button onClick={() => setShowDeleteConfirm(true)} className="btn btn--danger-outline">
               Delete Project
             </button>
           ) : (
-            <div className="flex items-center gap-[8px]">
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="rounded-[8px] bg-status-error px-[16px] py-[6px] text-[13px] font-bold text-white disabled:opacity-50"
-              >
+            <div className="row row--sm">
+              <button onClick={handleDelete} disabled={deleting} className="btn btn--danger">
                 {deleting ? "Deleting..." : "Confirm Delete"}
               </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="text-[13px] text-text-muted hover:text-foreground"
-              >
+              <button onClick={() => setShowDeleteConfirm(false)} className="btn btn--text">
                 Cancel
               </button>
             </div>

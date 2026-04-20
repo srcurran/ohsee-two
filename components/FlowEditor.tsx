@@ -23,7 +23,6 @@ export function newStep(type: (typeof ACTION_TYPES)[number]): FlowAction {
   }
 }
 
-/** Whether a step will produce a screenshot (default true for action steps). */
 export function stepCapturesScreenshot(step: FlowAction): boolean {
   if (step.type === "screenshot") return true;
   return step.captureScreenshot !== false;
@@ -31,7 +30,13 @@ export function stepCapturesScreenshot(step: FlowAction): boolean {
 
 function CameraIcon({ active }: { active: boolean }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={active ? "text-foreground" : "text-text-muted/30"}>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      style={{ color: active ? "var(--foreground)" : "color-mix(in srgb, var(--text-muted) 30%, transparent)" }}
+    >
       <path
         d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
         stroke="currentColor"
@@ -44,7 +49,7 @@ function CameraIcon({ active }: { active: boolean }) {
         cx="12"
         cy="13"
         r="4"
-        stroke={active ? "var(--color-surface-content, #fff)" : "currentColor"}
+        stroke={active ? "var(--surface-content)" : "currentColor"}
         strokeWidth="2"
         fill="none"
       />
@@ -54,9 +59,8 @@ function CameraIcon({ active }: { active: boolean }) {
 
 /**
  * Text input that expects a project-relative path. On blur, rewrites pasted
- * full URLs down to a path if they match one of `allowedDomainUrls`, or shows
- * an inline error if the URL is from a foreign domain. Uncontrolled error
- * state — parent just passes value/onChange like a normal input.
+ * full URLs down to a path if they match allowedDomainUrls, or shows an
+ * inline error if the URL is from a foreign domain.
  */
 function PathInput({
   value,
@@ -64,21 +68,18 @@ function PathInput({
   placeholder,
   allowedDomainUrls,
   className,
+  style,
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
   allowedDomainUrls?: string[];
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const base =
-    "rounded-[6px] border bg-transparent px-[8px] py-[4px] text-[13px] text-foreground outline-none placeholder:text-text-muted";
-  const variant = error
-    ? "border-status-error focus:border-status-error"
-    : "border-border-primary focus:border-foreground";
   return (
-    <div className="flex flex-col gap-[4px]">
+    <div className="stack stack--xs" style={{ flex: 1 }}>
       <input
         type="text"
         value={value}
@@ -96,9 +97,10 @@ function PathInput({
           if (result.path !== value) onChange(result.path);
         }}
         placeholder={placeholder}
-        className={`${base} ${variant} ${className ?? ""}`}
+        className={`input input--sm ${error ? "input--error" : ""} ${className ?? ""}`}
+        style={style}
       />
-      {error && <p className="text-[12px] text-status-error">{error}</p>}
+      {error && <p className="error-text error-text--xs">{error}</p>}
     </div>
   );
 }
@@ -112,9 +114,6 @@ function StepFields({
   onChange: (s: FlowAction) => void;
   allowedDomainUrls?: string[];
 }) {
-  const inputClass =
-    "flex-1 rounded-[6px] border border-border-primary bg-transparent px-[8px] py-[4px] text-[13px] text-foreground outline-none placeholder:text-text-muted focus:border-foreground";
-
   switch (step.type) {
     case "click":
       return (
@@ -123,7 +122,8 @@ function StepFields({
           value={step.selector}
           onChange={(e) => onChange({ ...step, selector: e.target.value })}
           placeholder='CSS selector, e.g. button:has-text("Next")'
-          className={inputClass}
+          className="input input--sm"
+          style={{ flex: 1 }}
         />
       );
     case "fill":
@@ -134,14 +134,16 @@ function StepFields({
             value={step.selector}
             onChange={(e) => onChange({ ...step, selector: e.target.value })}
             placeholder="CSS selector"
-            className={inputClass}
+            className="input input--sm"
+            style={{ flex: 1 }}
           />
           <input
             type="text"
             value={step.value}
             onChange={(e) => onChange({ ...step, value: e.target.value })}
             placeholder="Value to fill"
-            className={inputClass}
+            className="input input--sm"
+            style={{ flex: 1 }}
           />
         </>
       );
@@ -152,7 +154,8 @@ function StepFields({
           value={step.ms}
           onChange={(e) => onChange({ ...step, ms: parseInt(e.target.value) || 0 })}
           placeholder="ms"
-          className={`${inputClass} w-[100px]`}
+          className="input input--sm"
+          style={{ width: 100 }}
         />
       );
     case "waitForSelector":
@@ -162,7 +165,8 @@ function StepFields({
           value={step.selector}
           onChange={(e) => onChange({ ...step, selector: e.target.value })}
           placeholder="CSS selector to wait for"
-          className={inputClass}
+          className="input input--sm"
+          style={{ flex: 1 }}
         />
       );
     case "navigate":
@@ -172,18 +176,17 @@ function StepFields({
           onChange={(next) => onChange({ ...step, path: next })}
           placeholder="/path"
           allowedDomainUrls={allowedDomainUrls}
-          className="flex-1"
         />
       );
     case "screenshot":
-      // Legacy standalone screenshot step
       return (
         <input
           type="text"
           value={step.label}
           onChange={(e) => onChange({ ...step, label: e.target.value })}
           placeholder="Screenshot label"
-          className={inputClass}
+          className="input input--sm"
+          style={{ flex: 1 }}
         />
       );
   }
@@ -198,7 +201,6 @@ export function FlowEditor({
   flow: FlowEntry;
   onChange: (updated: FlowEntry) => void;
   onRemove: () => void;
-  /** Project prodUrl + devUrl, so the start/navigate inputs can validate pasted URLs. */
   allowedDomainUrls?: string[];
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -228,71 +230,56 @@ export function FlowEditor({
 
   const toggleScreenshot = (idx: number) => {
     const step = flow.steps[idx];
-    if (step.type === "screenshot") return; // legacy steps always capture
+    if (step.type === "screenshot") return;
     const steps = [...flow.steps];
     steps[idx] = { ...step, captureScreenshot: step.captureScreenshot === false ? true : false } as FlowAction;
     onChange({ ...flow, steps });
   };
 
   return (
-    <div className="rounded-[12px] border border-border-primary p-[16px]">
-      <div className="mb-[12px] flex items-center justify-between">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-[8px] text-[16px] font-bold text-foreground"
-        >
-          <span className="text-[12px] text-text-muted">{collapsed ? "\u25B6" : "\u25BC"}</span>
+    <div className="flow-editor">
+      <div className="flow-editor__header">
+        <button onClick={() => setCollapsed(!collapsed)} className="flow-editor__toggle">
+          <span className="flow-editor__chevron">{collapsed ? "\u25B6" : "\u25BC"}</span>
           {flow.name || "Untitled Flow"}
         </button>
-        <button
-          onClick={onRemove}
-          className="text-[12px] text-text-muted transition-colors hover:text-foreground"
-        >
+        <button onClick={onRemove} className="flow-step__remove">
           Remove
         </button>
       </div>
 
       {!collapsed && (
         <>
-          {/* Flow name & start path */}
-          <div className="mb-[12px] flex gap-[8px]">
+          <div className="flow-editor__meta">
             <input
               type="text"
               value={flow.name}
               onChange={(e) => onChange({ ...flow, name: e.target.value })}
               placeholder="Flow name"
-              className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none placeholder:text-text-muted focus:border-foreground"
+              className="input input--compact"
+              style={{ flex: 1 }}
             />
             <PathInput
               value={flow.startPath}
               onChange={(next) => onChange({ ...flow, startPath: next })}
               placeholder="/start-path"
               allowedDomainUrls={allowedDomainUrls}
-              className="w-[200px] px-[12px] py-[8px] text-[14px] rounded-[8px]"
+              style={{ width: 200, padding: "var(--space-2) var(--space-3)", fontSize: "var(--font-size-base)", borderRadius: "var(--radius-md)" }}
             />
           </div>
 
-          {/* Steps */}
-          <div className="mb-[12px] space-y-[8px]">
+          <div className="flow-editor__steps">
             {flow.steps.map((step, idx) => (
-              <div
-                key={step.id}
-                className="flex items-center gap-[8px] rounded-[8px] border border-border-primary bg-surface-secondary p-[8px]"
-              >
-                {/* Reorder arrows */}
-                <div className="flex flex-col text-[10px] text-text-muted">
-                  <button onClick={() => moveStep(idx, -1)} className="hover:text-foreground">{"\u25B2"}</button>
-                  <button onClick={() => moveStep(idx, 1)} className="hover:text-foreground">{"\u25BC"}</button>
+              <div key={step.id} className="flow-step">
+                <div className="flow-step__reorder">
+                  <button onClick={() => moveStep(idx, -1)} className="flow-step__reorder-btn">{"\u25B2"}</button>
+                  <button onClick={() => moveStep(idx, 1)} className="flow-step__reorder-btn">{"\u25BC"}</button>
                 </div>
 
-                {/* Step number & type badge */}
-                <span className="w-[24px] text-center text-[12px] text-text-muted">{idx + 1}</span>
-                <span className="rounded-[4px] bg-surface-tertiary px-[6px] py-[2px] text-[11px] font-bold text-text-muted">
-                  {step.type}
-                </span>
+                <span className="flow-step__index">{idx + 1}</span>
+                <span className="flow-step__kind">{step.type}</span>
 
-                {/* Step fields */}
-                <div className="flex flex-1 gap-[8px]">
+                <div className="flow-step__fields">
                   <StepFields
                     step={step}
                     onChange={(s) => updateStep(idx, s)}
@@ -300,49 +287,35 @@ export function FlowEditor({
                   />
                 </div>
 
-                {/* Screenshot toggle */}
                 {step.type !== "screenshot" && (
                   <button
                     onClick={() => toggleScreenshot(idx)}
-                    className="flex-shrink-0 transition-opacity hover:opacity-70"
+                    className="flow-step__camera"
                     title={stepCapturesScreenshot(step) ? "Screenshot enabled — click to disable" : "Screenshot disabled — click to enable"}
                   >
                     <CameraIcon active={stepCapturesScreenshot(step)} />
                   </button>
                 )}
 
-                <button
-                  onClick={() => removeStep(idx)}
-                  className="text-[12px] text-text-muted transition-colors hover:text-foreground"
-                >
+                <button onClick={() => removeStep(idx)} className="flow-step__remove">
                   x
                 </button>
               </div>
             ))}
 
             {flow.steps.length === 0 && (
-              <p className="py-[8px] text-center text-[13px] text-text-muted">
-                Add steps to this flow.
-              </p>
+              <p className="flow-editor__empty">Add steps to this flow.</p>
             )}
           </div>
 
-          {/* Add step buttons */}
-          <div className="flex flex-wrap items-center gap-[4px]">
+          <div className="flow-editor__add-row">
             {ACTION_TYPES.map((type) => (
-              <button
-                key={type}
-                onClick={() => addStep(type)}
-                className="rounded-[6px] bg-surface-tertiary px-[10px] py-[4px] text-[12px] text-text-muted transition-colors hover:bg-foreground/10 hover:text-foreground"
-              >
+              <button key={type} onClick={() => addStep(type)} className="flow-chip">
                 + {type}
               </button>
             ))}
-            <span className="mx-[4px] text-[12px] text-text-muted">or</span>
-            <button
-              onClick={() => setShowRecorder(true)}
-              className="rounded-[6px] bg-accent-primary/10 px-[10px] py-[4px] text-[12px] font-bold text-accent-primary transition-colors hover:bg-accent-primary/20"
-            >
+            <span className="flow-editor__separator">or</span>
+            <button onClick={() => setShowRecorder(true)} className="flow-chip flow-chip--accent">
               Record
             </button>
           </div>

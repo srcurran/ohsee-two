@@ -1,0 +1,87 @@
+/* DiffViewer — image wrapper + overlay markers */
+
+.diff-viewer {
+  position: relative;
+  overflow: auto;
+  border: 1px solid var(--border-primary);
+
+  &__image {
+    width: 100%;
+  }
+
+  &__marker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    transition: var(--transition-opacity);
+
+    &--highlighted {
+      z-index: var(--z-overlay);
+    }
+  }
+
+  &__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    opacity: 0.6;
+    transition:
+      height var(--duration-base) var(--ease-standard),
+      opacity var(--duration-base) var(--ease-standard);
+
+    .diff-viewer__marker--highlighted & {
+      height: 3px;
+      opacity: 1;
+    }
+  }
+
+  &__label {
+    position: absolute;
+    left: var(--space-2);
+    z-index: var(--z-10);
+    max-width: 90%;
+    padding: var(--space-0-75) var(--space-2);
+    transform: translateY(-100%);
+    border-radius: var(--radius-xs);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-tight);
+    color: #fff;
+    box-shadow: var(--elevation-sm);
+    transform-origin: left;
+    transition: all var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
+
+    .diff-viewer__marker--highlighted & {
+      padding: var(--space-1) var(--space-2-5);
+      font-size: var(--font-size-md);
+      transform: translateY(-100%) scale(1.2);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &__label-extra {
+    margin-left: var(--space-1);
+    opacity: 0.7;
+  }
+
+  &__tooltip {
+    position: absolute;
+    left: var(--space-2);
+    top: var(--space-1);
+    z-index: var(--z-20);
+    display: flex;
+    max-width: 80%;
+    flex-direction: column;
+    gap: var(--space-0-5);
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.9);
+    padding: var(--space-1-5) var(--space-2-5);
+    box-shadow: var(--elevation-lg);
+  }
+
+  &__tooltip-line {
+    font-size: var(--font-size-xs);
+    line-height: var(--line-tight);
+    color: rgba(255, 255, 255, 0.9);
+  }
+}

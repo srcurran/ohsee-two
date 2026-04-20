@@ -6,17 +6,15 @@ interface Props {
   active: number;
   onChange: (bp: number) => void;
   changeCounts?: Record<string, number>;
-  /** Override the displayed breakpoints (defaults to global BREAKPOINTS) */
   breakpoints?: number[];
-  /** Horizontal alignment of tabs (default: "center") */
   align?: "center" | "start";
 }
 
 export default function BreakpointTabs({ active, onChange, changeCounts, breakpoints: bpOverride, align = "center" }: Props) {
   const bps = bpOverride || [...BREAKPOINTS];
   return (
-    <div className="border-b border-border-secondary">
-      <div className={`flex items-center gap-[24px] ${align === "start" ? "justify-start" : "justify-center"}`}>
+    <div className="tab-bar">
+      <div className={`tab-bar__list tab-bar__list--${align}`}>
         {bps.map((bp) => {
           const isActive = active === bp;
           const count = changeCounts?.[String(bp)];
@@ -28,22 +26,17 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
             <button
               key={bp}
               onClick={() => onChange(bp)}
-              className={`relative flex items-center gap-[4px] py-[12px] text-[14px] text-foreground ${
-                isActive ? "font-bold" : "font-normal"
-              }`}
+              className={`tab ${isActive ? "tab--active" : ""}`}
             >
               {bp}px
               {hasData && (
                 <span
-                  className={`inline-block h-[8px] w-[8px] rounded-full ${
-                    noScreenshot ? "bg-text-disabled" : hasChanges ? "bg-accent-yellow" : "bg-accent-green"
+                  className={`status-dot ${
+                    noScreenshot ? "status-dot--disabled" : hasChanges ? "status-dot--warning" : "status-dot--success"
                   }`}
                 />
               )}
-              {/* Active underline indicator */}
-              {isActive && (
-                <span className="absolute bottom-[-1px] left-0 right-0 h-[4px] bg-foreground" />
-              )}
+              {isActive && <span className="tab__indicator" />}
             </button>
           );
         })}

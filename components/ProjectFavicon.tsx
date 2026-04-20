@@ -32,15 +32,6 @@ function isLocalhost(url: string): boolean {
   }
 }
 
-/** Hash a string to a consistent hue for fallback colors */
-function domainHue(domain: string): number {
-  let hash = 0;
-  for (let i = 0; i < domain.length; i++) {
-    hash = domain.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash % 360);
-}
-
 interface ProjectFaviconProps {
   /** Primary URL to try for favicon */
   url: string;
@@ -79,18 +70,15 @@ export default function ProjectFavicon({
   const [attemptIndex, setAttemptIndex] = useState(0);
   const [failed, setFailed] = useState(false);
 
-  // Use the first non-localhost URL for display name/fallback letter
   const displayUrl = urls.find((u) => !isLocalhost(u)) || urls[0] || url;
   const domain = getDomain(displayUrl);
-  const initial = domain.charAt(0).toUpperCase();
-  const hue = domainHue(domain);
 
   const allLocalhost = urls.length > 0 && urls.every(isLocalhost);
 
   if (failed || urls.length === 0 || allLocalhost) {
     return (
       <span
-        className={`flex shrink-0 items-center justify-center text-text-muted ${className || ""}`}
+        className={`favicon favicon--fallback ${className || ""}`}
         style={{ width: size, height: size }}
       >
         <svg
@@ -114,19 +102,16 @@ export default function ProjectFavicon({
 
   return (
     <span
-      className={`flex shrink-0 items-center justify-center ${className || ""}`}
+      className={`favicon ${className || ""}`}
       style={{ width: size, height: size }}
     >
-      <span
-        className="flex h-full w-full items-center justify-center overflow-hidden"
-        style={{ borderRadius }}
-      >
+      <span className="favicon__inner" style={{ borderRadius }}>
         <img
           src={`/api/favicon?domain=${activeHostname}`}
           alt={domain}
           width={size}
           height={size}
-          className="h-full w-full object-cover"
+          className="favicon__img"
           onError={() => {
             if (attemptIndex < urls.length - 1) {
               setAttemptIndex(attemptIndex + 1);

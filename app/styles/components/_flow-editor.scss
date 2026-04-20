@@ -1,0 +1,389 @@
+/* FlowEditor + TestCompositionEditor — step lists inside settings forms */
+
+.flow-editor {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-primary);
+  padding: var(--space-4);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-3);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  &__chevron {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__meta {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  &__steps {
+    margin-bottom: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__add-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  &__separator {
+    margin-inline: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__empty {
+    padding-block: var(--space-2);
+    text-align: center;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+  }
+}
+
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+  background: var(--surface-secondary);
+  padding: var(--space-2);
+
+  &__reorder {
+    display: flex;
+    flex-direction: column;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  &__reorder-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    padding: 0;
+    line-height: 1;
+
+    &:hover {
+      color: var(--foreground);
+    }
+  }
+
+  &__index {
+    width: 24px;
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__kind {
+    border-radius: var(--radius-xs);
+    background: var(--surface-tertiary);
+    padding: var(--space-0-5) var(--space-1-5);
+    font-size: var(--font-size-xs);
+    font-weight: var(--weight-bold);
+    color: var(--text-muted);
+  }
+
+  &__fields {
+    display: flex;
+    flex: 1;
+    gap: var(--space-2);
+  }
+
+  &__camera {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-opacity);
+
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+
+  &__remove {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      color: var(--foreground);
+    }
+  }
+}
+
+.flow-chip {
+  border-radius: var(--radius-sm);
+  background: var(--surface-tertiary);
+  padding: var(--space-1) var(--space-2-5);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-colors);
+  font-family: inherit;
+
+  &:hover {
+    background: var(--surface-hover);
+    color: var(--foreground);
+  }
+
+  &--accent {
+    background: color-mix(in srgb, var(--foreground) 10%, transparent);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+
+    &:hover {
+      background: color-mix(in srgb, var(--foreground) 20%, transparent);
+      color: var(--foreground);
+    }
+  }
+
+  &--warning {
+    background: color-mix(in srgb, var(--accent-yellow) 20%, transparent);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+
+    &:hover { background: color-mix(in srgb, var(--accent-yellow) 30%, transparent); }
+  }
+
+  &--danger {
+    color: var(--status-error);
+    &:hover {
+      background: color-mix(in srgb, var(--status-error) 10%, transparent);
+      color: var(--status-error);
+    }
+  }
+}
+
+/* TestCompositionEditor step row */
+.comp-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent);
+  padding: var(--space-2) var(--space-3);
+
+  &__index {
+    flex-shrink: 0;
+    width: 20px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__name {
+    flex: 1;
+    text-align: left;
+    font-size: var(--font-size-base);
+    color: var(--foreground);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: var(--transition-colors);
+    font-family: inherit;
+
+    &:hover {
+      color: var(--accent-primary);
+    }
+  }
+
+  &__camera {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--foreground);
+    transition: var(--transition-colors);
+
+    &--disabled {
+      color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+    }
+  }
+
+  &__reorder {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--space-0-5);
+  }
+
+  &__reorder-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: var(--transition-colors);
+    padding: 0;
+    display: inline-flex;
+
+    &:hover {
+      color: var(--foreground);
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  }
+
+  &__remove {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    transition: var(--transition-colors);
+
+    &:hover {
+      color: var(--status-error);
+    }
+  }
+}
+
+.composition-editor {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-align: left;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  &__title {
+    font-size: var(--font-size-base);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+  }
+
+  &__chevron {
+    transition: transform var(--duration-base) var(--ease-standard);
+
+    &--open {
+      transform: rotate(90deg);
+    }
+  }
+
+  &__remove {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      color: var(--status-error);
+    }
+  }
+
+  &__body {
+    border-top: 1px solid var(--border-primary);
+    padding: var(--space-3);
+  }
+
+  &__meta {
+    margin-bottom: var(--space-4);
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  &__steps {
+    margin-bottom: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__empty {
+    margin-bottom: var(--space-3);
+    text-align: center;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    padding-block: var(--space-3);
+  }
+
+  &__add-panel {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    padding: var(--space-3);
+  }
+
+  &__add-hint {
+    margin-bottom: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__add-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-bottom: var(--space-2);
+  }
+
+  &__add-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  &__add-btn {
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: var(--transition-colors);
+
+    &:hover {
+      color: var(--foreground);
+    }
+  }
+}

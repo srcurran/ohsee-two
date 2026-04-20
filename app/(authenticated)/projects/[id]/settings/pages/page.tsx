@@ -65,55 +65,45 @@ export default function ProjectPagesSettings() {
 
   if (!project) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-text-muted">Loading...</p>
+      <div className="center" style={{ height: "100%" }}>
+        <p className="loader-text">Loading...</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="mb-[8px] text-[24px] font-bold text-foreground">Pages</h1>
-      <p className="mb-[32px] text-[14px] text-text-muted">
+      <h1 style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-3xl)", fontWeight: "var(--weight-bold)", color: "var(--foreground)" }}>Pages</h1>
+      <p className="section-body" style={{ marginBottom: "var(--space-8)" }}>
         URL paths to capture during each scan.
       </p>
 
-      {/* Add path input */}
-      <div className="mb-[16px] flex gap-[8px]">
+      <div className="row" style={{ gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
         <input
           type="text"
           value={newPath}
           onChange={(e) => setNewPath(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAddPath()}
           placeholder="/about"
-          className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+          className="input input--compact"
+          style={{ flex: 1 }}
         />
-        <button
-          onClick={handleAddPath}
-          className="rounded-[8px] bg-surface-tertiary px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-foreground/10"
-        >
+        <button onClick={handleAddPath} className="btn btn--secondary">
           Add
         </button>
       </div>
 
-      {/* Path list */}
-      <div className="mb-[24px]">
+      <div style={{ marginBottom: "var(--space-6)" }}>
         {paths.map((p) => (
-          <div
-            key={p}
-            className="flex items-center justify-between border-b border-border-primary py-[8px] text-[14px] text-foreground"
-          >
+          <div key={p} className="path-row">
             <span>{p}</span>
-            <button
-              onClick={() => handleRemovePath(p)}
-              className="text-[12px] text-text-muted transition-colors hover:text-foreground"
-            >
+            <button onClick={() => handleRemovePath(p)} className="flow-step__remove">
               Remove
             </button>
           </div>
         ))}
         {paths.length === 0 && (
-          <p className="py-[16px] text-center text-[13px] text-text-muted">
+          <p className="flow-editor__empty" style={{ paddingBlock: "var(--space-4)" }}>
             Add at least one page path.
           </p>
         )}

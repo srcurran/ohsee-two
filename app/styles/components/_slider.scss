@@ -1,0 +1,73 @@
+/* SliderComparison — tap-to-reveal + draggable slider comparing two screenshots */
+
+.comparison {
+  position: relative;
+  user-select: none;
+  overflow: hidden;
+  background: var(--surface-comparison);
+
+  &--tap { cursor: pointer; }
+  &--slider { cursor: col-resize; }
+
+  &__image {
+    display: block;
+    width: 100%;
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  &__clip {
+    position: absolute;
+    inset: 0;
+  }
+
+  &__divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: var(--z-10);
+    width: 2px;
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateX(-1px);
+  }
+
+  &__handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background: var(--slider-handle);
+    font-size: var(--font-size-base);
+    color: #fff;
+    backdrop-filter: blur(8.6px);
+  }
+}
+
+.comparison-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-base);
+
+  &__label {
+    transition: color var(--duration-fast) var(--ease-standard);
+    color: var(--text-muted);
+
+    &--active {
+      font-weight: var(--weight-bold);
+      color: var(--foreground);
+    }
+  }
+}

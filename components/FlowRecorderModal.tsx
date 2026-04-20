@@ -9,8 +9,6 @@ interface Props {
 }
 
 function getRecorderSnippet(): string {
-  // Self-contained IIFE that runs on the target page to record interactions.
-  // Must NOT reference any app code — it runs in a foreign origin.
   return [
     "(function(){",
     "if(window.__ohseeRecorder){window.__ohseeRecorder.show();return}",
@@ -58,7 +56,6 @@ export default function FlowRecorderModal({ onImport, onClose }: Props) {
         setParseError("Expected a JSON array of steps.");
         return;
       }
-      // Validate and normalize steps
       const validTypes = new Set(["click", "fill", "wait", "waitForSelector", "navigate", "screenshot"]);
       const steps: FlowAction[] = parsed
         .filter((s: Record<string, unknown>) => s && typeof s.type === "string" && validTypes.has(s.type as string))
@@ -79,53 +76,52 @@ export default function FlowRecorderModal({ onImport, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+      className="modal"
+      style={{ zIndex: 60 }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-[540px] rounded-[12px] bg-surface-content p-[24px]">
-        <h3 className="mb-[16px] text-[20px] font-bold text-foreground">Record a Flow</h3>
+      <div className="modal__panel modal__panel--md modal__panel--compact">
+        <h3 className="modal__title">Record a Flow</h3>
 
-        {/* Instructions */}
-        <div className="mb-[16px] rounded-[8px] bg-surface-secondary p-[16px]">
-          <p className="mb-[12px] text-[14px] font-bold text-foreground">How it works:</p>
-          <ol className="space-y-[8px] text-[13px] text-text-secondary">
-            <li className="flex gap-[8px]">
-              <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-[11px] font-bold text-text-muted">1</span>
+        <div className="recorder-instructions" style={{ marginBottom: "var(--space-4)" }}>
+          <p className="recorder-instructions__title">How it works:</p>
+          <ol className="recorder-instructions__list">
+            <li className="recorder-instructions__item">
+              <span className="recorder-instructions__marker">1</span>
               <span>Open your target site in a new tab</span>
             </li>
-            <li className="flex gap-[8px]">
-              <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-[11px] font-bold text-text-muted">2</span>
+            <li className="recorder-instructions__item">
+              <span className="recorder-instructions__marker">2</span>
               <span>Open the browser console (F12) and paste the recorder snippet</span>
             </li>
-            <li className="flex gap-[8px]">
-              <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-[11px] font-bold text-text-muted">3</span>
+            <li className="recorder-instructions__item">
+              <span className="recorder-instructions__marker">3</span>
               <span>Click through your flow &mdash; use the <strong>Screenshot</strong> button to mark capture points</span>
             </li>
-            <li className="flex gap-[8px]">
-              <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-[11px] font-bold text-text-muted">4</span>
+            <li className="recorder-instructions__item">
+              <span className="recorder-instructions__marker">4</span>
               <span>Click <strong>Stop &amp; Copy</strong>, then paste the JSON below</span>
             </li>
           </ol>
         </div>
 
-        {/* Copy snippet button */}
         <button
           onClick={handleCopySnippet}
-          className="mb-[16px] w-full rounded-[8px] border border-border-primary bg-surface-secondary px-[16px] py-[10px] text-left text-[13px] transition-colors hover:border-foreground"
+          className="snippet-btn"
+          style={{ marginBottom: "var(--space-4)" }}
         >
           {copied ? (
-            <span className="font-bold text-accent-green">Copied to clipboard!</span>
+            <span style={{ fontWeight: "var(--weight-bold)", color: "var(--accent-green)" }}>Copied to clipboard!</span>
           ) : (
             <>
-              <span className="font-bold text-foreground">Copy recorder snippet</span>
-              <span className="ml-[8px] text-[12px] text-text-muted">click to copy</span>
+              <span style={{ fontWeight: "var(--weight-bold)", color: "var(--foreground)" }}>Copy recorder snippet</span>
+              <span style={{ marginLeft: "var(--space-2)", fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>click to copy</span>
             </>
           )}
         </button>
 
-        {/* Paste area */}
         <textarea
           value={pastedJson}
           onChange={(e) => {
@@ -134,25 +130,22 @@ export default function FlowRecorderModal({ onImport, onClose }: Props) {
           }}
           placeholder="Paste recorded JSON here..."
           rows={6}
-          className="mb-[8px] w-full resize-none rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] font-mono text-[12px] text-foreground outline-none placeholder:text-text-muted focus:border-foreground"
+          className="textarea textarea--mono textarea--no-resize"
+          style={{ marginBottom: "var(--space-2)" }}
         />
 
         {parseError && (
-          <p className="mb-[8px] text-[12px] text-status-error">{parseError}</p>
+          <p className="error-text error-text--xs" style={{ marginBottom: "var(--space-2)" }}>{parseError}</p>
         )}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-[8px]">
-          <button
-            onClick={onClose}
-            className="rounded-[8px] px-[16px] py-[8px] text-[14px] text-text-muted hover:text-foreground"
-          >
+        <div className="modal__actions modal__actions--sm">
+          <button onClick={onClose} className="btn btn--ghost">
             Cancel
           </button>
           <button
             onClick={handleImport}
             disabled={!pastedJson.trim()}
-            className="rounded-[8px] bg-foreground px-[20px] py-[8px] text-[14px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
+            className="btn btn--primary-sm"
           >
             Import Steps
           </button>

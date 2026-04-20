@@ -2,7 +2,7 @@ import type { ChangeCategory, ChangeSeverity, Report } from "./types";
 
 /**
  * Category colors for semantic diff markers.
- * Used as inline styles (not Tailwind classes) because they're dynamically applied.
+ * Used as inline styles because they're dynamically applied per category.
  */
 export const CATEGORY_COLORS: Record<ChangeCategory, string> = {
   layout: "#cc4444",
@@ -19,10 +19,6 @@ export const CATEGORY_COLORS: Record<ChangeCategory, string> = {
 /** Default fallback when category is unknown */
 export const CATEGORY_COLOR_FALLBACK = "#cc4444";
 
-/**
- * Full category config including labels and icons.
- * Used by ChangeList for filter pills and entry icons.
- */
 export const CATEGORY_CONFIG: Record<
   ChangeCategory,
   { label: string; icon: string; color: string }
@@ -39,13 +35,12 @@ export const CATEGORY_CONFIG: Record<
 };
 
 /**
- * Severity border Tailwind classes for ChangeList entries.
- * References CSS variable tokens from globals.css.
+ * BEM modifier suffix for change-entry severity — maps to .change-entry--{mod}.
  */
-export const SEVERITY_BORDER_CLASSES: Record<ChangeSeverity, string> = {
-  error: "border-l-severity-error",
-  warning: "border-l-accent-yellow",
-  info: "border-l-severity-info",
+export const SEVERITY_CSS_MODIFIERS: Record<ChangeSeverity, string> = {
+  error: "error",
+  warning: "error",
+  info: "info",
 };
 
 /**
@@ -64,10 +59,10 @@ export function getReportTotalChanges(r: Report): number {
 }
 
 /**
- * Returns the Tailwind class for a report status dot.
+ * BEM modifier suffix for a report status dot — used as `.status-dot--{mod}`.
  */
-export function reportDotColor(r: Report): string {
-  if (r.status === "running") return "bg-status-running animate-pulse";
-  if (r.status === "failed" || r.status === "cancelled") return "bg-status-inactive";
-  return getReportTotalChanges(r) > 0 ? "bg-accent-yellow" : "bg-accent-green";
+export function reportDotModifier(r: Report): "running" | "inactive" | "warning" | "success" {
+  if (r.status === "running") return "running";
+  if (r.status === "failed" || r.status === "cancelled") return "inactive";
+  return getReportTotalChanges(r) > 0 ? "warning" : "success";
 }

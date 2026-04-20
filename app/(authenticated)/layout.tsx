@@ -14,7 +14,7 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <SessionProvider>
-      <div className="flex h-screen overflow-hidden bg-[#fafafa]">
+      <div className="app-shell app-shell--flat">
         <SidebarProvider>
           <TitlebarCollapseButton />
           <PageTitleBar />
@@ -31,10 +31,8 @@ export default function AuthenticatedLayout({
  *  no rounding/shadow/background — just overflow behavior. */
 function MainFrame({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-w-0 flex-1 bg-white pt-[36px]">
-      <div className="h-full overflow-x-hidden overflow-y-auto">
-        {children}
-      </div>
+    <main className="app-main app-main--flat">
+      <div className="app-main__scroll">{children}</div>
     </main>
   );
 }

@@ -25,19 +25,14 @@ function GoogleIcon() {
 
 export default function SignInPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-primary">
-      <div className="flex flex-col items-center gap-[32px]">
-        <div className="text-center">
-          <h1 className="text-[48px] font-bold text-foreground">Ohsee</h1>
-          <p className="mt-[8px] text-[16px] text-text-muted">
-            Visual regression testing
-          </p>
+    <div className="sign-in">
+      <div className="sign-in__content">
+        <div>
+          <h1 className="sign-in__logo">Ohsee</h1>
+          <p className="sign-in__tagline">Visual regression testing</p>
         </div>
         <form action={signInWithGoogle}>
-          <button
-            type="submit"
-            className="flex items-center gap-[12px] rounded-[12px] bg-foreground px-[32px] py-[14px] text-[16px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
-          >
+          <button type="submit" className="sign-in__cta">
             <GoogleIcon />
             Sign in with Google
           </button>
@@ -45,30 +40,27 @@ export default function SignInPage() {
 
         {process.env.NODE_ENV === "development" && (
           <>
-            <div className="flex items-center gap-[16px] w-full max-w-[320px]">
-              <div className="h-px flex-1 bg-border-primary" />
-              <span className="text-[12px] text-text-muted">DEV ONLY</span>
-              <div className="h-px flex-1 bg-border-primary" />
+            <div className="sign-in__divider">
+              <div className="sign-in__divider-line" />
+              <span className="sign-in__divider-label">DEV ONLY</span>
+              <div className="sign-in__divider-line" />
             </div>
-            <form action={signInWithCredentials} className="flex w-full max-w-[320px] flex-col gap-[12px]">
+            <form action={signInWithCredentials} className="sign-in__form">
               <input
                 name="email"
                 type="email"
                 placeholder="Email"
                 required
-                className="rounded-[8px] border border-border-primary bg-surface-content px-[16px] py-[12px] text-[14px] text-foreground placeholder:text-text-muted"
+                className="input input--solid-bg"
               />
               <input
                 name="password"
                 type="password"
                 placeholder="Password"
                 required
-                className="rounded-[8px] border border-border-primary bg-surface-content px-[16px] py-[12px] text-[14px] text-foreground placeholder:text-text-muted"
+                className="input input--solid-bg"
               />
-              <button
-                type="submit"
-                className="rounded-[8px] bg-foreground/10 px-[32px] py-[12px] text-[14px] font-bold text-foreground transition-all hover:bg-foreground/20"
-              >
+              <button type="submit" className="btn btn--secondary">
                 Dev Sign In
               </button>
             </form>

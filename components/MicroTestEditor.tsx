@@ -28,7 +28,6 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
     durationMs?: number;
   } | null>(null);
 
-  // Initialize CodeMirror
   useEffect(() => {
     if (!editorRef.current) return;
 
@@ -52,11 +51,7 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
       ],
     });
 
-    const view = new EditorView({
-      state,
-      parent: editorRef.current,
-    });
-
+    const view = new EditorView({ state, parent: editorRef.current });
     viewRef.current = view;
 
     return () => view.destroy();
@@ -92,7 +87,6 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
     setTesting(true);
     setTestResult(null);
 
-    // Save first so the test runs the latest code
     const script = getScript();
     await fetch(`/api/projects/${projectId}/micro-tests/${microTest.id}`, {
       method: "PUT",
@@ -114,91 +108,63 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
   };
 
   return (
-    <div className="flex flex-col gap-[16px]">
-      {/* Header with back button */}
-      <button
-        onClick={onClose}
-        className="flex items-center gap-[4px] text-[13px] text-text-muted transition-colors hover:text-foreground self-start"
-      >
+    <div className="stack stack--lg">
+      <button onClick={onClose} className="btn btn--text" style={{ alignSelf: "flex-start" }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
           <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         Back to composition
       </button>
 
-      {/* Name fields */}
-      <div className="flex gap-[12px]">
-        <div className="flex-1">
-          <label className="mb-[4px] block text-[12px] text-text-muted">Identifier</label>
+      <div className="row" style={{ gap: "var(--space-3)" }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label className="field__label field__label--sm">Identifier</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="loginStep"
-            className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground font-mono"
+            className="input input--compact input--code"
           />
         </div>
-        <div className="flex-1">
-          <label className="mb-[4px] block text-[12px] text-text-muted">Display Name</label>
+        <div className="field" style={{ flex: 1 }}>
+          <label className="field__label field__label--sm">Display Name</label>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Log In"
-            className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+            className="input input--compact"
           />
         </div>
       </div>
 
-      {/* Hint */}
-      <p className="text-[12px] text-text-muted">
-        Your script receives <code className="rounded bg-surface-tertiary px-[4px] py-[1px] font-mono text-[11px]">page</code> (Playwright Page) and <code className="rounded bg-surface-tertiary px-[4px] py-[1px] font-mono text-[11px]">expect</code> as arguments.
+      <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>
+        Your script receives <code className="code-inline code-inline--xs">page</code> (Playwright Page) and <code className="code-inline code-inline--xs">expect</code> as arguments.
       </p>
 
-      {/* Code editor */}
-      <div
-        ref={editorRef}
-        className="min-h-[200px] max-h-[400px] overflow-auto rounded-[8px] border border-border-primary [&_.cm-editor]:!outline-none [&_.cm-scroller]:min-h-[200px]"
-      />
+      <div ref={editorRef} className="code-editor" />
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-[8px]">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-[8px] bg-foreground px-[16px] py-[8px] text-[14px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px] disabled:opacity-50"
-        >
+      <div className="row">
+        <button onClick={handleSave} disabled={saving} className="btn btn--primary-sm">
           {saving ? "Saving..." : "Save"}
         </button>
-        <button
-          onClick={handleTest}
-          disabled={testing}
-          className="rounded-[8px] border border-border-strong px-[16px] py-[8px] text-[14px] text-foreground transition-colors hover:bg-surface-tertiary disabled:opacity-50"
-        >
+        <button onClick={handleTest} disabled={testing} className="btn btn--outline-soft">
           {testing ? "Running..." : "Test"}
         </button>
-        <span className="text-[12px] text-text-muted">Cmd+S to save</span>
+        <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>Cmd+S to save</span>
       </div>
 
-      {/* Test result */}
       {testResult && (
-        <div
-          className={`rounded-[8px] border p-[12px] text-[13px] ${
-            testResult.pass
-              ? "border-accent-green/30 bg-accent-green/[0.05] text-accent-green"
-              : "border-status-error-border bg-status-error-muted text-status-error"
-          }`}
-        >
-          <div className="flex items-center gap-[8px]">
-            <span className="font-bold">{testResult.pass ? "PASS" : "FAIL"}</span>
+        <div className={`test-result ${testResult.pass ? "test-result--pass" : "test-result--fail"}`}>
+          <div className="test-result__header">
+            <span className="test-result__status">{testResult.pass ? "PASS" : "FAIL"}</span>
             {testResult.durationMs !== undefined && (
-              <span className="text-text-muted">{testResult.durationMs}ms</span>
+              <span className="test-result__duration">{testResult.durationMs}ms</span>
             )}
           </div>
           {testResult.error && (
-            <pre className="mt-[8px] whitespace-pre-wrap font-mono text-[12px] leading-[1.5]">
-              {testResult.error}
-            </pre>
+            <pre className="test-result__error">{testResult.error}</pre>
           )}
         </div>
       )}
