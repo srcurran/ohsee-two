@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Project, SiteTest } from "@/lib/types";
+import { trackReportCompletion } from "@/lib/electron";
 
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();
@@ -30,6 +31,10 @@ export default function TestPage() {
     );
     if (res.ok) {
       const { reportId } = await res.json();
+      const label = project && test
+        ? `${project.name || project.prodUrl} / ${test.name}`
+        : "Audit";
+      trackReportCompletion(reportId, label);
       router.push(`/reports/${reportId}`);
     } else {
       setRunning(false);

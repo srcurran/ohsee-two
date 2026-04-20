@@ -4,22 +4,21 @@ import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import CredentialsSettings from "@/components/settings/CredentialsSettings";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
-import SaveButton from "@/components/SaveButton";
+import { isElectronRuntime } from "@/lib/electron";
 
-type Tab = "account" | "defaults";
+type Tab = "general" | "defaults" | "credentials";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("account");
+  const [activeTab, setActiveTab] = useState<Tab>("general");
 
   // Defaults state
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const user = session?.user;
 
@@ -31,32 +30,30 @@ export default function SettingsPage() {
       .then(setSettings);
   }, []);
 
+  // Autosave: every settings mutation hits the API immediately. No manual
+  // Save button — the overlay is the primary entry point and also autosaves.
+  const saveSettings = (next: UserSettings) => {
+    setSettings(next);
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    });
+  };
+
   const toggleVariant = (id: string) => {
     if (!settings) return;
     const current = settings.defaultVariants || [];
     const next = current.includes(id)
       ? current.filter((v: string) => v !== id)
       : [...current, id];
-    setSettings({ ...settings, defaultVariants: next });
-  };
-
-  const handleSave = async () => {
-    if (!settings) return;
-    setSaving(true);
-    setSaved(false);
-    await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    saveSettings({ ...settings, defaultVariants: next });
   };
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "account", label: "Account" },
+    { id: "general", label: "General" },
     { id: "defaults", label: "Defaults" },
+    ...(mounted && isElectronRuntime() ? [{ id: "credentials" as Tab, label: "Credentials" }] : []),
   ];
 
   return (
@@ -89,7 +86,7 @@ export default function SettingsPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-[24px] py-[24px]">
         <div className="max-w-[560px]">
-          {activeTab === "account" && (
+          {activeTab === "general" && (
             <div>
               {/* Profile */}
               <section className="mb-[32px] animate-card-in" style={{ animationDelay: "0ms" }}>
@@ -137,6 +134,21 @@ export default function SettingsPage() {
                 </section>
               )}
 
+              {/* Alert notifications */}
+              <section className="mb-[32px] animate-card-in" style={{ animationDelay: "75ms" }}>
+                <p className="mb-[8px] text-[14px] text-foreground">Alert notifications</p>
+                <label className="flex items-center gap-[8px] text-[14px] text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={settings?.alertNotifications ?? false}
+                    onChange={(e) => settings && saveSettings({ ...settings, alertNotifications: e.target.checked })}
+                    className="h-[16px] w-[16px]"
+                    disabled={!settings}
+                  />
+                  Notify me when a report run finishes
+                </label>
+              </section>
+
               {/* Sign out */}
               <section className="animate-card-in" style={{ animationDelay: "100ms" }}>
                 <button
@@ -148,6 +160,8 @@ export default function SettingsPage() {
               </section>
             </div>
           )}
+
+          {activeTab === "credentials" && <CredentialsSettings />}
 
           {activeTab === "defaults" && (
             <div>
@@ -161,7 +175,7 @@ export default function SettingsPage() {
                   <section className="mb-[32px] animate-card-in" style={{ animationDelay: "50ms" }}>
                     <BreakpointEditor
                       breakpoints={settings.defaultBreakpoints}
-                      onChange={(bp) => setSettings({ ...settings, defaultBreakpoints: bp })}
+                      onChange={(bp) => saveSettings({ ...settings, defaultBreakpoints: bp })}
                     />
                   </section>
 
@@ -188,11 +202,6 @@ export default function SettingsPage() {
                       })}
                     </div>
                   </section>
-
-                  {/* Save */}
-                  <div className="animate-card-in" style={{ animationDelay: "150ms" }}>
-                    <SaveButton onClick={handleSave} saving={saving} saved={saved} />
-                  </div>
                 </>
               ) : (
                 <p className="text-text-muted">Loading...</p>

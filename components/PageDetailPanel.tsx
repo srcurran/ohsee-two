@@ -9,6 +9,7 @@ import ChangeList from "@/components/ChangeList";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotColor } from "@/lib/colors";
 import type { Report, Project, ReportPage } from "@/lib/types";
+import { countUniqueSemanticChanges } from "@/lib/change-identity";
 
 interface Props {
   report: Report;
@@ -24,8 +25,8 @@ interface Props {
   onVariantChange: (variant: string | null) => void;
 }
 
-// Final panel insets (relative to viewport)
-const PANEL = { top: 28, right: 28, bottom: 28, left: 112 };
+// Final panel insets (relative to viewport) — equal gutters all sides.
+const PANEL = { top: 28, right: 28, bottom: 28, left: 28 };
 const ANIM_MS = 300;
 const ANIM_EASE = "cubic-bezier(0.2, 0, 0, 1)"; // Material emphasizedDecelerate
 // Content fades in after container has finished expanding (no reflow slide)
@@ -140,10 +141,41 @@ export default function PageDetailPanel({
     return () => window.removeEventListener("keydown", handleKey);
   });
 
-  // Scroll to top when page changes
+  // Scroll to top when page changes.
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);
+    scrollTopRef.current = 0;
   }, [pageId]);
+
+  // Preserve scroll across tab/breakpoint interactions. Content swaps (Changes
+  // ↔ Tap/Slider) or breakpoint changes can momentarily shrink the content
+  // height (e.g. while a new image loads), which causes the browser to clamp
+  // scrollTop to 0. We remember the user's last scroll position on every
+  // scroll event, and any time the content resizes, if the browser has
+  // clamped us below the remembered position and there's now enough room to
+  // restore it, put the user back where they were.
+  const scrollTopRef = useRef(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => { scrollTopRef.current = el.scrollTop; };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      const target = Math.min(scrollTopRef.current, maxScroll);
+      if (target > 0 && el.scrollTop < target) {
+        el.scrollTop = target;
+      }
+    });
+    const content = el.firstElementChild;
+    if (content) observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
 
   const currentIndex = report.pages.findIndex((p) => p.pageId === pageId);
   const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
@@ -164,12 +196,19 @@ export default function PageDetailPanel({
       ? "index"
       : currentPage.path.replace(/^\//, "");
 
-  // Change counts per breakpoint for the tab dots
-  // Use -1 to signal "no screenshot" (grey dot) vs 0 for "has screenshot, no changes" (green dot)
+  // Structural-change count per breakpoint for the tab dots. Pixel-only
+  // differences count as green ("pixels moved but nothing structurally
+  // changed"). -1 signals "no screenshot yet" (grey dot).
   const bpChangeCounts: Record<string, number> = {};
   for (const [key, val] of Object.entries(activeBpData)) {
-    bpChangeCounts[key] = val.prodScreenshot ? (val.changeCount || 0) : -1;
+    bpChangeCounts[key] = val.prodScreenshot ? (val.semanticChanges?.length ?? 0) : -1;
   }
+
+  // Total unique structural changes across all breakpoints for this page,
+  // deduped by change identity (selector + property + values).
+  const totalUniqueChanges = countUniqueSemanticChanges(
+    Object.values(activeBpData).map((bp) => bp.semanticChanges),
+  );
 
   // Derive breakpoints actually used in this report from the data
   const reportBreakpoints: number[] = (() => {
@@ -231,13 +270,19 @@ export default function PageDetailPanel({
         {/* Header — page name + badge | nav controls */}
         <div className="relative z-10 flex items-center justify-between px-[24px] py-[20px] animate-card-in"
           style={{ animationDelay: "0ms" }}>
-          {/* Left: page name + change count */}
+          {/* Left: page name + change count. Clicking the name opens a
+              dropdown with the live prod/dev URLs for this specific page —
+              no chevron so the affordance stays discoverable-by-hover. */}
           <div className="flex items-center gap-[8px] min-w-0">
-            <h2 className="truncate text-[32px] text-foreground">{pageName}</h2>
+            <PageTitleMenu
+              label={pageName}
+              prodUrl={`${project.prodUrl.replace(/\/$/, "")}${currentPage.path === "/" ? "" : currentPage.path}`}
+              devUrl={`${project.devUrl.replace(/\/$/, "")}${currentPage.path === "/" ? "" : currentPage.path}`}
+            />
             <span className={`flex h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full px-[6px] text-[14px] ${
-              !bpResult?.prodScreenshot ? "bg-text-disabled/20 text-text-disabled" : bpResult.changeCount > 0 ? "bg-accent-yellow text-foreground" : "bg-accent-green text-foreground"
+              !bpResult?.prodScreenshot ? "bg-text-disabled/20 text-text-disabled" : totalUniqueChanges > 0 ? "bg-accent-yellow text-foreground" : "bg-accent-green text-foreground"
             }`}>
-              {bpResult?.prodScreenshot ? (bpResult?.changeCount ?? 0) : "—"}
+              {bpResult?.prodScreenshot ? totalUniqueChanges : "—"}
             </span>
           </div>
 
@@ -324,34 +369,46 @@ export default function PageDetailPanel({
 
         {/* Content area: scrollable screenshot + fixed changes sidebar */}
         <div className="flex flex-1 overflow-hidden bg-surface-tertiary animate-card-in" style={{ animationDelay: "30ms" }}>
-          {/* Scrollable screenshot column */}
-          <div ref={scrollRef} className="flex flex-1 flex-col items-center overflow-y-auto p-[24px]">
-            {/* View mode tabs */}
+          {/* Scrollable screenshot column — top padding lives on the sticky
+              tab row so content scrolls behind it. */}
+          <div ref={scrollRef} className="flex flex-1 flex-col items-center overflow-y-auto px-[24px] pb-[24px]">
+            {/* View mode tabs — sticky to scroll container top; self-stretch
+                overrides the parent's items-center so the background bleeds
+                edge-to-edge. */}
             {bpResult && (
-              <div className="flex items-center justify-center gap-[56px] pb-[16px] text-[14px]">
+              <div className="sticky top-0 z-10 flex items-center justify-center gap-[56px] self-stretch bg-surface-tertiary pt-[24px] pb-[16px] text-[14px]">
                 <button
-                  onClick={() => { setViewMode("tap"); setForceDevLocked(false); }}
+                  onClick={() => { setViewMode("tap"); setForceDevLocked(false); setShowingDev(false); }}
                   className={`w-[32px] text-right transition-colors duration-150 ${
                     (viewMode === "tap" && !showingDev) || viewMode === "changes" ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted hover:text-foreground"
                   }`}
                 >Prod</button>
                 <div className="flex items-center gap-[4px] rounded-[8px] bg-surface-content p-[3px]">
-                  {(["changes", "tap", "slider"] as const).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => { setViewMode(m); if (m !== "tap") setForceDevLocked(false); }}
-                      className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
-                        viewMode === m
-                          ? "bg-surface-tertiary font-bold shadow-sm"
-                          : "text-text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {m === "tap" ? "Tap" : m === "slider" ? "Slider" : "Changes"}
-                    </button>
-                  ))}
+                  {(["changes", "tap", "slider"] as const).map((m) => {
+                    const label = m === "tap" ? "Tap" : m === "slider" ? "Slider" : "Changes";
+                    const active = viewMode === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => { setViewMode(m); if (m !== "tap") { setForceDevLocked(false); setShowingDev(false); } }}
+                        className={`rounded-[6px] px-[10px] py-[3px] text-[12px] transition-colors ${
+                          active
+                            ? "bg-surface-tertiary"
+                            : "text-text-muted hover:text-foreground"
+                        }`}
+                      >
+                        {/* Grid stack reserves width of the bold label so the
+                            pill group doesn't shimmy when selection changes. */}
+                        <span className="grid">
+                          <span className={`col-start-1 row-start-1 ${active ? "font-bold" : "font-normal"}`}>{label}</span>
+                          <span aria-hidden className="col-start-1 row-start-1 invisible font-bold">{label}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <button
-                  onClick={() => { setViewMode("tap"); setForceDevLocked(true); }}
+                  onClick={() => { setViewMode("tap"); setForceDevLocked(true); setShowingDev(true); }}
                   className={`w-[32px] transition-colors duration-150 ${
                     viewMode === "tap" && showingDev ? "text-foreground underline underline-offset-4 decoration-1" : "text-text-muted hover:text-foreground"
                   }`}
@@ -372,8 +429,8 @@ export default function PageDetailPanel({
                     prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
                     devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
                     mode={viewMode}
-                    onModeChange={(m) => { setViewMode(m); if (m !== "tap") setForceDevLocked(false); }}
-                    onPressedChange={(p) => setShowingDev(forceDevLocked || p)}
+                    onModeChange={(m) => { setViewMode(m); if (m !== "tap") { setForceDevLocked(false); setShowingDev(false); } }}
+                    onPressedChange={setShowingDev}
                     forceDev={forceDevLocked}
                     hideHeader
                   />
@@ -401,18 +458,23 @@ export default function PageDetailPanel({
                   }}
                 />
               ) : bpResult.pixelChangeCount && bpResult.pixelChangeCount > 0 ? (
-                <div className="flex items-center gap-[8px] rounded-[8px] bg-surface-tertiary px-[20px] py-[16px]">
-                  <span className="text-[20px]">~</span>
-                  <span className="text-[14px] text-text-secondary">
-                    Pixel differences detected — no structural changes
+                <div className="flex items-start gap-[12px] border-l-[3px] border-l-accent-green bg-surface-tertiary py-[10px] pl-[12px] pr-[16px]">
+                  <span className="mt-[2px] flex h-[20px] w-[20px] flex-shrink-0 items-center justify-center text-[13px] text-foreground">
+                    ✓
                   </span>
+                  <div className="flex min-w-0 flex-col gap-[2px]">
+                    <span className="text-[14px] text-foreground">No structural changes</span>
+                    <span className="text-[12px] text-text-subtle">Some pixel differences detected</span>
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-[8px] rounded-[8px] bg-surface-tertiary px-[20px] py-[16px]">
-                  <span className="text-[20px]">✓</span>
-                  <span className="text-[14px] text-text-secondary">
-                    No differences between versions
+                <div className="flex items-start gap-[12px] border-l-[3px] border-l-accent-green bg-surface-tertiary py-[10px] pl-[12px] pr-[16px]">
+                  <span className="mt-[2px] flex h-[20px] w-[20px] flex-shrink-0 items-center justify-center text-[13px] text-foreground">
+                    ✓
                   </span>
+                  <div className="flex min-w-0 flex-col gap-[2px]">
+                    <span className="text-[14px] text-foreground">No differences between versions</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -422,6 +484,57 @@ export default function PageDetailPanel({
       </div>{/* end expanding container */}
     </div>{/* end scrim */}
     </>
+  );
+}
+
+/** Page title that doubles as a dropdown of prod/dev URLs for this page.
+ *  No chevron — the affordance is discovered via hover color. */
+function PageTitleMenu({
+  label,
+  prodUrl,
+  devUrl,
+}: {
+  label: string;
+  prodUrl: string;
+  devUrl: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative min-w-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="truncate rounded-[6px] px-[4px] text-[32px] text-foreground transition-colors hover:bg-foreground/[0.03]"
+      >
+        {label}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-[52px] z-40 flex min-w-[320px] flex-col gap-[2px] rounded-[12px] bg-surface-content p-[8px] shadow-elevation-lg">
+            <a
+              href={prodUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex flex-col gap-[2px] rounded-[8px] px-[12px] py-[8px] transition-colors hover:bg-surface-tertiary"
+            >
+              <span className="text-[12px] font-bold uppercase tracking-wide text-text-subtle">Prod</span>
+              <span className="truncate text-[14px] text-foreground">{prodUrl}</span>
+            </a>
+            <a
+              href={devUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="flex flex-col gap-[2px] rounded-[8px] px-[12px] py-[8px] transition-colors hover:bg-surface-tertiary"
+            >
+              <span className="text-[12px] font-bold uppercase tracking-wide text-text-subtle">Dev</span>
+              <span className="truncate text-[14px] text-foreground">{devUrl}</span>
+            </a>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

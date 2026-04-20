@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 
 export const proxy = auth((req) => {
   const { nextUrl } = req;
-  const isAuthenticated = !!req.auth;
+  // Electron builds short-circuit NextAuth via env var — treat as authenticated.
+  const isAuthenticated = !!req.auth || !!process.env.OHSEE_LOCAL_USER_ID;
 
   // Allow auth API routes and sign-in page
   if (

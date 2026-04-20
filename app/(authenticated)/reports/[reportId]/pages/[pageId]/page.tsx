@@ -8,10 +8,12 @@ import VariantTabs from "@/components/VariantTabs";
 import DiffViewer from "@/components/DiffViewer";
 import SliderComparison, { ComparisonHeader, type ComparisonMode } from "@/components/SliderComparison";
 import ChangeList from "@/components/ChangeList";
-import { useSidebar } from "@/components/SidebarProvider";
+import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SemanticChange } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
+import { trackReportCompletion } from "@/lib/electron";
+import { countUniqueSemanticChanges } from "@/lib/change-identity";
 
 function getDomain(url: string): string {
   try {
@@ -36,6 +38,8 @@ function PageDetailInner() {
   const [showingDev, setShowingDev] = useState(false);
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
+
+  usePageTitle(project ? project.name || getDomain(project.prodUrl) : null);
 
   useEffect(() => {
     fetch(`/api/reports/${params.reportId}`)
@@ -88,6 +92,7 @@ function PageDetailInner() {
     });
     if (res.ok) {
       const { reportId } = await res.json();
+      trackReportCompletion(reportId, project.name || getDomain(project.prodUrl));
       refreshProjects();
       router.push(`/reports/${reportId}`);
     }
@@ -151,16 +156,21 @@ function PageDetailInner() {
       ? "index"
       : currentPage.path.replace(/^\//, "");
 
-  // Compute total change count for current page (across all breakpoints, variant-aware)
-  const totalChangeCount = Object.values(activeBpData).reduce(
-    (sum, bp) => sum + (bp.changeCount || 0),
-    0
+  // Total unique structural changes across every breakpoint for this page.
+  // The same change at multiple breakpoints (same selector + property + values)
+  // is collapsed to a single entry — so the badge reflects "number of distinct
+  // things that changed," not "sum of per-breakpoint rows."
+  const totalUniqueChanges = countUniqueSemanticChanges(
+    Object.values(activeBpData).map((bp) => bp.semanticChanges),
   );
 
-  // Change counts per breakpoint for the tab dots
+  // Per-breakpoint structural-change counts for the tab dots. Pixel-only
+  // differences (no semantic changes) render as green — "pixels moved but
+  // nothing structurally changed." -1 preserves the existing "no screenshot"
+  // signal from the report runner.
   const bpChangeCounts: Record<string, number> = {};
   for (const [key, val] of Object.entries(activeBpData)) {
-    bpChangeCounts[key] = val.changeCount || 0;
+    bpChangeCounts[key] = val.changeCount < 0 ? -1 : (val.semanticChanges?.length ?? 0);
   }
 
   return (
@@ -231,11 +241,12 @@ function PageDetailInner() {
                 </div>
               </div>
 
-              {/* Change count badge */}
+              {/* Change count badge — total unique structural changes across
+                  all breakpoints, deduped by change identity. */}
               <span className={`flex h-[48px] min-w-[48px] shrink-0 items-center justify-center rounded-full px-[8px] text-[20px] text-foreground ${
-                bpResult && bpResult.changeCount > 0 ? "bg-accent-yellow-tint" : "bg-accent-green-tint"
+                totalUniqueChanges > 0 ? "bg-accent-yellow-tint" : "bg-accent-green-tint"
               }`}>
-                {bpResult?.changeCount ?? 0}
+                {totalUniqueChanges}
               </span>
             </div>
 

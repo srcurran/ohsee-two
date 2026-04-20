@@ -31,7 +31,7 @@ export async function mintSessionCookie(options: {
     token: {
       sub: userId,
       userId,
-      name: "OHSEE Screenshot Bot",
+      name: "Ohsee Screenshot Bot",
       email: "bot@ohsee.local",
       iat: Math.floor(Date.now() / 1000),
     },

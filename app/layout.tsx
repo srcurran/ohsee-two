@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import ThemeProvider from "@/components/ThemeProvider";
 import "./globals.css";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
   weight: ["400", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "OHSEE",
+  title: "Ohsee",
   description: "Visual regression testing tool",
 };
 
@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.variable} font-sans antialiased`}>
+      <body className={`${dmSans.variable} font-sans antialiased`}>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

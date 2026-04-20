@@ -24,7 +24,7 @@ export const BUILT_IN_VARIANTS: TestVariant[] = [
 
 export type Breakpoint = (typeof BREAKPOINTS)[number];
 
-export const DATA_DIR = path.join(process.cwd(), "data");
+export const DATA_DIR = process.env.OHSEE_DATA_DIR ?? path.join(process.cwd(), "data");
 
 // Legacy paths (used by migration only)
 export const LEGACY_PROJECTS_FILE = path.join(DATA_DIR, "projects.json");

@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 
+function ensureProtocol(url: string): string {
+  if (!/^https?:\/\//i.test(url)) return `https://${url}`;
+  return url;
+}
+
 function getHostname(url: string): string {
   try {
-    return new URL(url).hostname;
+    return new URL(ensureProtocol(url)).hostname;
   } catch {
     return url;
   }
@@ -12,7 +17,7 @@ function getHostname(url: string): string {
 
 function getDomain(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(ensureProtocol(url)).hostname.replace(/^www\./, "");
   } catch {
     return url;
   }
@@ -20,7 +25,7 @@ function getDomain(url: string): string {
 
 function isLocalhost(url: string): boolean {
   try {
-    const hostname = new URL(url).hostname;
+    const hostname = new URL(ensureProtocol(url)).hostname;
     return hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.");
   } catch {
     return false;
@@ -43,6 +48,8 @@ interface ProjectFaviconProps {
   fallbackUrl?: string;
   /** Total outer size including padding */
   size?: number;
+  /** Border radius of the favicon tile in px. Defaults to 8. */
+  borderRadius?: number;
   className?: string;
 }
 
@@ -56,6 +63,7 @@ export default function ProjectFavicon({
   url,
   fallbackUrl,
   size = 56,
+  borderRadius = 8,
   className,
 }: ProjectFaviconProps) {
   // Order URLs: try non-localhost first
@@ -77,7 +85,9 @@ export default function ProjectFavicon({
   const initial = domain.charAt(0).toUpperCase();
   const hue = domainHue(domain);
 
-  if (failed || urls.length === 0) {
+  const allLocalhost = urls.length > 0 && urls.every(isLocalhost);
+
+  if (failed || urls.length === 0 || allLocalhost) {
     return (
       <span
         className={`flex shrink-0 items-center justify-center text-text-muted ${className || ""}`}
@@ -109,7 +119,7 @@ export default function ProjectFavicon({
     >
       <span
         className="flex h-full w-full items-center justify-center overflow-hidden"
-        style={{ borderRadius: 4 }}
+        style={{ borderRadius }}
       >
         <img
           src={`/api/favicon?domain=${activeHostname}`}

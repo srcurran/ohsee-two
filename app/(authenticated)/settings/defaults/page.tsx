@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
-import SaveButton from "@/components/SaveButton";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 
 export default function DefaultsSettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -17,27 +14,22 @@ export default function DefaultsSettingsPage() {
       .then(setSettings);
   }, []);
 
+  const saveSettings = (next: UserSettings) => {
+    setSettings(next);
+    fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    });
+  };
+
   const toggleVariant = (id: string) => {
     if (!settings) return;
     const current = settings.defaultVariants || [];
     const next = current.includes(id)
       ? current.filter((v) => v !== id)
       : [...current, id];
-    setSettings({ ...settings, defaultVariants: next });
-  };
-
-  const handleSave = async () => {
-    if (!settings) return;
-    setSaving(true);
-    setSaved(false);
-    await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    saveSettings({ ...settings, defaultVariants: next });
   };
 
   if (!settings) {
@@ -59,7 +51,7 @@ export default function DefaultsSettingsPage() {
       <section className="mb-[32px]">
         <BreakpointEditor
           breakpoints={settings.defaultBreakpoints}
-          onChange={(bp) => setSettings({ ...settings, defaultBreakpoints: bp })}
+          onChange={(bp) => saveSettings({ ...settings, defaultBreakpoints: bp })}
         />
       </section>
 
@@ -86,9 +78,6 @@ export default function DefaultsSettingsPage() {
           })}
         </div>
       </section>
-
-      {/* Save */}
-      <SaveButton onClick={handleSave} saving={saving} saved={saved} />
     </div>
   );
 }

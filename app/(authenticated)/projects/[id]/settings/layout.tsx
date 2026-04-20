@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Project, Report, SiteTest } from "@/lib/types";
+import type { Project } from "@/lib/types";
+import { usePageTitle } from "@/components/SidebarProvider";
 
 function getDomain(url: string): string {
   try {
@@ -28,42 +29,27 @@ export default function ProjectSettingsLayout({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
-  const [latestReportId, setLatestReportId] = useState<string | null>(null);
-
   useEffect(() => {
     fetch(`/api/projects/${params.id}`)
       .then((r) => r.json())
-      .then((p: Project) => {
-        setProject(p);
-        fetch(`/api/projects/${params.id}/reports`)
-          .then((r) => r.json())
-          .then((reports: Report[]) => {
-            if (reports.length > 0) {
-              const sorted = [...reports].sort(
-                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-              );
-              setLatestReportId(sorted[0].id);
-            }
-          });
-      });
+      .then((p: Project) => setProject(p));
   }, [params.id]);
 
-  const tests: SiteTest[] = project?.tests || [];
   const baseHref = `/projects/${params.id}/settings`;
-  const backHref = latestReportId ? `/reports/${latestReportId}` : "/";
+  const closeHref = `/projects/${params.id}`;
   const domain = project ? getDomain(project.prodUrl) : "";
   const displayName = project ? project.name || domain : "Project";
+  const headerTitle = project ? `${displayName} / Settings` : "Settings";
+  usePageTitle(project ? displayName : null);
 
-  // Build tabs: General, Tests (if any exist), Advanced
+  // Build tabs: General, Tests (always), Advanced.
+  // Tests tab must be visible even when there are none — otherwise users
+  // can't reach the create-test screen.
   const tabs: Tab[] = [
     { label: "General", href: baseHref },
+    { label: "Tests", href: `${baseHref}/tests` },
+    { label: "Advanced", href: `${baseHref}/advanced` },
   ];
-
-  if (tests.length > 0) {
-    tabs.push({ label: "Tests", href: `${baseHref}/tests` });
-  }
-
-  tabs.push({ label: "Advanced", href: `${baseHref}/advanced` });
 
   const isTabActive = (tab: Tab) => {
     if (tab.label === "Tests") {
@@ -76,28 +62,26 @@ export default function ProjectSettingsLayout({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex flex-col gap-[16px] px-[24px] py-[20px] animate-card-in">
-        <div className="flex items-center gap-[12px]">
+      {/* Header — mirrors the report header: title on the left, close icon
+          on the right in the same slot the report uses for its settings icon. */}
+      <div className="sticky top-0 z-10 rounded-t-[12px] bg-surface-content animate-card-in">
+        {/* Title row */}
+        <div className="flex items-center justify-between px-[24px] py-[20px]">
+          <p className="text-[24px] text-foreground whitespace-nowrap">{headerTitle}</p>
           <Link
-            href={backHref}
-            className="flex items-center justify-center text-text-muted transition-colors hover:text-foreground"
+            href={closeHref}
+            title="Close settings"
+            className="flex h-[40px] w-[40px] items-center justify-center rounded-[10px] text-text-subtle transition-all hover:bg-foreground/[0.05] hover:text-foreground"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5" />
-              <path d="m12 19-7-7 7-7" />
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
             </svg>
           </Link>
-          <div>
-            {domain && domain !== displayName && (
-              <p className="text-[14px] text-text-muted">{domain}</p>
-            )}
-            <h1 className="text-[32px] text-foreground">{displayName}</h1>
-          </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-border-secondary">
+        <div className="border-b border-border-secondary px-[24px]">
           <div className="flex items-center gap-[24px]">
             {tabs.map((tab) => (
               <Link

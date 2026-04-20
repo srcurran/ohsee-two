@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import type { Project } from "@/lib/types";
-import SaveButton from "@/components/SaveButton";
 
 export default function ProjectPagesSettings() {
   const params = useParams<{ id: string }>();
@@ -12,17 +11,45 @@ export default function ProjectPagesSettings() {
   const [project, setProject] = useState<Project | null>(null);
   const [paths, setPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const lastSavedSnapshot = useRef<string>("");
 
   useEffect(() => {
     fetch(`/api/projects/${params.id}`)
       .then((r) => r.json())
       .then((p: Project) => {
         setProject(p);
-        setPaths(p.pages.map((pg) => pg.path));
+        const loaded = p.pages.map((pg) => pg.path);
+        setPaths(loaded);
+        lastSavedSnapshot.current = JSON.stringify(loaded);
       });
   }, [params.id]);
+
+  // Autosave after 500ms debounce. Requires at least one path — empty lists
+  // aren't a valid save.
+  useEffect(() => {
+    if (!project || paths.length === 0) return;
+    const snapshot = JSON.stringify(paths);
+    if (snapshot === lastSavedSnapshot.current) return;
+    const timer = setTimeout(async () => {
+      const existingByPath = new Map(project.pages.map((p) => [p.path, p]));
+      const updatedPages = paths.map((path) => {
+        const existing = existingByPath.get(path);
+        return existing || { id: crypto.randomUUID(), path };
+      });
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pages: updatedPages }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProject(updated);
+        lastSavedSnapshot.current = snapshot;
+        refreshProjects();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [paths, project, refreshProjects]);
 
   const handleAddPath = () => {
     const p = newPath.trim();
@@ -34,34 +61,6 @@ export default function ProjectPagesSettings() {
 
   const handleRemovePath = (path: string) => {
     setPaths(paths.filter((p) => p !== path));
-  };
-
-  const handleSave = async () => {
-    if (!project || paths.length === 0) return;
-    setSaving(true);
-    setSaved(false);
-
-    // Preserve existing page IDs where paths match
-    const existingByPath = new Map(project.pages.map((p) => [p.path, p]));
-    const updatedPages = paths.map((path) => {
-      const existing = existingByPath.get(path);
-      return existing || { id: crypto.randomUUID(), path };
-    });
-
-    const res = await fetch(`/api/projects/${project.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pages: updatedPages }),
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setProject(updated);
-      refreshProjects();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }
-    setSaving(false);
   };
 
   if (!project) {
@@ -119,9 +118,6 @@ export default function ProjectPagesSettings() {
           </p>
         )}
       </div>
-
-      {/* Save */}
-      <SaveButton onClick={handleSave} saving={saving} saved={saved} disabled={paths.length === 0} />
     </div>
   );
 }

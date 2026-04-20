@@ -26,10 +26,14 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     );
   }
 
-  // Get active categories from the changes
-  const categories = Object.entries(summary || {})
-    .filter(([, count]) => count > 0)
-    .sort(([, a], [, b]) => b - a) as [ChangeCategory, number][];
+  // Every category is shown so the user sees the full detection surface;
+  // counts of 0 render as disabled pills. Order follows CATEGORY_CONFIG
+  // for stability across reports.
+  const allCategories = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
+  const categoryCounts: Record<ChangeCategory, number> = {} as Record<ChangeCategory, number>;
+  for (const cat of allCategories) {
+    categoryCounts[cat] = summary?.[cat] ?? 0;
+  }
 
   const filtered =
     activeFilter === "all"
@@ -40,39 +44,48 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     <div className="flex flex-col gap-[16px]">
       <div className="flex items-center justify-between">
         <h3 className="text-[20px] font-bold text-foreground">
-          Changes ({changes.length})
+          Detected Changes
         </h3>
       </div>
 
-      {/* Category filter pills */}
-      <div className="flex flex-wrap gap-[8px]">
-        <button
-          onClick={() => setActiveFilter("all")}
-          className={`rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
-            activeFilter === "all"
-              ? "bg-foreground text-surface-content"
-              : "bg-surface-tertiary text-text-secondary hover:bg-foreground/10"
-          }`}
-        >
-          All ({changes.length})
-        </button>
-        {categories.map(([cat, count]) => {
-          const cfg = CATEGORY_CONFIG[cat];
-          return (
-            <button
-              key={cat}
-              onClick={() => setActiveFilter(cat)}
-              className={`rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
-                activeFilter === cat
-                  ? "bg-foreground text-surface-content"
-                  : "bg-surface-tertiary text-text-secondary hover:bg-foreground/10"
-              }`}
-            >
-              <span className="mr-[4px]">{cfg.icon}</span>
-              {cfg.label} ({count})
-            </button>
-          );
-        })}
+      {/* Category filter pills — scroll horizontally so all categories stay on
+          one row. `-mx/px` lets the scroll bleed past the panel padding. */}
+      <div className="-mx-[24px] overflow-x-auto px-[24px] pb-[4px] [scrollbar-width:thin]">
+        <div className="flex w-max items-center gap-[8px]">
+          <button
+            onClick={() => setActiveFilter("all")}
+            className={`shrink-0 whitespace-nowrap rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
+              activeFilter === "all"
+                ? "bg-foreground text-surface-content"
+                : "bg-surface-tertiary text-text-secondary hover:bg-foreground/10"
+            }`}
+          >
+            All ({changes.length})
+          </button>
+          {allCategories.map((cat) => {
+            const cfg = CATEGORY_CONFIG[cat];
+            const count = categoryCounts[cat];
+            const enabled = count > 0;
+            const active = activeFilter === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => enabled && setActiveFilter(cat)}
+                disabled={!enabled}
+                className={`shrink-0 whitespace-nowrap rounded-full px-[12px] py-[4px] text-[13px] transition-colors ${
+                  active
+                    ? "bg-foreground text-surface-content"
+                    : enabled
+                      ? "bg-surface-tertiary text-text-secondary hover:bg-foreground/10"
+                      : "bg-surface-tertiary/50 text-text-subtle/60 cursor-not-allowed"
+                }`}
+              >
+                <span className="mr-[4px]">{cfg.icon}</span>
+                {cfg.label} ({count})
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Change entries */}

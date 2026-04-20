@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
-import { FlowEditor, newStep } from "@/components/FlowEditor";
-import SaveButton from "@/components/SaveButton";
+import { FlowEditor } from "@/components/FlowEditor";
 import type { Project, FlowEntry } from "@/lib/types";
 
 export default function ProjectFlowsSettings() {
@@ -12,8 +11,7 @@ export default function ProjectFlowsSettings() {
   const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [flows, setFlows] = useState<FlowEntry[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const lastSavedSnapshot = useRef<string>("");
 
   useEffect(() => {
     fetch(`/api/projects/${params.id}`)
@@ -21,8 +19,30 @@ export default function ProjectFlowsSettings() {
       .then((p: Project) => {
         setProject(p);
         setFlows(p.flows || []);
+        lastSavedSnapshot.current = JSON.stringify(p.flows || []);
       });
   }, [params.id]);
+
+  // Autosave after a 500ms debounce on any flow edit.
+  useEffect(() => {
+    if (!project) return;
+    const snapshot = JSON.stringify(flows);
+    if (snapshot === lastSavedSnapshot.current) return;
+    const timer = setTimeout(async () => {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flows }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setProject(updated);
+        lastSavedSnapshot.current = snapshot;
+        refreshProjects();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [flows, project, refreshProjects]);
 
   const addFlow = () => {
     setFlows([
@@ -44,27 +64,6 @@ export default function ProjectFlowsSettings() {
 
   const removeFlow = (idx: number) => {
     setFlows(flows.filter((_, i) => i !== idx));
-  };
-
-  const handleSave = async () => {
-    if (!project) return;
-    setSaving(true);
-    setSaved(false);
-
-    const res = await fetch(`/api/projects/${project.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ flows }),
-    });
-
-    if (res.ok) {
-      const updated = await res.json();
-      setProject(updated);
-      refreshProjects();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }
-    setSaving(false);
   };
 
   if (!project) {
@@ -90,6 +89,7 @@ export default function ProjectFlowsSettings() {
             flow={flow}
             onChange={(updated) => updateFlow(idx, updated)}
             onRemove={() => removeFlow(idx)}
+            allowedDomainUrls={[project.prodUrl, project.devUrl]}
           />
         ))}
       </div>
@@ -100,8 +100,6 @@ export default function ProjectFlowsSettings() {
       >
         + Add Flow
       </button>
-
-      <SaveButton onClick={handleSave} saving={saving} saved={saved} />
     </div>
   );
 }

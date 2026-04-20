@@ -4,27 +4,16 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { useSidebar } from "@/components/SidebarProvider";
 import { FlowEditor } from "@/components/FlowEditor";
-import SaveButton from "@/components/SaveButton";
 import { splitIntoSteps } from "@/components/MicroTestImportModal";
 import MicroTestEditor from "@/components/MicroTestEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import CodegenRecorder from "@/components/CodegenRecorder";
+import AccordionSection from "@/components/AccordionSection";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, FlowEntry, MicroTest, TestComposition, TestCompositionStep } from "@/lib/types";
+import { resolveProjectPath } from "@/lib/url-utils";
 
-function normalizePath(input: string): string {
-  let p = input.trim();
-  if (!p) return "";
-  try {
-    const parsed = new URL(p);
-    if (parsed.hostname) {
-      p = parsed.pathname + parsed.search + parsed.hash;
-    }
-  } catch {
-    // Not a full URL — treat as a path
-  }
-  if (!p.startsWith("/")) p = `/${p}`;
-  return p;
-}
+type AccordionKey = "pages" | "flow" | "settings";
 
 export default function ProjectTestsSettings() {
   const params = useParams<{ id: string }>();
@@ -39,9 +28,18 @@ export default function ProjectTestsSettings() {
   // Pages state
   const [paths, setPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState("");
+  const [pathError, setPathError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
+  const pathInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Accordion state — one section open at a time. Defaults to "pages".
+  const [openSection, setOpenSection] = useState<AccordionKey | null>("pages");
+
+  // Name inline-edit state. Click the heading to enter edit mode.
+  const [editingName, setEditingName] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   // Flows state (legacy)
   const [flows, setFlows] = useState<FlowEntry[]>([]);
@@ -63,10 +61,6 @@ export default function ProjectTestsSettings() {
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
 
-  // Save state
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
   useEffect(() => {
     fetch(`/api/projects/${params.id}`)
       .then((r) => r.json())
@@ -82,38 +76,84 @@ export default function ProjectTestsSettings() {
       });
   }, [params.id]);
 
+  // Snapshot of last-saved field values. Used by the autosave effect to skip
+  // firing when incoming state matches what the server already has (e.g.
+  // right after loading a test).
+  const lastSavedSnapshotRef = useRef<string>("");
+  // Which testId has already been hydrated into local state. Guards the load
+  // effect from clobbering in-progress user edits after a save-triggered
+  // setProject() replaces the project reference.
+  const loadedTestIdRef = useRef<string | null>(null);
+
   // Sync all fields when selected test changes
   useEffect(() => {
     if (!project || !selectedTestId) return;
+    if (loadedTestIdRef.current === selectedTestId) return;
     const test = project.tests?.find((t) => t.id === selectedTestId);
     if (test) {
+      loadedTestIdRef.current = selectedTestId;
+      const pagesFromTest = test.pages.map((pg) => pg.path);
+      const bps = test.breakpoints?.length
+        ? test.breakpoints
+        : project.breakpoints?.length
+          ? project.breakpoints
+          : [...BREAKPOINTS];
+      const variantsFromTest = test.variants?.length
+        ? test.variants.map((v) => v.id)
+        : (project.variants || []).map((v) => v.id);
+      const compositionFromTest = test.compositions?.[0] ?? null;
+      const flowsFromTest = test.flows || [];
+
       setTestName(test.name);
-      setPaths(test.pages.map((pg) => pg.path));
-      setFlows(test.flows || []);
-      // Use first composition or null
-      setComposition(test.compositions?.[0] ?? null);
-      setBreakpoints(
-        test.breakpoints?.length
-          ? test.breakpoints
-          : project.breakpoints?.length
-            ? project.breakpoints
-            : [...BREAKPOINTS]
-      );
-      setSelectedVariants(
-        test.variants?.length
-          ? test.variants.map((v) => v.id)
-          : (project.variants || []).map((v) => v.id)
-      );
+      setPaths(pagesFromTest);
+      setFlows(flowsFromTest);
+      setComposition(compositionFromTest);
+      setBreakpoints(bps);
+      setSelectedVariants(variantsFromTest);
       // Reset import/editing state
       setImportCode("");
       setImportError(null);
       setEditingStepMicroTestId(null);
       setAddingNewStep(false);
+
+      // Seed the snapshot so the autosave effect doesn't fire on load.
+      lastSavedSnapshotRef.current = JSON.stringify({
+        testName: test.name,
+        paths: pagesFromTest,
+        flows: flowsFromTest,
+        composition: compositionFromTest,
+        breakpoints: bps,
+        selectedVariants: variantsFromTest,
+      });
     }
   }, [project, selectedTestId]);
 
   const tests = project?.tests || [];
   const selectedTest = tests.find((t) => t.id === selectedTestId);
+
+  // Autosave — debounce 500ms after the last edit. Skips when the snapshot
+  // matches what we last wrote (e.g. immediately after loading a test).
+  // handleSaveRef is assigned below so this effect can call the current
+  // version without forcing the effect to depend on handleSave's identity.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleSaveRef = useRef<() => Promise<void>>(undefined as any);
+  useEffect(() => {
+    if (!selectedTestId) return;
+    const snapshot = JSON.stringify({
+      testName,
+      paths,
+      flows,
+      composition,
+      breakpoints,
+      selectedVariants,
+    });
+    if (snapshot === lastSavedSnapshotRef.current) return;
+    const timer = setTimeout(async () => {
+      await handleSaveRef.current?.();
+      lastSavedSnapshotRef.current = snapshot;
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [testName, paths, flows, composition, breakpoints, selectedVariants, selectedTestId]);
 
   const addTest = async () => {
     if (!project) return;
@@ -144,11 +184,19 @@ export default function ProjectTestsSettings() {
 
   // Pages handlers
   const handleAddPath = () => {
-    const p = normalizePath(newPath);
-    if (p && !paths.includes(p)) {
-      setPaths([...paths, p]);
-      setNewPath("");
+    const allowed = project ? [project.prodUrl, project.devUrl] : [];
+    const result = resolveProjectPath(newPath, allowed);
+    if (!result.ok) {
+      setPathError(result.error);
+      return;
     }
+    if (paths.includes(result.path)) {
+      setPathError(`"${result.path}" is already in this test.`);
+      return;
+    }
+    setPaths([...paths, result.path]);
+    setNewPath("");
+    setPathError(null);
   };
 
   const handleRemovePath = (path: string) => {
@@ -312,11 +360,10 @@ export default function ProjectTestsSettings() {
     setComposition(null);
   };
 
-  // Save all fields for the selected test
+  // Save all fields for the selected test. Called directly by autosave;
+  // no UI spinner needed since saves are invisible to the user.
   const handleSave = async () => {
     if (!project || !selectedTestId || !selectedTest) return;
-    setSaving(true);
-    setSaved(false);
 
     const existingByPath = new Map(selectedTest.pages.map((p) => [p.path, p]));
     const updatedPages = paths.map((path) => {
@@ -349,11 +396,12 @@ export default function ProjectTestsSettings() {
       setProject(updated);
       setMicroTests(updated.microTests ?? []);
       refreshProjects();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
     }
-    setSaving(false);
   };
+
+  // Keep the ref pointing at the current handleSave closure so the autosave
+  // effect always invokes the latest version.
+  handleSaveRef.current = handleSave;
 
   if (!project) {
     return (
@@ -365,7 +413,20 @@ export default function ProjectTestsSettings() {
 
   if (tests.length === 0) {
     return (
-      <p className="text-[14px] text-text-muted">No tests yet. Run a test from the report view to get started.</p>
+      <div className="flex flex-col items-start gap-[16px]">
+        <div>
+          <h2 className="mb-[4px] text-[18px] font-bold text-foreground">Create your first test</h2>
+          <p className="text-[14px] text-text-muted">
+            Tests define which pages and flows to compare between production and dev. You can add pages and flows after creation.
+          </p>
+        </div>
+        <button
+          onClick={addTest}
+          className="rounded-[8px] bg-foreground px-[20px] py-[10px] text-[14px] font-bold text-surface-content transition-all hover:-translate-y-[1px] hover:shadow-elevation-md"
+        >
+          + New Test
+        </button>
+      </div>
     );
   }
 
@@ -429,34 +490,76 @@ export default function ProjectTestsSettings() {
       <div className="flex-1 pl-[24px] max-w-[560px]">
         {selectedTest && (
           <>
-            {/* Test name */}
-            <section className="mb-[32px]">
-              <label className="mb-[4px] block text-[14px] text-foreground">
-                Test Name
-              </label>
-              <input
-                type="text"
-                value={testName}
-                onChange={(e) => setTestName(e.target.value)}
-                className="w-full rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[10px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
-              />
-            </section>
+            {/* Test name — heading with inline edit on click. Autosave
+                persists the rename; Enter/Escape/blur simply exit edit mode. */}
+            <div className="mb-[16px]">
+              {editingName ? (
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={testName}
+                  onChange={(e) => setTestName(e.target.value)}
+                  onFocus={(e) => {
+                    if (e.target.value === "New Test") e.target.select();
+                  }}
+                  onBlur={() => setEditingName(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === "Escape") {
+                      setEditingName(false);
+                    }
+                  }}
+                  autoFocus
+                  className="w-full border-b border-border-primary bg-transparent pb-[4px] text-[28px] font-bold text-foreground outline-none transition-colors focus:border-foreground"
+                />
+              ) : (
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="group flex items-center gap-[8px] text-left"
+                >
+                  <h1 className="text-[28px] font-bold text-foreground">
+                    {testName || "Untitled Test"}
+                  </h1>
+                  <span className="opacity-0 transition-opacity group-hover:opacity-60">
+                    <PencilIcon />
+                  </span>
+                </button>
+              )}
+            </div>
 
-            {/* Pages section */}
-            <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[14px] text-foreground">Pages</h2>
+            {/* Pages accordion */}
+            <AccordionSection
+              label="Pages"
+              count={paths.length}
+              open={openSection === "pages"}
+              onToggle={() => {
+                const willOpen = openSection !== "pages";
+                setOpenSection(willOpen ? "pages" : null);
+                if (willOpen) {
+                  // Deferred to next frame so the input exists in the DOM.
+                  requestAnimationFrame(() => pathInputRef.current?.focus());
+                }
+              }}
+            >
               <p className="mb-[16px] text-[14px] text-text-muted">
                 URL paths to capture during each scan.
               </p>
 
-              <div className="mb-[16px] flex gap-[8px]">
+              <div className="mb-[4px] flex gap-[8px]">
                 <input
+                  ref={pathInputRef}
                   type="text"
                   value={newPath}
-                  onChange={(e) => setNewPath(e.target.value)}
+                  onChange={(e) => {
+                    setNewPath(e.target.value);
+                    if (pathError) setPathError(null);
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && handleAddPath()}
-                  placeholder="/about"
-                  className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted focus:border-foreground"
+                  placeholder="Enter page url"
+                  className={`flex-1 rounded-[8px] border bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none transition-colors placeholder:text-text-muted ${
+                    pathError
+                      ? "border-status-error focus:border-status-error"
+                      : "border-border-primary focus:border-foreground"
+                  }`}
                 />
                 <button
                   onClick={handleAddPath}
@@ -465,6 +568,10 @@ export default function ProjectTestsSettings() {
                   Add
                 </button>
               </div>
+              {pathError && (
+                <p className="mb-[12px] text-[13px] text-status-error">{pathError}</p>
+              )}
+              {!pathError && <div className="mb-[16px]" />}
 
               <div>
                 {paths.map((p, i) => (
@@ -475,7 +582,7 @@ export default function ProjectTestsSettings() {
                     onDragEnter={() => handleDragEnter(i)}
                     onDragOver={(e) => e.preventDefault()}
                     onDragEnd={handleDragEnd}
-                    className={`flex items-center justify-between border-b border-border-primary py-[8px] text-[14px] text-foreground transition-colors ${
+                    className={`flex items-center justify-between rounded-[6px] py-[8px] text-[14px] text-foreground transition-colors ${
                       dragOverIndex === i ? "bg-foreground/[0.03]" : ""
                     }`}
                   >
@@ -499,53 +606,16 @@ export default function ProjectTestsSettings() {
                     </button>
                   </div>
                 ))}
-                {paths.length === 0 && (
-                  <p className="py-[16px] text-center text-[13px] text-text-muted">
-                    Add at least one page path.
-                  </p>
-                )}
               </div>
-            </section>
+            </AccordionSection>
 
-            {/* Breakpoints */}
-            <section className="mb-[32px]">
-              <BreakpointEditor
-                breakpoints={breakpoints}
-                onChange={setBreakpoints}
-              />
-            </section>
-
-            {/* Variants */}
-            <section className="mb-[32px]">
-              <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
-              <div className="flex gap-[16px]">
-                {BUILT_IN_VARIANTS.map((v) => (
-                  <label
-                    key={v.id}
-                    className="flex items-center gap-[8px] text-[14px] text-foreground"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedVariants.includes(v.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedVariants([...selectedVariants, v.id]);
-                        } else {
-                          setSelectedVariants(selectedVariants.filter((id) => id !== v.id));
-                        }
-                      }}
-                      className="h-[16px] w-[16px]"
-                    />
-                    {v.label}
-                  </label>
-                ))}
-              </div>
-            </section>
-
-            {/* Flow section */}
-            <section className="mb-[32px]">
-              <h2 className="mb-[8px] text-[14px] text-foreground">Flow</h2>
-
+            {/* Flow accordion */}
+            <AccordionSection
+              label="Flow"
+              count={composition?.steps.length ?? 0}
+              open={openSection === "flow"}
+              onToggle={() => setOpenSection(openSection === "flow" ? null : "flow")}
+            >
               {composition && composition.steps.length > 0 ? (
                 <>
                   {/* Steps list */}
@@ -651,12 +721,19 @@ export default function ProjectTestsSettings() {
                       <li>Use AI (Claude, ChatGPT) to clean up the codegen output — replace fragile selectors, add waits</li>
                       <li>Replace hardcoded values with dynamic ones (e.g. random email for signup)</li>
                     </ul>
-                    <div className="mt-[8px] flex gap-[8px]">
+                    <div className="mt-[8px] flex flex-wrap items-center gap-[8px]">
+                      <CodegenRecorder
+                        defaultUrl={project?.prodUrl ?? ""}
+                        onScriptCaptured={(script) => {
+                          setImportCode(script);
+                          setImportError(null);
+                        }}
+                      />
                       <button
-                        onClick={() => navigator.clipboard.writeText("npx playwright codegen https://your-site.com")}
+                        onClick={() => navigator.clipboard.writeText(`npx playwright codegen ${project?.prodUrl ?? "https://your-site.com"}`)}
                         className="rounded-[6px] bg-surface-tertiary px-[8px] py-[3px] text-[11px] font-mono text-foreground transition-colors hover:bg-foreground/10"
                       >
-                        npx playwright codegen https://your-site.com
+                        npx playwright codegen {project?.prodUrl ?? "https://your-site.com"}
                         <span className="ml-[4px] text-text-muted">📋</span>
                       </button>
                     </div>
@@ -717,7 +794,46 @@ export default function ProjectTestsSettings() {
                   )}
                 </div>
               )}
-            </section>
+            </AccordionSection>
+
+            {/* Settings accordion (Breakpoints + Variants) */}
+            <AccordionSection
+              label="Settings"
+              open={openSection === "settings"}
+              onToggle={() => setOpenSection(openSection === "settings" ? null : "settings")}
+            >
+              <div className="mb-[24px]">
+                <BreakpointEditor
+                  breakpoints={breakpoints}
+                  onChange={setBreakpoints}
+                />
+              </div>
+              <div>
+                <p className="mb-[8px] text-[14px] text-foreground">Variants</p>
+              <div className="flex gap-[16px]">
+                {BUILT_IN_VARIANTS.map((v) => (
+                  <label
+                    key={v.id}
+                    className="flex items-center gap-[8px] text-[14px] text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedVariants.includes(v.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedVariants([...selectedVariants, v.id]);
+                        } else {
+                          setSelectedVariants(selectedVariants.filter((id) => id !== v.id));
+                        }
+                      }}
+                      className="h-[16px] w-[16px]"
+                    />
+                    {v.label}
+                  </label>
+                ))}
+              </div>
+              </div>
+            </AccordionSection>
 
             {/* Legacy flows section */}
             {flows.length > 0 && (
@@ -734,18 +850,33 @@ export default function ProjectTestsSettings() {
                       flow={flow}
                       onChange={(updated) => updateFlow(idx, updated)}
                       onRemove={() => removeFlow(idx)}
+                      allowedDomainUrls={project ? [project.prodUrl, project.devUrl] : []}
                     />
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Save */}
-            <SaveButton onClick={handleSave} saving={saving} saved={saved} />
+            {/* Autosave — no manual Save button. Edits persist 500ms after
+                the last change via the effect above. */}
           </>
         )}
       </div>
     </div>
     </>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

@@ -28,7 +28,7 @@ export default function SignInPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-primary">
       <div className="flex flex-col items-center gap-[32px]">
         <div className="text-center">
-          <h1 className="text-[48px] font-bold text-foreground">OHSEE</h1>
+          <h1 className="text-[48px] font-bold text-foreground">Ohsee</h1>
           <p className="mt-[8px] text-[16px] text-text-muted">
             Visual regression testing
           </p>

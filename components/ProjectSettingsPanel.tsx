@@ -471,6 +471,7 @@ export default function ProjectSettingsPanel({ projectId, onClose, initialTab = 
                               flow={flow}
                               onChange={(updated) => { updateFlow(idx, updated); setTimeout(saveTestEdits, 50); }}
                               onRemove={() => { removeFlow(idx); setTimeout(saveTestEdits, 50); }}
+                              allowedDomainUrls={project ? [project.prodUrl, project.devUrl] : []}
                             />
                           ))}
                         </div>

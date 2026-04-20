@@ -6,11 +6,12 @@ import Link from "next/link";
 import BreakpointTabs from "@/components/BreakpointTabs";
 import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
-import { useSidebar } from "@/components/SidebarProvider";
+import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
 import { reportDotColor } from "@/lib/colors";
 import PageDetailPanel from "@/components/PageDetailPanel";
+import { trackReportCompletion } from "@/lib/electron";
 
 function getDomain(url: string): string {
   try {
@@ -36,6 +37,13 @@ function ReportPageInner() {
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
   const activePageId = searchParams.get("page") || null;
+
+  const titleLabel = project
+    ? siteTest
+      ? `${project.name || getDomain(project.prodUrl)} / ${siteTest.name}`
+      : project.name || getDomain(project.prodUrl)
+    : null;
+  usePageTitle(titleLabel);
 
   const loadReport = async () => {
     const res = await fetch(`/api/reports/${params.reportId}`);
@@ -71,12 +79,18 @@ function ReportPageInner() {
       const res = await fetch(`/api/reports/${params.reportId}`);
       if (res.ok) {
         const r = await res.json();
-        setReport(r);
+        setReport((prev) => {
+          // Status changed out of "running" → tell the sidebar so dots/times update.
+          if (prev?.status === "running" && r.status !== "running") {
+            refreshProjects();
+          }
+          return r;
+        });
         if (r.status !== "running") clearInterval(interval);
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [params.reportId]);
+  }, [params.reportId, refreshProjects]);
 
   const handleBpChange = (bp: number) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -126,6 +140,7 @@ function ReportPageInner() {
     const res = await fetch(url, { method: "POST" });
     if (res.ok) {
       const { reportId } = await res.json();
+      trackReportCompletion(reportId, project.name || getDomain(project.prodUrl));
       refreshProjects();
       router.push(`/reports/${reportId}`);
     }
@@ -194,14 +209,16 @@ function ReportPageInner() {
     return [...bpSet].sort((a, b) => a - b);
   })();
 
-  // Sum change counts per breakpoint across all pages (variant-aware)
+  // Sum structural change counts per breakpoint across all pages (variant-aware).
+  // Pixel-only differences do not count — the dots track semantic changes so
+  // listing and detail views agree.
   const bpChangeCounts: Record<string, number> = {};
   for (const page of report.pages) {
     const bpData = activeVariant && page.variants?.[activeVariant]
       ? page.variants[activeVariant]
       : page.breakpoints;
     for (const [bp, result] of Object.entries(bpData)) {
-      bpChangeCounts[bp] = (bpChangeCounts[bp] || 0) + (result.changeCount || 0);
+      bpChangeCounts[bp] = (bpChangeCounts[bp] || 0) + (result.semanticChanges?.length ?? 0);
     }
   }
 
@@ -336,7 +353,7 @@ function ReportPageInner() {
         {/* Status messages below title row */}
         {report.status === "cancelled" && (
           <div className="mx-[32px] mb-[12px] rounded-[8px] border border-border-primary bg-surface-tertiary p-[16px]">
-            <p className="text-[13px] text-text-muted">Report was cancelled.</p>
+            <p className="text-[13px] text-text-muted">This report was cancelled by the user.</p>
           </div>
         )}
         {report.status === "failed" && (
@@ -387,7 +404,7 @@ function ReportPageInner() {
 
           const renderPageCard = (page: ReportPage, index: number) => {
             const bpResult = getPageBp(page, String(activeBp));
-            const changeCount = bpResult?.changeCount || 0;
+            const changeCount = bpResult?.semanticChanges?.length ?? 0;
             const hasScreenshot = !!bpResult?.prodScreenshot;
             const diffSrc = bpResult?.diffScreenshot
               ? `/api/screenshots/${bpResult.diffScreenshot}`
@@ -400,12 +417,13 @@ function ReportPageInner() {
                 className="flex flex-col gap-[8px] rounded-[8px] bg-surface-primary p-[8px] text-left shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.03)] transition-all hover:shadow-elevation-md hover:-translate-y-[1px] active:scale-[0.97] animate-card-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[4px] bg-surface-tertiary">
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[4px] bg-surface-tertiary flex justify-center">
                   {diffSrc ? (
                     <img
                       src={diffSrc}
                       alt={page.stepLabel || page.path}
-                      className="absolute inset-0 h-full w-full object-contain object-top"
+                      className="h-full object-cover object-top"
+                      style={{ maxWidth: activeBp, width: '100%' }}
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-surface-tertiary text-[12px] text-text-subtle">

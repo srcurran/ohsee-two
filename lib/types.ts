@@ -54,6 +54,8 @@ export interface UserSettings {
   projectOrder?: string[];
   /** Default variants for new projects */
   defaultVariants?: string[];
+  /** Whether to show a native notification when a report run completes. */
+  alertNotifications?: boolean;
 }
 
 export interface PageEntry {

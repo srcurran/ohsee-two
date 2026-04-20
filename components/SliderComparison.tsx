@@ -92,11 +92,13 @@ export default function SliderComparison({
 
 function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
   const [pressed, setPressed] = useState(false);
-  const showingDev = forceDev || pressed;
+  // When Dev is locked, a tap should reveal Prod (inverse). XOR gives both:
+  // locked-on-Prod press → show Dev; locked-on-Dev press → show Prod.
+  const showingDev = forceDev ? !pressed : pressed;
 
   const updatePressed = (val: boolean) => {
     setPressed(val);
-    onPressedChange?.(forceDev || val);
+    onPressedChange?.(forceDev ? !val : val);
   };
 
   return (

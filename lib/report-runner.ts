@@ -60,11 +60,22 @@ class ReportCancelledError extends Error {
   }
 }
 
+export type RunReportOptions = {
+  /** Fired after the run reaches a terminal state (completed, cancelled, or failed). */
+  onComplete?: (report: Report) => void;
+};
+
 /**
  * Run a visual regression report.
  * If `siteTest` is provided, pages/flows come from it. Otherwise falls back to project-level pages/flows (legacy).
  */
-export async function runReport(project: Project, reportId: string, userId: string, siteTest?: SiteTest): Promise<void> {
+export async function runReport(
+  project: Project,
+  reportId: string,
+  userId: string,
+  siteTest?: SiteTest,
+  options?: RunReportOptions,
+): Promise<void> {
   const controller = new AbortController();
   runningReports.set(reportId, controller);
   reportProjectMap.set(reportId, project.id);
@@ -405,6 +416,13 @@ export async function runReport(project: Project, reportId: string, userId: stri
   } finally {
     runningReports.delete(reportId);
     reportProjectMap.delete(reportId);
+    if (options?.onComplete) {
+      try {
+        options.onComplete(report);
+      } catch (err) {
+        console.error("runReport onComplete callback threw:", err);
+      }
+    }
   }
 }
 

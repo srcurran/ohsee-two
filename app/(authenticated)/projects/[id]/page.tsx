@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSidebar } from "@/components/SidebarProvider";
+import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import type { Project, Report } from "@/lib/types";
+import { trackReportCompletion } from "@/lib/electron";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -40,11 +41,17 @@ export default function ProjectPage() {
     });
     if (res.ok) {
       const { reportId } = await res.json();
+      trackReportCompletion(reportId, displayName ?? "Audit");
       refreshProjects();
       router.push(`/reports/${reportId}`);
     }
     setRunning(false);
   };
+
+  const displayName = project
+    ? project.name || project.prodUrl.replace(/^https?:\/\//, "").replace(/^www\./, "")
+    : null;
+  usePageTitle(displayName);
 
   if (!project) {
     return (
@@ -53,8 +60,6 @@ export default function ProjectPage() {
       </div>
     );
   }
-
-  const displayName = project.name || project.prodUrl.replace(/^https?:\/\//, "").replace(/^www\./, "");
 
   return (
     <>

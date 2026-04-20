@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import SaveButton from "@/components/SaveButton";
 import { useSidebar } from "@/components/SidebarProvider";
 import type { Project } from "@/lib/types";
 
@@ -21,8 +20,7 @@ export default function ProjectGeneralSettings() {
   const [name, setName] = useState("");
   const [prodUrl, setProdUrl] = useState("");
   const [devUrl, setDevUrl] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const lastSavedSnapshot = useRef<string>("");
 
   useEffect(() => {
     fetch(`/api/projects/${params.id}`)
@@ -32,33 +30,38 @@ export default function ProjectGeneralSettings() {
         setName(p.name || "");
         setProdUrl(p.prodUrl);
         setDevUrl(p.devUrl);
+        lastSavedSnapshot.current = JSON.stringify({
+          name: p.name || "",
+          prodUrl: p.prodUrl,
+          devUrl: p.devUrl,
+        });
       });
   }, [params.id]);
 
-  const handleSave = async () => {
+  // Autosave 500ms after the last edit. Skips the initial hydration and any
+  // state where required fields are missing.
+  useEffect(() => {
     if (!project || !prodUrl || !devUrl) return;
-    setSaving(true);
-    setSaved(false);
-
-    const body = {
-      name: name.trim() || undefined,
-      prodUrl: prodUrl.replace(/\/$/, ""),
-      devUrl: devUrl.replace(/\/$/, ""),
-    };
-
-    const res = await fetch(`/api/projects/${project.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (res.ok) {
-      refreshProjects();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }
-    setSaving(false);
-  };
+    const snapshot = JSON.stringify({ name, prodUrl, devUrl });
+    if (snapshot === lastSavedSnapshot.current) return;
+    const timer = setTimeout(async () => {
+      const body = {
+        name: name.trim() || undefined,
+        prodUrl: prodUrl.replace(/\/$/, ""),
+        devUrl: devUrl.replace(/\/$/, ""),
+      };
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        lastSavedSnapshot.current = snapshot;
+        refreshProjects();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [name, prodUrl, devUrl, project, refreshProjects]);
 
   if (!project) {
     return (
@@ -116,8 +119,7 @@ export default function ProjectGeneralSettings() {
           />
         </div>
 
-        {/* Save */}
-        <SaveButton onClick={handleSave} saving={saving} saved={saved} disabled={!prodUrl || !devUrl} />
+        {/* Autosave — no manual Save button. */}
       </div>
     </div>
   );

@@ -77,19 +77,33 @@ export default function Home() {
   if (!hasProjects && !loading) {
     return (
       <>
-        <div className="flex h-full flex-col items-center justify-center gap-[24px]">
-          <div className="text-center">
-            <h1 className="text-[24px] font-bold text-foreground">Welcome to OHSEE</h1>
-            <p className="mt-[8px] text-[14px] text-text-muted">
-              Visual regression testing for your websites.
+        <div className="flex h-full items-center justify-center px-[24px]">
+          <div className="flex max-w-[480px] flex-col items-center gap-[24px] text-center">
+            <div className="flex h-[64px] w-[64px] items-center justify-center rounded-[16px] bg-foreground/5">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-foreground/60">
+                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M3 9h18" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="6" cy="7" r="0.5" fill="currentColor" />
+                <circle cx="8" cy="7" r="0.5" fill="currentColor" />
+                <circle cx="10" cy="7" r="0.5" fill="currentColor" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-[28px] font-bold text-foreground">Get started with Ohsee</h1>
+              <p className="mt-[12px] text-[15px] text-text-muted">
+                Ohsee compares screenshots of your production and dev sites to catch visual regressions before they ship.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowNewProject(true)}
+              className="rounded-[12px] bg-foreground px-[28px] py-[12px] text-[15px] font-bold text-surface-content transition-all hover:-translate-y-[1px] hover:shadow-elevation-md"
+            >
+              Create your first project
+            </button>
+            <p className="text-[13px] text-text-muted/70">
+              You&apos;ll add a production URL and a dev or staging URL. Ohsee handles the rest.
             </p>
           </div>
-          <button
-            onClick={() => setShowNewProject(true)}
-            className="rounded-[12px] bg-foreground px-[32px] py-[10px] text-[16px] font-bold text-surface-content transition-all hover:shadow-elevation-md hover:-translate-y-[1px]"
-          >
-            Create your first project
-          </button>
         </div>
 
         {showNewProject && (

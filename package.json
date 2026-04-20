@@ -2,13 +2,55 @@
   "name": "ohsee",
   "version": "0.1.0",
   "private": true,
+  "main": ".electron-out/main.js",
   "scripts": {
     "dev": "next dev --port 4000",
     "build": "next build",
     "start": "next start",
     "start:stable": "next start --port 4001",
     "lint": "eslint",
-    "postinstall": "npx playwright install chromium"
+    "postinstall": "npx playwright install chromium",
+    "electron:build-main": "tsc -p electron/tsconfig.json",
+    "dev:electron-next": "OHSEE_LOCAL_USER_ID=local NEXT_PUBLIC_OHSEE_ELECTRON=true OHSEE_DATA_DIR=./data-electron-dev next dev --port 4000",
+    "electron:dev": "concurrently -k -n next,tsc,electron -c blue,yellow,magenta \"npm run dev:electron-next\" \"npm run electron:build-main -- --watch\" \"wait-on http://127.0.0.1:4000 -t 60000 && wait-on .electron-out/main.js && electron .\"",
+    "electron:build": "NEXT_PUBLIC_OHSEE_ELECTRON=true next build && rm -rf .next/standalone/data .next/standalone/data-electron-dev && rm -rf electron-build && mkdir electron-build && cp -R .next/standalone/. electron-build/ && mkdir -p electron-build/.next/static && cp -R .next/static/. electron-build/.next/static/ && cp -R public/. electron-build/public/ && npm run electron:build-main",
+    "electron:pack": "npm run electron:build && electron-builder --mac --arm64 --config.mac.identity=null"
+  },
+  "build": {
+    "appId": "com.srcurran.ohsee",
+    "productName": "Ohsee",
+    "afterPack": "./scripts/after-pack.js",
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/sharp/**",
+      "**/node_modules/@img/**",
+      "**/node_modules/playwright/**",
+      "**/node_modules/playwright-core/**"
+    ],
+    "files": [
+      ".electron-out/**/*",
+      "node_modules/otpauth/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "electron-build", "to": "app.standalone", "filter": ["**/*"] }
+    ],
+    "extraMetadata": {
+      "main": ".electron-out/main.js"
+    },
+    "directories": {
+      "buildResources": "build",
+      "output": "dist-electron"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": {
+        "target": "dmg",
+        "arch": ["arm64"]
+      },
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    }
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
@@ -19,6 +61,7 @@
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "^0.4.6",
+    "otpauth": "^9.5.0",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.58.2",
     "pngjs": "^7.0.0",
@@ -28,15 +71,20 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "concurrently": "^9.2.1",
+    "electron": "^41.2.1",
+    "electron-builder": "^26.8.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.5"
   }
 }

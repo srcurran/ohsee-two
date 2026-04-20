@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FlowRecorderModal from "@/components/FlowRecorderModal";
 import type { FlowEntry, FlowAction } from "@/lib/types";
+import { resolveProjectPath } from "@/lib/url-utils";
 
 const ACTION_TYPES = ["click", "fill", "wait", "waitForSelector", "navigate"] as const;
 
@@ -51,12 +52,65 @@ function CameraIcon({ active }: { active: boolean }) {
   );
 }
 
+/**
+ * Text input that expects a project-relative path. On blur, rewrites pasted
+ * full URLs down to a path if they match one of `allowedDomainUrls`, or shows
+ * an inline error if the URL is from a foreign domain. Uncontrolled error
+ * state — parent just passes value/onChange like a normal input.
+ */
+function PathInput({
+  value,
+  onChange,
+  placeholder,
+  allowedDomainUrls,
+  className,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+  allowedDomainUrls?: string[];
+  className?: string;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const base =
+    "rounded-[6px] border bg-transparent px-[8px] py-[4px] text-[13px] text-foreground outline-none placeholder:text-text-muted";
+  const variant = error
+    ? "border-status-error focus:border-status-error"
+    : "border-border-primary focus:border-foreground";
+  return (
+    <div className="flex flex-col gap-[4px]">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          if (error) setError(null);
+        }}
+        onBlur={() => {
+          if (!value.trim()) return;
+          const result = resolveProjectPath(value, allowedDomainUrls ?? []);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          if (result.path !== value) onChange(result.path);
+        }}
+        placeholder={placeholder}
+        className={`${base} ${variant} ${className ?? ""}`}
+      />
+      {error && <p className="text-[12px] text-status-error">{error}</p>}
+    </div>
+  );
+}
+
 function StepFields({
   step,
   onChange,
+  allowedDomainUrls,
 }: {
   step: FlowAction;
   onChange: (s: FlowAction) => void;
+  allowedDomainUrls?: string[];
 }) {
   const inputClass =
     "flex-1 rounded-[6px] border border-border-primary bg-transparent px-[8px] py-[4px] text-[13px] text-foreground outline-none placeholder:text-text-muted focus:border-foreground";
@@ -113,12 +167,12 @@ function StepFields({
       );
     case "navigate":
       return (
-        <input
-          type="text"
+        <PathInput
           value={step.path}
-          onChange={(e) => onChange({ ...step, path: e.target.value })}
+          onChange={(next) => onChange({ ...step, path: next })}
           placeholder="/path"
-          className={inputClass}
+          allowedDomainUrls={allowedDomainUrls}
+          className="flex-1"
         />
       );
     case "screenshot":
@@ -139,10 +193,13 @@ export function FlowEditor({
   flow,
   onChange,
   onRemove,
+  allowedDomainUrls,
 }: {
   flow: FlowEntry;
   onChange: (updated: FlowEntry) => void;
   onRemove: () => void;
+  /** Project prodUrl + devUrl, so the start/navigate inputs can validate pasted URLs. */
+  allowedDomainUrls?: string[];
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
@@ -206,12 +263,12 @@ export function FlowEditor({
               placeholder="Flow name"
               className="flex-1 rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none placeholder:text-text-muted focus:border-foreground"
             />
-            <input
-              type="text"
+            <PathInput
               value={flow.startPath}
-              onChange={(e) => onChange({ ...flow, startPath: e.target.value })}
+              onChange={(next) => onChange({ ...flow, startPath: next })}
               placeholder="/start-path"
-              className="w-[200px] rounded-[8px] border border-border-primary bg-transparent px-[12px] py-[8px] text-[14px] text-foreground outline-none placeholder:text-text-muted focus:border-foreground"
+              allowedDomainUrls={allowedDomainUrls}
+              className="w-[200px] px-[12px] py-[8px] text-[14px] rounded-[8px]"
             />
           </div>
 
@@ -236,7 +293,11 @@ export function FlowEditor({
 
                 {/* Step fields */}
                 <div className="flex flex-1 gap-[8px]">
-                  <StepFields step={step} onChange={(s) => updateStep(idx, s)} />
+                  <StepFields
+                    step={step}
+                    onChange={(s) => updateStep(idx, s)}
+                    allowedDomainUrls={allowedDomainUrls}
+                  />
                 </div>
 
                 {/* Screenshot toggle */}

@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const pageRes = await fetch(`https://${domain}`, {
       redirect: "follow",
       signal: AbortSignal.timeout(5000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; OHSEE/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Ohsee/1.0)" },
     });
 
     if (pageRes.ok) {
@@ -58,7 +58,7 @@ async function tryFetchImage(url: string): Promise<Response | null> {
     const res = await fetch(url, {
       redirect: "follow",
       signal: AbortSignal.timeout(3000),
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; OHSEE/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Ohsee/1.0)" },
     });
 
     if (res.ok) {
