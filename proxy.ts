@@ -33,5 +33,8 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
+  // Exclude ALL of /_next (not just static/image) so middleware stays off
+  // the webpack-hmr WebSocket upgrade — Next 16.2 is strict about that and
+  // will fail the handshake with ERR_INVALID_HTTP_RESPONSE otherwise.
+  matcher: ["/((?!_next|favicon.ico|.*\\.png$).*)"],
 };

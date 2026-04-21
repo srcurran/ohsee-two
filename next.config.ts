@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: "bottom-right",
   },
+  // Electron's renderer loads the dev server via http://127.0.0.1 (see
+  // electron/main.ts), but Next 16 only allows `localhost` by default and
+  // returns 403 for cross-origin `/_next/*` requests — blocking the JS
+  // bundles and HMR WebSocket, which leaves the page frozen on the SSR'd
+  // placeholder. Allow the loopback IP too.
+  allowedDevOrigins: ["127.0.0.1"],
   // Standalone output bundles the minimal server needed to run `next start`
   // so Electron can spawn it directly from inside the packaged .app.
   // No-op for `next dev` and normal `next start`.
