@@ -17,6 +17,8 @@ export interface SiteTest {
   breakpoints?: number[];
   /** Optional theme/variant captures (e.g., light + dark) */
   variants?: TestVariant[];
+  /** Soft-deleted / hidden from sidebar; restorable from project Danger Zone. */
+  archived?: boolean;
   createdAt: string;
   lastRunAt: string | null;
 }
@@ -140,6 +142,10 @@ export interface BreakpointResult {
   diffScreenshot: string;
   alignedProdScreenshot?: string;
   alignedDevScreenshot?: string;
+  /** Actual URL Playwright was on when the prod screenshot was taken (post-redirects, post-flow-navigation). */
+  prodUrl?: string;
+  /** Actual URL Playwright was on when the dev screenshot was taken. */
+  devUrl?: string;
   changeCount: number;
   totalPixels: number;
   changePercentage: number;

@@ -1,0 +1,95 @@
+/* MaterialField — label-above-value form control. The shell is a
+   bordered pill; the label is small/muted; the input is the dominant
+   element; a trailing slot holds a status icon (or custom content). */
+
+.material-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+
+  &__shell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    background: transparent;
+    transition: var(--transition-colors);
+
+    &:focus-within {
+      border-color: var(--foreground);
+    }
+
+    &--valid {
+      border-color: var(--accent-green);
+    }
+
+    &--invalid {
+      border-color: var(--severity-error);
+    }
+  }
+
+  &__main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__label {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    line-height: 1.2;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  &__input {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: var(--font-size-lg);
+    line-height: 1.4;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+  }
+
+  &__trailing {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  &__icon {
+    display: block;
+
+    &--success {
+      color: var(--accent-green);
+    }
+
+    &--error {
+      color: var(--severity-error);
+    }
+  }
+
+  &__caption {
+    margin: 0;
+    padding-inline: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+
+    &--error {
+      color: var(--severity-error);
+    }
+  }
+}

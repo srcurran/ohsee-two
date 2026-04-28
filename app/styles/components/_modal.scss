@@ -71,26 +71,41 @@
   max-width: 520px;
   background: var(--surface-content);
   border-radius: var(--radius-lg);
-  padding: var(--space-7) var(--space-7) var(--space-6);
+  padding: var(--space-7);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
 
   &__eyebrow {
     margin: 0;
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid color-mix(in srgb, var(--severity-error) 30%, transparent);
     font-size: var(--font-size-sm);
     font-weight: var(--weight-semibold);
     color: var(--severity-error);
   }
 
+  &__icon {
+    color: var(--severity-error);
+    flex-shrink: 0;
+  }
+
   &__title {
-    margin: var(--space-2) 0 0 0;
-    font-size: var(--font-size-3xl);
+    margin: var(--space-3) 0 var(--space-5);
+    font-size: var(--font-size-4xl);
     font-weight: var(--weight-bold);
     color: var(--foreground);
     line-height: var(--line-tight);
+  }
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
   }
 
   &__body {
@@ -102,9 +117,9 @@
 
   &__hint {
     margin: 0;
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-base);
     line-height: var(--line-base);
-    color: var(--text-secondary);
+    color: var(--foreground);
 
     a {
       color: var(--foreground);
@@ -116,7 +131,7 @@
   &__actions {
     display: flex;
     justify-content: flex-end;
-    margin-top: var(--space-3);
+    margin-top: var(--space-7);
   }
 }
 
@@ -196,4 +211,222 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
+}
+/* ProjectSettingsOverlay — centered modal-style panel anchored to the
+   active window. Width follows the figma (640px); accordion-style danger
+   zone with archive + archived-tests list. */
+
+.project-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8vh;
+  padding-bottom: var(--space-8);
+  background: var(--overlay-backdrop-light);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-standard);
+
+  &--visible {
+    opacity: 1;
+  }
+
+  &--exiting {
+    opacity: 0;
+  }
+
+  &__panel {
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow: auto;
+    background: var(--surface-content);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--elevation-lg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-7) var(--space-7) var(--space-5);
+  }
+
+  &__title-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: text;
+    color: var(--foreground);
+    border-radius: var(--radius-sm);
+
+    &:hover .project-settings-overlay__title-icon {
+      opacity: 1;
+    }
+  }
+
+  &__title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--weight-bold);
+    line-height: var(--line-tight);
+  }
+
+  &__title-icon {
+    color: var(--text-muted);
+    opacity: 0.5;
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
+
+  &__title-input {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--weight-bold);
+    line-height: var(--line-tight);
+    border-bottom: 1px solid var(--foreground);
+  }
+
+  &__close {
+    flex-shrink: 0;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 0 var(--space-7) var(--space-7);
+  }
+
+  &__divider {
+    border: none;
+    border-top: 1px solid var(--border-primary);
+    margin: var(--space-4) 0 var(--space-1);
+  }
+
+  &__danger-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: var(--space-3) 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+
+    &:hover {
+      color: var(--foreground);
+    }
+  }
+
+  &__section-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+  }
+
+  &__danger-glyph {
+    font-size: var(--font-size-xl);
+    line-height: 1;
+    color: var(--text-muted);
+  }
+
+  &__danger-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-7);
+    padding-top: var(--space-3);
+  }
+
+  &__danger-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__danger-heading {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+  }
+
+  &__danger-copy {
+    margin: 0 0 var(--space-2) 0;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+  }
+
+  &__empty {
+    margin: 0;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  &__archived-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__archived-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--border-primary);
+
+    &:last-child {
+      border-bottom: 1px solid var(--border-primary);
+    }
+  }
+
+  &__archived-name {
+    font-size: var(--font-size-md);
+    color: var(--foreground);
+  }
+
+  &__archived-actions {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  &__link-action {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--foreground);
+    font-size: var(--font-size-md);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      opacity: 0.7;
+    }
+
+    &--danger {
+      color: var(--severity-error);
+    }
+  }
 }

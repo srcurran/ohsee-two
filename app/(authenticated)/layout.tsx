@@ -1,9 +1,10 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import SidebarProvider from "@/components/SidebarProvider";
+import SidebarProvider, { useSidebar } from "@/components/SidebarProvider";
 import Sidebar from "@/components/Sidebar";
 import SettingsOverlay from "@/components/SettingsOverlay";
+import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
 import TitlebarCollapseButton from "@/components/TitlebarCollapseButton";
 import PageTitleBar from "@/components/PageTitleBar";
 
@@ -27,9 +28,25 @@ export default function AuthenticatedLayout({
           <Sidebar />
           <MainFrame>{children}</MainFrame>
           <SettingsOverlay />
+          <ProjectSettingsHost />
         </SidebarProvider>
       </div>
     </SessionProvider>
+  );
+}
+
+/** Subscribes to projectSettingsId from the sidebar context and mounts
+ *  ProjectSettingsOverlay only while that ID is set. Splitting this out
+ *  keeps useSidebar() out of the layout's outer scope (it lives outside
+ *  SidebarProvider). */
+function ProjectSettingsHost() {
+  const { projectSettingsId, closeProjectSettings } = useSidebar();
+  if (!projectSettingsId) return null;
+  return (
+    <ProjectSettingsOverlay
+      projectId={projectSettingsId}
+      onClose={closeProjectSettings}
+    />
   );
 }
 

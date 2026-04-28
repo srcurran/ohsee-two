@@ -21,6 +21,10 @@ interface SidebarContextValue {
   settingsOpen: boolean;
   openSettings: () => void;
   closeSettings: () => void;
+  /** ID of the project whose settings overlay is open, or null if none. */
+  projectSettingsId: string | null;
+  openProjectSettings: (projectId: string) => void;
+  closeProjectSettings: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -35,6 +39,9 @@ const SidebarContext = createContext<SidebarContextValue>({
   settingsOpen: false,
   openSettings: () => {},
   closeSettings: () => {},
+  projectSettingsId: null,
+  openProjectSettings: () => {},
+  closeProjectSettings: () => {},
 });
 
 export function useSidebar() {
@@ -62,12 +69,15 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [pageTitle, setPageTitleState] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
   const pathname = usePathname();
 
   const refreshProjects = useCallback(() => setRefreshKey((k) => k + 1), []);
   const setPageTitle = useCallback((title: string | null) => setPageTitleState(title), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const openProjectSettings = useCallback((id: string) => setProjectSettingsId(id), []);
+  const closeProjectSettings = useCallback(() => setProjectSettingsId(null), []);
 
   // Hydrate collapsed state from localStorage, then enable transitions
   useEffect(() => {
@@ -116,6 +126,9 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
         settingsOpen,
         openSettings,
         closeSettings,
+        projectSettingsId,
+        openProjectSettings,
+        closeProjectSettings,
       }}
     >
       {children}

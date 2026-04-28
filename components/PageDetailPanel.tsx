@@ -8,8 +8,28 @@ import SliderComparison from "@/components/SliderComparison";
 import ChangeList from "@/components/ChangeList";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
-import type { Report, Project, ReportPage } from "@/lib/types";
+import type { Report, Project, ReportPage, BreakpointResult } from "@/lib/types";
 import { countUniqueSemanticChanges } from "@/lib/change-identity";
+
+/**
+ * Resolve the URL to display for a page. Prefers the URL Playwright actually
+ * captured (persisted on the breakpoint result), falling back to constructing
+ * one from the project base URL + path. Construction only works for normal
+ * pages — flow/composition steps store a label like "Flow > Step" in `path`,
+ * so we leave the URL blank rather than render a broken concatenation.
+ */
+function resolvePageUrl(
+  page: ReportPage,
+  bpResult: BreakpointResult | undefined,
+  baseUrl: string,
+  side: "prod" | "dev",
+): string {
+  const captured = side === "prod" ? bpResult?.prodUrl : bpResult?.devUrl;
+  if (captured) return captured;
+  if (page.flowId) return "";
+  const trimmed = baseUrl.replace(/\/$/, "");
+  return `${trimmed}${page.path === "/" ? "" : page.path}`;
+}
 
 interface Props {
   report: Report;
@@ -292,8 +312,8 @@ export default function PageDetailPanel({
               <div className="page-detail-panel__title-group">
                 <PageTitleMenu
                   label={pageName}
-                  prodUrl={`${project.prodUrl.replace(/\/$/, "")}${currentPage.path === "/" ? "" : currentPage.path}`}
-                  devUrl={`${project.devUrl.replace(/\/$/, "")}${currentPage.path === "/" ? "" : currentPage.path}`}
+                  prodUrl={resolvePageUrl(currentPage, bpResult, project.prodUrl, "prod")}
+                  devUrl={resolvePageUrl(currentPage, bpResult, project.devUrl, "dev")}
                 />
                 <span className={`badge badge--lg ${badgeMod}`}>
                   {bpResult?.prodScreenshot ? totalUniqueChanges : "—"}
@@ -506,26 +526,33 @@ function PageTitleMenu({
         <>
           <div className="dropdown-backdrop" onClick={() => setOpen(false)} />
           <div className="page-title-menu__panel">
-            <a
-              href={prodUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className="page-title-menu__item"
-            >
-              <span className="page-title-menu__kind">Prod</span>
-              <span className="page-title-menu__url">{prodUrl}</span>
-            </a>
-            <a
-              href={devUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className="page-title-menu__item"
-            >
-              <span className="page-title-menu__kind">Dev</span>
-              <span className="page-title-menu__url">{devUrl}</span>
-            </a>
+            {prodUrl && (
+              <a
+                href={prodUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="page-title-menu__item"
+              >
+                <span className="page-title-menu__kind">Prod</span>
+                <span className="page-title-menu__url">{prodUrl}</span>
+              </a>
+            )}
+            {devUrl && (
+              <a
+                href={devUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="page-title-menu__item"
+              >
+                <span className="page-title-menu__kind">Dev</span>
+                <span className="page-title-menu__url">{devUrl}</span>
+              </a>
+            )}
+            {!prodUrl && !devUrl && (
+              <span className="page-title-menu__url">URL unavailable for this step.</span>
+            )}
           </div>
         </>
       )}

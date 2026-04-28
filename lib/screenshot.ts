@@ -8,6 +8,8 @@ import type { AuthCookieConfig } from "./auth-token";
 export interface ScreenshotResult {
   breakpoint: number;
   filePath: string;
+  /** The URL the page actually settled on (after any redirects) when the screenshot was taken. */
+  url: string;
   domSnapshot?: DomSnapshot;
 }
 
@@ -107,15 +109,18 @@ export async function captureScreenshots(options: {
         const filePath = path.join(outputDir, `${prefix}-${bp}.png`);
         await page.screenshot({ fullPage: true, path: filePath });
 
+        // Capture the URL Playwright actually ended up on (after redirects).
+        const capturedUrl = page.url();
+
         // Extract DOM snapshot for semantic diffing
         let domSnapshot: DomSnapshot | undefined;
         try {
-          domSnapshot = await extractDomSnapshot(page, url, bp);
+          domSnapshot = await extractDomSnapshot(page, capturedUrl, bp);
         } catch (err) {
-          console.error(`Failed to extract DOM snapshot for ${url} at ${bp}px:`, err);
+          console.error(`Failed to extract DOM snapshot for ${capturedUrl} at ${bp}px:`, err);
         }
 
-        results.push({ breakpoint: bp, filePath, domSnapshot });
+        results.push({ breakpoint: bp, filePath, url: capturedUrl, domSnapshot });
       } catch (err) {
         console.error(`Failed to capture ${url} at ${bp}px:`, err);
       } finally {

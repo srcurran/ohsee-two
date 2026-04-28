@@ -63,6 +63,8 @@ export interface FlowScreenshotResult {
   label: string;
   breakpoint: number;
   filePath: string;
+  /** The URL Playwright was on at the moment of capture (post-navigation). */
+  url: string;
   domSnapshot?: DomSnapshot;
 }
 
@@ -201,14 +203,16 @@ async function captureStepScreenshot(
   const filePath = path.join(outputDir, `${prefix}-${stepId}-${bp}.png`);
   await page.screenshot({ fullPage: true, path: filePath });
 
+  const capturedUrl = page.url();
+
   let domSnapshot: DomSnapshot | undefined;
   try {
-    domSnapshot = await extractDomSnapshot(page, page.url(), bp);
+    domSnapshot = await extractDomSnapshot(page, capturedUrl, bp);
   } catch (err) {
     console.error(`Flow DOM snapshot failed at step "${label}" ${bp}px:`, err);
   }
 
-  results.push({ stepId, label, breakpoint: bp, filePath, domSnapshot });
+  results.push({ stepId, label, breakpoint: bp, filePath, url: capturedUrl, domSnapshot });
 }
 
 /**

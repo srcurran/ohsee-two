@@ -27,7 +27,7 @@ function ReportPageInner() {
   const params = useParams<{ reportId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects, openProjectSettings } = useSidebar();
   const [report, setReport] = useState<Report | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -186,10 +186,21 @@ function ReportPageInner() {
   }
 
   const projectName = project ? (project.name || getDomain(project.prodUrl)) : "...";
-  const hasMultipleTests = (project?.tests?.length ?? 0) > 1;
-  const displayUrl = hasMultipleTests && siteTest
-    ? `${projectName} › ${siteTest.name}`
-    : projectName;
+  // Two-line header: project sits as a small eyebrow above the bold test
+  // name. Legacy reports without a siteTest fall back to project-as-title.
+  const headerEyebrow = siteTest ? projectName : null;
+  const headerTitle = siteTest?.name ?? projectName;
+  // Test-level reports still route to the legacy combined settings page
+  // (Phase 2 of the redesign brings that into an overlay too); project-level
+  // reports open the new ProjectSettingsOverlay.
+  const openSettings = () => {
+    if (!project) return;
+    if (report?.siteTestId) {
+      router.push(`/projects/${project.id}/settings/tests?testId=${report.siteTestId}`);
+    } else {
+      openProjectSettings(project.id);
+    }
+  };
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
@@ -238,8 +249,29 @@ function ReportPageInner() {
       )}
 
       <div className="report__sticky">
+        {(headerEyebrow || project) && (
+          <div className="report__eyebrow-row">
+            {headerEyebrow && <span className="report__project-label">{headerEyebrow}</span>}
+            {project && (
+              <button
+                onClick={openSettings}
+                className="icon-btn icon-btn--sm"
+                title="Test settings"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="8" cy="6" r="2" fill="currentColor" />
+                  <circle cx="16" cy="12" r="2" fill="currentColor" />
+                  <circle cx="10" cy="18" r="2" fill="currentColor" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="report__title-row">
-          <div className="report__left">
+          <div className="report__title-group">
+            <h1 className="report__title">{headerTitle}</h1>
             {report.status !== "running" ? (
               <button onClick={handleRun} className="run-pill">
                 Run now
@@ -265,10 +297,8 @@ function ReportPageInner() {
             )}
           </div>
 
-          <p className="report__title">{displayUrl}</p>
-
           <div className="report__right">
-            <div style={{ position: "relative" }}>
+            <div className="report__nav-anchor">
               <button
                 onClick={() => setShowReportNav(!showReportNav)}
                 className="report__date-btn"
@@ -280,6 +310,19 @@ function ReportPageInner() {
                   {formatRelativeTime(report.createdAt)}
                 </span>
                 <span className={`status-dot status-dot--${reportDotModifier(report)}`} />
+              </button>
+              <button
+                onClick={() => setShowReportNav(!showReportNav)}
+                className="icon-btn"
+                title="More report runs"
+                aria-haspopup="menu"
+                aria-expanded={showReportNav}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                </svg>
               </button>
               {showReportNav && (
                 <>
@@ -307,25 +350,6 @@ function ReportPageInner() {
                 </>
               )}
             </div>
-
-            {project && (
-              <button
-                onClick={() => router.push(
-                  report?.siteTestId
-                    ? `/projects/${project.id}/settings/tests?testId=${report.siteTestId}`
-                    : `/projects/${project.id}/settings`
-                )}
-                className="icon-btn icon-btn--lg"
-                title="Project settings"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="8" cy="6" r="2" fill="currentColor" />
-                  <circle cx="16" cy="12" r="2" fill="currentColor" />
-                  <circle cx="10" cy="18" r="2" fill="currentColor" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
 
