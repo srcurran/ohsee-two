@@ -32,7 +32,7 @@ function getTestWithLatestReport(test: SiteTest, reports: Report[]) {
 const MAX_VISIBLE_TESTS = 3;
 
 export default function Sidebar() {
-  const { refreshKey, refreshProjects, collapsed, ready, openSettings } = useSidebar();
+  const { refreshKey, refreshProjects, collapsed, ready, openSettings, openTestSettings } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const [data, setData] = useState<ProjectWithReports[]>([]);
@@ -216,7 +216,7 @@ export default function Sidebar() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/projects/${project.id}/settings/tests`);
+                                  openTestSettings(project.id, test.id);
                                 }}
                                 className="sidebar__test-action"
                                 title="Test settings"
@@ -248,7 +248,23 @@ export default function Sidebar() {
                         )}
 
                         <button
-                          onClick={() => router.push(`/projects/${project.id}/settings/tests`)}
+                          onClick={async () => {
+                            // Create a new empty test, then open its
+                            // settings overlay so the user can name it +
+                            // add steps inline.
+                            const res = await fetch(`/api/projects/${project.id}/tests`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ name: "New test" }),
+                            });
+                            if (res.ok) {
+                              const test = await res.json();
+                              refreshProjects();
+                              openTestSettings(project.id, test.id);
+                            } else {
+                              router.push(`/projects/${project.id}/settings/tests`);
+                            }
+                          }}
                           className="sidebar__add-test"
                         >
                           <span>Add new test</span>

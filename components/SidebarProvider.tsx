@@ -25,6 +25,10 @@ interface SidebarContextValue {
   projectSettingsId: string | null;
   openProjectSettings: (projectId: string) => void;
   closeProjectSettings: () => void;
+  /** Project + test ids whose test settings overlay is open. */
+  testSettings: { projectId: string; testId: string } | null;
+  openTestSettings: (projectId: string, testId: string) => void;
+  closeTestSettings: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -42,6 +46,9 @@ const SidebarContext = createContext<SidebarContextValue>({
   projectSettingsId: null,
   openProjectSettings: () => {},
   closeProjectSettings: () => {},
+  testSettings: null,
+  openTestSettings: () => {},
+  closeTestSettings: () => {},
 });
 
 export function useSidebar() {
@@ -70,6 +77,7 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [pageTitle, setPageTitleState] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
+  const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
   const pathname = usePathname();
 
   const refreshProjects = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -78,6 +86,11 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openProjectSettings = useCallback((id: string) => setProjectSettingsId(id), []);
   const closeProjectSettings = useCallback(() => setProjectSettingsId(null), []);
+  const openTestSettings = useCallback(
+    (projectId: string, testId: string) => setTestSettingsState({ projectId, testId }),
+    [],
+  );
+  const closeTestSettings = useCallback(() => setTestSettingsState(null), []);
 
   // Hydrate collapsed state from localStorage, then enable transitions
   useEffect(() => {
@@ -129,6 +142,9 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
         projectSettingsId,
         openProjectSettings,
         closeProjectSettings,
+        testSettings,
+        openTestSettings,
+        closeTestSettings,
       }}
     >
       {children}

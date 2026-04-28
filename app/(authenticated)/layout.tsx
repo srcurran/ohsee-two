@@ -5,6 +5,7 @@ import SidebarProvider, { useSidebar } from "@/components/SidebarProvider";
 import Sidebar from "@/components/Sidebar";
 import SettingsOverlay from "@/components/SettingsOverlay";
 import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
+import TestSettingsOverlay from "@/components/TestSettingsOverlay";
 import TitlebarCollapseButton from "@/components/TitlebarCollapseButton";
 import PageTitleBar from "@/components/PageTitleBar";
 
@@ -29,6 +30,7 @@ export default function AuthenticatedLayout({
           <MainFrame>{children}</MainFrame>
           <SettingsOverlay />
           <ProjectSettingsHost />
+          <TestSettingsHost />
         </SidebarProvider>
       </div>
     </SessionProvider>
@@ -46,6 +48,20 @@ function ProjectSettingsHost() {
     <ProjectSettingsOverlay
       projectId={projectSettingsId}
       onClose={closeProjectSettings}
+    />
+  );
+}
+
+/** Mounts the per-test settings overlay only while a test is selected via
+ *  openTestSettings. Sibling to ProjectSettingsHost. */
+function TestSettingsHost() {
+  const { testSettings, closeTestSettings } = useSidebar();
+  if (!testSettings) return null;
+  return (
+    <TestSettingsOverlay
+      projectId={testSettings.projectId}
+      testId={testSettings.testId}
+      onClose={closeTestSettings}
     />
   );
 }

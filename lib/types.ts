@@ -13,14 +13,55 @@ export interface SiteTest {
   flows: FlowEntry[];
   /** Micro-test compositions (new-style flows using reusable script steps) */
   compositions?: TestComposition[];
+  /** Unified ordered steps (URLs + Playwright micro-tests) — preferred shape
+   *  for new tests. When present, supersedes pages + compositions for both
+   *  the UI and the runner. Lazily derived from pages + compositions on
+   *  first read for legacy tests via lib/test-steps.ts. */
+  steps?: TestStep[];
   /** Breakpoints for this test (uses user/global defaults if omitted) */
   breakpoints?: number[];
   /** Optional theme/variant captures (e.g., light + dark) */
   variants?: TestVariant[];
   /** Soft-deleted / hidden from sidebar; restorable from project Danger Zone. */
   archived?: boolean;
+  /** Per-test auth/credentials configuration. Replaces the project-level
+   *  requiresAuth flag so different tests can target different identities. */
+  credentials?: TestCredentials;
   createdAt: string;
   lastRunAt: string | null;
+}
+
+/**
+ * A single step in a test's unified `steps[]` list. URL steps and microtest
+ * steps share the same shape with a discriminator — under the hood, a URL
+ * step is just a simplified Playwright step (`page.goto(url)`).
+ */
+export interface TestStep {
+  id: string;
+  type: "url" | "microtest";
+  /** Whether to capture a screenshot at the end of this step. Defaults to
+   *  true; set false to use the step purely as a setup/navigation action. */
+  captureScreenshot?: boolean;
+  /** url-step: the absolute or path-relative URL to navigate to. Path-only
+   *  values are resolved against the project's prod/dev base at run time. */
+  url?: string;
+  /** microtest-step: references a MicroTest by id from the project library. */
+  microTestId?: string;
+}
+
+/**
+ * Per-test credentials configuration. Mirrors the project-level requiresAuth
+ * model (mints a NextAuth session cookie via mintSessionCookie) but keyed
+ * per-test so different tests can run as different identities.
+ */
+export interface TestCredentials {
+  /** When true, the runner mints + injects a session cookie before captures. */
+  enabled?: boolean;
+  /** Reuse another test's credentials (shared identity). When set, the
+   *  runner reads that test's credentials instead. */
+  copyFromTestId?: string;
+  /** Optional vault entry id (Electron only) — names a stored identity. */
+  vaultEntryId?: string;
 }
 
 export interface Project {

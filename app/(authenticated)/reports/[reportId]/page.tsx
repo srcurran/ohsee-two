@@ -27,7 +27,7 @@ function ReportPageInner() {
   const params = useParams<{ reportId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshProjects, openProjectSettings } = useSidebar();
+  const { refreshProjects, openProjectSettings, openTestSettings } = useSidebar();
   const [report, setReport] = useState<Report | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -190,13 +190,12 @@ function ReportPageInner() {
   // name. Legacy reports without a siteTest fall back to project-as-title.
   const headerEyebrow = siteTest ? projectName : null;
   const headerTitle = siteTest?.name ?? projectName;
-  // Test-level reports still route to the legacy combined settings page
-  // (Phase 2 of the redesign brings that into an overlay too); project-level
-  // reports open the new ProjectSettingsOverlay.
+  // Both project-level and test-level reports now open overlays. Legacy
+  // reports without a siteTestId open the project settings overlay.
   const openSettings = () => {
     if (!project) return;
     if (report?.siteTestId) {
-      router.push(`/projects/${project.id}/settings/tests?testId=${report.siteTestId}`);
+      openTestSettings(project.id, report.siteTestId);
     } else {
       openProjectSettings(project.id);
     }
