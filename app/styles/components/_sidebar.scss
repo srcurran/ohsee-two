@@ -15,8 +15,11 @@
   padding: var(--space-8) var(--space-4);
 
   &--flat {
-    background: #fafafa;
-    border-right: 1px solid var(--neutral-dark-100);
+    /* Use the off-white surface token so the sidebar flips with the
+     * theme — the previous hardcoded #fafafa stayed near-white in dark
+     * mode and made the white sidebar text unreadable. */
+    background: var(--surface-secondary);
+    border-right: 1px solid var(--border-primary);
     padding-block: 44px var(--space-5);
   }
 

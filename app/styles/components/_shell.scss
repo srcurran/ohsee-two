@@ -185,8 +185,8 @@
     flex-shrink: 0;
     flex-direction: column;
     gap: var(--space-1);
-    border-right: 1px solid var(--neutral-dark-100);
-    background: #fafafa;
+    border-right: 1px solid var(--border-primary);
+    background: var(--surface-secondary);
     padding: var(--space-4);
   }
 

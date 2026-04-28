@@ -148,7 +148,11 @@
   border: none;
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text-subtle);
+  /* Use the dim foreground so the icon is legible without competing with
+   * primary content. --text-subtle (40% in light, 55% in dark) reads as
+   * grey-on-white but blends into dark backgrounds — the dim alias is
+   * deliberately tuned per theme. */
+  color: var(--text-dim);
   cursor: pointer;
   transition: var(--transition-colors);
 
