@@ -4,15 +4,45 @@
   position: relative;
   overflow: auto;
   border: 1px solid var(--border-primary);
+  /* Isolate the stacking context so the overlay's mix-blend-mode only blends
+     against the prod image inside this container, not the page background. */
+  isolation: isolate;
+  /* Click toggles overlay opacity (see `peek` in DiffViewer.tsx). */
+  cursor: pointer;
 
   &__image {
     width: 100%;
+    display: block;
+
+    /* Bottom layer — prod, in normal flow so the container sizes to it. */
+    &--base {
+      position: relative;
+      z-index: 0;
+    }
+
+    /* Top layer — dev, composited as |dev - prod| against the base. Identical
+       pixels render as black; differences render as the color delta and "glow"
+       against that black. Absolutely positioned so it overlays the base
+       without affecting layout. */
+    &--overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      mix-blend-mode: difference;
+      transition: opacity 0.15s var(--ease-standard);
+      pointer-events: none;
+    }
   }
 
   &__marker {
     position: absolute;
     left: 0;
     right: 0;
+    /* Sit above the overlay layer (z-index: 1) so the marker line/label
+       isn't subject to the difference blend. */
+    z-index: 2;
     transition: var(--transition-opacity);
 
     &--highlighted {

@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import type { Project, Report } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
+import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
+import { buildRunErrorDetails } from "@/components/run-error-details";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -12,6 +14,10 @@ export default function ProjectPage() {
   const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [running, setRunning] = useState(false);
+  // Structured run-failure payload (eyebrow / title / body / hint). Built
+  // from the API's `issues` array via describeUrlIssues — see
+  // lib/url-reachability.ts.
+  const [runError, setRunError] = useState<ErrorModalDetails | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -33,6 +39,7 @@ export default function ProjectPage() {
   const hasTests = project && project.tests && project.tests.length > 0;
 
   const handleRun = async () => {
+    setRunError(null);
     setRunning(true);
     const res = await fetch(`/api/projects/${params.id}/reports`, {
       method: "POST",
@@ -42,6 +49,8 @@ export default function ProjectPage() {
       trackReportCompletion(reportId, displayName ?? "Audit");
       refreshProjects();
       router.push(`/reports/${reportId}`);
+    } else {
+      setRunError(buildRunErrorDetails(await res.json().catch(() => null), params.id));
     }
     setRunning(false);
   };
@@ -90,6 +99,7 @@ export default function ProjectPage() {
                 Settings
               </button>
             </div>
+            <ErrorModal error={runError} onClose={() => setRunError(null)} />
           </>
         ) : (
           <>

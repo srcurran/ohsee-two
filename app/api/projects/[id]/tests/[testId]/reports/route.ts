@@ -5,6 +5,7 @@ import { userProjectsFile, userReportsDir, BREAKPOINTS } from "@/lib/constants";
 import { requireUserId } from "@/lib/auth-helpers";
 import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
+import { checkProjectUrlsReachable } from "@/lib/url-reachability";
 import type { Report } from "@/lib/types";
 import path from "path";
 import { promises as fs } from "fs";
@@ -60,6 +61,15 @@ export async function POST(
       return NextResponse.json({ error: "Test not found" }, { status: 404 });
     }
 
+    // Same preflight as the project-level route — see lib/url-reachability.ts.
+    const reachable = await checkProjectUrlsReachable(project.prodUrl, project.devUrl);
+    if (!reachable.ok) {
+      return NextResponse.json(
+        { error: reachable.error, prod: reachable.prod, dev: reachable.dev },
+        { status: 400 },
+      );
+    }
+
     cancelRunningReportsForProject(id);
 
     const reportId = uuidv4();
@@ -81,7 +91,14 @@ export async function POST(
     runReport(project, reportId, userId, siteTest).catch(console.error);
 
     return NextResponse.json({ reportId }, { status: 202 });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    if (err instanceof Error && err.message === "Not authenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("[reports POST tests] failed:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to start report" },
+      { status: 500 },
+    );
   }
 }

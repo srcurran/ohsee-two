@@ -193,6 +193,25 @@
   border-radius: var(--radius-xs);
   background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent);
   padding: var(--space-2) var(--space-3);
+  transition: background-color var(--duration-base) var(--ease-standard);
+
+  /* Highlighted while another row hovers over it during drag-to-reorder. */
+  &--drag-over {
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  }
+
+  /* Grab handle — same affordance as .path-row__grab. The whole row is
+     `draggable`, but the explicit handle advertises that fact and gives the
+     row a clear "pickup" target. */
+  &__grab {
+    flex-shrink: 0;
+    cursor: grab;
+    color: var(--text-muted);
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
 
   &__index {
     flex-shrink: 0;

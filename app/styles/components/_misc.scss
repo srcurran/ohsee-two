@@ -441,6 +441,16 @@
   padding-right: var(--space-6);
   border-right: 1px solid var(--border-secondary);
 
+  &__heading {
+    /* Match the horizontal padding of __item / __create below so the heading
+       text aligns with the test names and "Create a test" label. */
+    margin: 0 0 var(--space-3) 0;
+    padding: 0 var(--space-2);
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+  }
+
   &__list {
     display: flex;
     flex-direction: column;
@@ -465,6 +475,31 @@
 
     &--active {
       font-weight: var(--weight-semibold);
+      color: var(--foreground);
+    }
+  }
+
+  /* Visually separated "Create a test" call-to-action below the list. Text
+     reads left-to-right with the "+" trailing on the right — `justify-content:
+     space-between` pushes the icon to the end. */
+  &__create {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: var(--space-4);
+    padding: var(--space-1-5) var(--space-2);
+    border-radius: var(--radius-xs);
+    font-size: var(--font-size-lg);
+    text-align: left;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-faint);
+    transition: var(--transition-colors);
+    font-family: inherit;
+
+    &:hover {
       color: var(--foreground);
     }
   }

@@ -1,8 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import type { SemanticChange, ChangeCategory } from "@/lib/types";
+import { useRef, useState } from "react";
+import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
+
+/**
+ * Group key — top-level CSS selector segment. Changes that share the same
+ * outermost element (e.g., `section:nth-of-type(2)`) are about the same
+ * region of the page even if some apply to descendants.
+ */
+function topLevelSelector(sel: string): string {
+  const parts = sel.split(" > ");
+  return parts[0] ?? sel;
+}
+
+/**
+ * Trailing portion of `child` after stripping the parent prefix. Empty string
+ * means the change is on the parent element itself, so the entry can hide its
+ * selector line entirely (the group header already shows the parent).
+ */
+function relativeSelector(parentSel: string, childSel: string): string {
+  if (childSel === parentSel) return "";
+  const prefix = parentSel + " > ";
+  if (childSel.startsWith(prefix)) return "> " + childSel.slice(prefix.length);
+  return childSel;
+}
+
+const SEVERITY_RANK: Record<ChangeSeverity, number> = { error: 0, warning: 1, info: 2 };
+
+interface SelectorGroup {
+  key: string;
+  selector: string;
+  severity: ChangeSeverity;
+  changes: SemanticChange[];
+}
+
+/**
+ * Bucket changes by top-level selector. Single-change buckets render flat
+ * (no group chrome); multi-change buckets render as a parent card. Insertion
+ * order is preserved so groups appear where their first change would have.
+ */
+function groupBySelector(changes: SemanticChange[]): SelectorGroup[] {
+  const groups = new Map<string, SelectorGroup>();
+  for (const change of changes) {
+    const key = topLevelSelector(change.selector);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.changes.push(change);
+      if (SEVERITY_RANK[change.severity] < SEVERITY_RANK[existing.severity]) {
+        existing.severity = change.severity;
+      }
+    } else {
+      groups.set(key, {
+        key,
+        selector: key,
+        severity: change.severity,
+        changes: [change],
+      });
+    }
+  }
+  return [...groups.values()];
+}
 
 interface ChangeListProps {
   changes: SemanticChange[];
@@ -10,8 +68,19 @@ interface ChangeListProps {
   onChangeClick?: (id: string) => void;
 }
 
+// How far the pointer must move before we treat the gesture as a drag and
+// suppress the trailing click on whichever pill was under the cursor.
+const DRAG_THRESHOLD_PX = 4;
+
 export default function ChangeList({ changes, summary, onChangeClick }: ChangeListProps) {
   const [activeFilter, setActiveFilter] = useState<ChangeCategory | "all">("all");
+  const filtersRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startScroll: number;
+    moved: boolean;
+  } | null>(null);
 
   if (!changes || changes.length === 0) {
     return (
@@ -24,16 +93,80 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
 
   // Every category is shown so the user sees the full detection surface;
   // counts of 0 render as disabled pills.
-  const allCategories = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
+  const definedOrder = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
   const categoryCounts: Record<ChangeCategory, number> = {} as Record<ChangeCategory, number>;
-  for (const cat of allCategories) {
+  for (const cat of definedOrder) {
     categoryCounts[cat] = summary?.[cat] ?? 0;
   }
+  // Primary sort: count desc (most-frequent issue first). Secondary sort:
+  // CATEGORY_CONFIG declaration order, preserved by Array.sort's stable
+  // ordering for equal keys.
+  const sortedCategories = [...definedOrder].sort(
+    (a, b) => categoryCounts[b] - categoryCounts[a],
+  );
 
   const filtered =
     activeFilter === "all"
       ? changes
       : changes.filter((c) => c.category === activeFilter);
+
+  // Drag-to-scroll the pill row horizontally. We use Pointer Events with
+  // capture so the gesture survives a fast drag that leaves the strip's
+  // bounds. Once the cursor has moved past DRAG_THRESHOLD_PX we set a
+  // data-dragging flag — pill click handlers below check it to swallow
+  // the click that the browser would otherwise fire on pointerup.
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Mouse: left button only. Touch/pen: always.
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const el = filtersRef.current;
+    if (!el) return;
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startScroll: el.scrollLeft,
+      moved: false,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const ds = dragRef.current;
+    const el = filtersRef.current;
+    if (!ds || !el || ds.pointerId !== e.pointerId) return;
+    const dx = e.clientX - ds.startX;
+    if (!ds.moved && Math.abs(dx) >= DRAG_THRESHOLD_PX) {
+      ds.moved = true;
+      el.dataset.dragging = "true";
+    }
+    if (ds.moved) {
+      el.scrollLeft = ds.startScroll - dx;
+    }
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const ds = dragRef.current;
+    const el = filtersRef.current;
+    if (!ds || !el || ds.pointerId !== e.pointerId) return;
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    // Defer clearing the flag until after the click event would have fired,
+    // so the click capture handler below can swallow it.
+    if (ds.moved) {
+      requestAnimationFrame(() => {
+        if (el) delete el.dataset.dragging;
+      });
+    }
+    dragRef.current = null;
+  };
+
+  // Capture-phase click handler: if the user just finished a drag,
+  // swallow the trailing click before it reaches a pill button.
+  const handleClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = filtersRef.current;
+    if (el?.dataset.dragging) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
 
   return (
     <div className="change-list">
@@ -41,7 +174,15 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
         <h3 className="change-list__title">Detected Changes</h3>
       </div>
 
-      <div className="change-list__filters change-list__filters--scroll">
+      <div
+        ref={filtersRef}
+        className="change-list__filters change-list__filters--scroll"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={handleClickCapture}
+      >
         <div className="change-list__filters-track">
           <button
             onClick={() => setActiveFilter("all")}
@@ -49,7 +190,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
           >
             All ({changes.length})
           </button>
-          {allCategories.map((cat) => {
+          {sortedCategories.map((cat) => {
             const cfg = CATEGORY_CONFIG[cat];
             const count = categoryCounts[cat];
             const enabled = count > 0;
@@ -75,11 +216,49 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
       </div>
 
       <div className="change-list__items">
-        {filtered.map((change) => (
+        {groupBySelector(filtered).map((group) =>
+          group.changes.length === 1 ? (
+            <ChangeEntry
+              key={group.changes[0].id}
+              change={group.changes[0]}
+              onClick={onChangeClick ? () => onChangeClick(group.changes[0].id) : undefined}
+            />
+          ) : (
+            <ChangeGroup
+              key={group.key}
+              group={group}
+              onChangeClick={onChangeClick}
+            />
+          ),
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChangeGroup({
+  group,
+  onChangeClick,
+}: {
+  group: SelectorGroup;
+  onChangeClick?: (id: string) => void;
+}) {
+  const severityMod = SEVERITY_CSS_MODIFIERS[group.severity] || SEVERITY_CSS_MODIFIERS.info;
+  return (
+    <div className={`change-group change-group--${severityMod}`}>
+      <div className="change-group__header">
+        <span className="change-group__selector" title={group.selector}>
+          {group.selector}
+        </span>
+        <span className="change-group__count">{group.changes.length}</span>
+      </div>
+      <div className="change-group__items">
+        {group.changes.map((change) => (
           <ChangeEntry
             key={change.id}
             change={change}
             onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
+            parentSelector={group.selector}
           />
         ))}
       </div>
@@ -87,15 +266,34 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
   );
 }
 
-function ChangeEntry({ change, onClick }: { change: SemanticChange; onClick?: () => void }) {
+function ChangeEntry({
+  change,
+  onClick,
+  parentSelector,
+}: {
+  change: SemanticChange;
+  onClick?: () => void;
+  /** When set, the entry is rendered inside a ChangeGroup that already shows
+   *  this prefix in its header — we drop the visual chrome (border, bg) and
+   *  show only the trailing selector portion. */
+  parentSelector?: string;
+}) {
   const cfg = CATEGORY_CONFIG[change.category];
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
+  const groupedCls = parentSelector ? "change-entry--grouped" : "";
+
+  // In a group: show only the path under the group's parent selector (and
+  // omit when the change is on the parent itself — the header makes that
+  // obvious). Standalone: existing readable-selector behavior.
+  const displaySelector = parentSelector
+    ? relativeSelector(parentSelector, change.selector)
+    : readableSelector(change.selector);
 
   return (
     <div
       onClick={onClick}
-      className={`change-entry change-entry--${severityMod} ${interactiveCls}`}
+      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${groupedCls}`}
     >
       <span
         className="change-entry__icon"
@@ -106,10 +304,8 @@ function ChangeEntry({ change, onClick }: { change: SemanticChange; onClick?: ()
       </span>
       <div className="change-entry__body">
         <span className="change-entry__description">{change.description}</span>
-        {change.details.prodValue && change.details.devValue && (
-          <span className="change-entry__selector">
-            {readableSelector(change.selector)}
-          </span>
+        {displaySelector && change.details.prodValue && change.details.devValue && (
+          <span className="change-entry__selector">{displaySelector}</span>
         )}
       </div>
     </div>

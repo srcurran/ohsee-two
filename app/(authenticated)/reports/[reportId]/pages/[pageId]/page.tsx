@@ -347,7 +347,8 @@ function PageDetailInner() {
           <div className="report-page__compare-row">
             <div className="report-page__compare-col">
               <DiffViewer
-                src={`/api/screenshots/${bpResult.diffScreenshot}`}
+                prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
+                devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
                 alt={`Diff for ${currentPage.path}`}
                 changes={bpResult.semanticChanges}
                 highlightedChangeId={highlightedChangeId}

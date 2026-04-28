@@ -5,23 +5,44 @@ import type { SemanticChange } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_COLOR_FALLBACK } from "@/lib/colors";
 
 interface Props {
-  src: string;
+  /** Prod screenshot — rendered on top with `mix-blend-mode: difference`,
+   *  so identical pixels go black and differences glow as the color delta.
+   *  `mix-blend-mode: difference` is symmetric, so which image is on top
+   *  doesn't change the difference math — but the bottom layer is the one
+   *  that "shows through" at lower overlay opacities, so we put dev on the
+   *  bottom (the user is shipping dev, that's the layer to inspect). */
+  prodSrc: string;
+  /** Dev screenshot — rendered as the base layer. */
+  devSrc: string;
   alt?: string;
   changes?: SemanticChange[];
   highlightedChangeId?: string | null;
 }
 
 export default function DiffViewer({
-  src,
+  prodSrc,
+  devSrc,
   alt = "Diff view",
   changes,
   highlightedChangeId,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Measure the base (dev) image — both layers are aligned to identical
+  // intrinsic dimensions, so one measurement drives marker positioning.
   const imgRef = useRef<HTMLImageElement>(null);
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [renderedHeight, setRenderedHeight] = useState(0);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Hide the overlay until it has actually loaded — otherwise a partly-loaded
+  // dev image briefly composites against the (white) container background and
+  // flashes inverted before prod paints in behind it.
+  const [overlayLoaded, setOverlayLoaded] = useState(false);
+  // Press-and-hold anywhere on the diff-viewer to surface the difference.
+  // At rest the overlay sits at 0.2 (mostly dev with subtle change highlights
+  // — readable as a real screenshot). While held it ramps to 0.8 (strong
+  // difference glow over a dim dev base — easy to spot exactly what changed).
+  const [peek, setPeek] = useState(false);
+  const overlayOpacity = peek ? 0.8 : 0.2;
 
   useEffect(() => {
     const img = imgRef.current;
@@ -40,29 +61,73 @@ export default function DiffViewer({
       img.removeEventListener("load", update);
       window.removeEventListener("resize", update);
     };
-  }, [src]);
+  }, [devSrc]);
+
+  // Reset overlay-loaded gate when the prod (overlay) source changes, so a
+  // breakpoint / variant switch doesn't keep showing the previous overlay
+  // while the new one streams in.
+  useEffect(() => {
+    setOverlayLoaded(false);
+  }, [prodSrc]);
+
+  const scale = naturalHeight > 0 ? renderedHeight / naturalHeight : 0;
 
   useEffect(() => {
-    if (!highlightedChangeId || !containerRef.current) return;
+    // Markers only exist once the image has loaded (scale > 0). If the user
+    // switched into the Changes view by clicking a change, this effect runs
+    // once with scale === 0 (no-op) and again with scale > 0 (scrolls).
+    //
+    // dedupeMarkers groups changes that are vertically close into a single
+    // marker, so a marker hosts a *list* of change IDs. We use the
+    // whitespace-separated `~=` attribute selector so highlighting any
+    // change in the group resolves to that group's marker.
+    if (!highlightedChangeId || !containerRef.current || scale === 0) return;
     const el = containerRef.current.querySelector(
-      `[data-change-id="${highlightedChangeId}"]`
+      `[data-change-ids~="${highlightedChangeId}"]`
     );
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [highlightedChangeId]);
-
-  const scale = naturalHeight > 0 ? renderedHeight / naturalHeight : 0;
+  }, [highlightedChangeId, scale]);
   const markers = changes ? dedupeMarkers(changes, scale) : [];
 
   return (
     <div>
-      <div ref={containerRef} className="diff-viewer">
+      <div
+        ref={containerRef}
+        className="diff-viewer"
+        // Push-to-peek. setPointerCapture guarantees pointerup fires here even
+        // if the cursor drifts outside the container during the press, so we
+        // don't get stuck in peek mode. pointercancel handles OS-level aborts
+        // (focus stolen by a screenshot tool, etc.). We deliberately don't
+        // listen to pointerleave — under capture, leave still fires on drift,
+        // and we *want* peek to survive drift until release.
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setPeek(true);
+        }}
+        onPointerUp={() => setPeek(false)}
+        onPointerCancel={() => setPeek(false)}
+      >
         <img
           ref={imgRef}
-          src={src}
-          alt={alt}
-          className="diff-viewer__image"
+          src={devSrc}
+          alt={`${alt} (dev)`}
+          className="diff-viewer__image diff-viewer__image--base"
+          draggable={false}
+        />
+        <img
+          src={prodSrc}
+          alt={`${alt} (prod)`}
+          onLoad={() => setOverlayLoaded(true)}
+          /* Hybrid blend (option 5): the difference layer at <1 opacity lets
+             the base (dev) image show through. Identical regions render as
+             (1 - opacity) × dev (dim but readable); differences render as
+             opacity × delta + (1 - opacity) × dev (the "glow" tinted by
+             what's underneath). Press-and-hold toggles strength — see
+             `peek` above. */
+          style={{ opacity: overlayLoaded ? overlayOpacity : 0 }}
+          className="diff-viewer__image diff-viewer__image--overlay"
           draggable={false}
         />
         {scale > 0 &&
@@ -74,7 +139,7 @@ export default function DiffViewer({
             return (
               <div
                 key={marker.id}
-                data-change-id={marker.changes[0]?.id}
+                data-change-ids={marker.changes.map((c) => c.id).join(" ")}
                 className={`diff-viewer__marker ${isHighlighted ? "diff-viewer__marker--highlighted" : ""}`}
                 style={{ top: marker.y * scale }}
                 onMouseEnter={() => setHoveredId(marker.id)}

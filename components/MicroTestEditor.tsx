@@ -15,10 +15,27 @@ interface Props {
   onClose: () => void;
 }
 
+/**
+ * Camel-case slug suitable for use as a JS-ish identifier (and as the
+ * `name` field of a MicroTest, which only surfaces in error messages).
+ * "Click Get Started" → "clickGetStarted", "Step 9" → "step9".
+ */
+function deriveIdentifier(displayName: string): string {
+  const words = displayName.trim().match(/[A-Za-z0-9]+/g) ?? [];
+  if (words.length === 0) return "step";
+  const [first, ...rest] = words;
+  return (
+    first.toLowerCase() +
+    rest.map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join("")
+  );
+}
+
 export default function MicroTestEditor({ projectId, microTest, onSave, onClose }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const [name, setName] = useState(microTest.name);
+  // Single user-facing name field. The internal identifier (`microTest.name`)
+  // is auto-derived from this on save — we no longer ask the user to maintain
+  // both. Existing identifiers are preserved if displayName hasn't changed.
   const [displayName, setDisplayName] = useState(microTest.displayName);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -66,12 +83,21 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
     setSaving(true);
     const script = getScript();
 
+    const trimmedDisplay = displayName.trim() || microTest.displayName;
+    // If the display name didn't change, keep the existing identifier (so
+    // anything that referenced `microTest.name` in logs stays stable). If it
+    // did change, regenerate the identifier from the new display name.
+    const nextName =
+      trimmedDisplay === microTest.displayName
+        ? microTest.name
+        : deriveIdentifier(trimmedDisplay);
+
     const res = await fetch(`/api/projects/${projectId}/micro-tests/${microTest.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: name.trim() || microTest.name,
-        displayName: displayName.trim() || microTest.displayName,
+        name: nextName,
+        displayName: trimmedDisplay,
         script,
       }),
     });
@@ -79,9 +105,11 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
     if (res.ok) {
       const updated = await res.json();
       onSave(updated);
+      // "Save and close" semantics — bounce out of the editor on success.
+      onClose();
     }
     setSaving(false);
-  }, [projectId, microTest.id, microTest.name, microTest.displayName, name, displayName, getScript, onSave]);
+  }, [projectId, microTest.id, microTest.name, microTest.displayName, displayName, getScript, onSave, onClose]);
 
   const handleTest = async () => {
     setTesting(true);
@@ -116,27 +144,15 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
         Back to composition
       </button>
 
-      <div className="row" style={{ gap: "var(--space-3)" }}>
-        <div className="field" style={{ flex: 1 }}>
-          <label className="field__label field__label--sm">Identifier</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="loginStep"
-            className="input input--compact input--code"
-          />
-        </div>
-        <div className="field" style={{ flex: 1 }}>
-          <label className="field__label field__label--sm">Display Name</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Log In"
-            className="input input--compact"
-          />
-        </div>
+      <div className="field">
+        <label className="field__label field__label--sm">Name</label>
+        <input
+          type="text"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="Log In"
+          className="input input--compact"
+        />
       </div>
 
       <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>
@@ -147,12 +163,12 @@ export default function MicroTestEditor({ projectId, microTest, onSave, onClose 
 
       <div className="row">
         <button onClick={handleSave} disabled={saving} className="btn btn--primary-sm">
-          {saving ? "Saving..." : "Save"}
+          {saving ? "Saving..." : "Save and close"}
         </button>
         <button onClick={handleTest} disabled={testing} className="btn btn--outline-soft">
           {testing ? "Running..." : "Test"}
         </button>
-        <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>Cmd+S to save</span>
+        <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>Cmd+S to save and close</span>
       </div>
 
       {testResult && (

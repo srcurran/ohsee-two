@@ -1,9 +1,30 @@
 /* Title bar + sidebar collapse button (chrome that lives in the 36px
    titlebar strip above the main content). */
 
+/* Electron `titleBarStyle: "hiddenInset"` exposes the traffic lights but
+   doesn't make any region draggable on its own. This strip turns the top
+   36px of the window into a drag handle. Interactive controls layered on
+   top must opt out with `-webkit-app-region: no-drag`. Width spans the
+   full window — it overlaps the empty padding above the sidebar nav, which
+   is fine. Only active in Electron renderers; in a regular browser
+   `-webkit-app-region` is a no-op. */
+.titlebar-drag-region {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  /* Sit above the sidebar (z-sticky) so the empty padding at the top of
+     the sidebar is also a drag handle, but below TitlebarCollapseButton
+     (z-toast) and PageTitleBar (z-modal — pointer-events:none, so drag
+     still passes through). */
+  z-index: var(--z-30);
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
 .titlebar-collapse {
   position: fixed;
-  left: 80px;
   top: 4px;
   z-index: var(--z-toast);
   display: inline-flex;
@@ -15,10 +36,35 @@
   background: transparent;
   border: none;
   cursor: pointer;
+  /* Stay clickable inside the .titlebar-drag-region strip. */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
   transition: var(--transition-colors);
 
   &:hover {
     background: var(--surface-hover);
+  }
+
+  /* Sidebar open — inside the panel's right edge. The sidebar is 240px wide
+     (see SIDEBAR_WIDTH_OPEN in PageTitleBar.tsx); leave 4px breathing room. */
+  &--open { left: 204px; }
+
+  /* Sidebar collapsed, Electron — ~40px right of the macOS stoplight buttons
+     (close/min/zoom occupy roughly x=8..68 with hiddenInset). */
+  &--collapsed-electron { left: 80px; }
+
+  /* Sidebar collapsed, web — top-right corner. Use `left` rather than `right`
+     so the position interpolates smoothly with the open/Electron states when
+     the user toggles. */
+  &--collapsed-web { left: calc(100vw - 44px); }
+
+  /* Gated by `ready` in TitlebarCollapseButton so first paint doesn't animate
+     from a default to the stored collapsed state. Matches the sidebar's
+     0.2s width transition. Color transitions stay on always (above). */
+  &--animated {
+    transition:
+      left 0.2s var(--ease-standard),
+      var(--transition-colors);
   }
 }
 

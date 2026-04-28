@@ -6,6 +6,8 @@ import Link from "next/link";
 import BreakpointTabs from "@/components/BreakpointTabs";
 import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
+import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
+import { buildRunErrorDetails } from "@/components/run-error-details";
 import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
@@ -34,6 +36,9 @@ function ReportPageInner() {
   const [showReportNav, setShowReportNav] = useState(false);
   const [pageOriginRect, setPageOriginRect] = useState<DOMRect | null>(null);
   const [pageOriginThumb, setPageOriginThumb] = useState<{ rect: DOMRect; src: string } | null>(null);
+  // Structured run-failure payload (eyebrow / title / body / hint). See
+  // buildRunErrorDetails + lib/url-reachability.ts.
+  const [runError, setRunError] = useState<ErrorModalDetails | null>(null);
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
   const activePageId = searchParams.get("page") || null;
@@ -129,6 +134,7 @@ function ReportPageInner() {
 
   const handleRun = async () => {
     if (!project) return;
+    setRunError(null);
     const url = report?.siteTestId
       ? `/api/projects/${project.id}/tests/${report.siteTestId}/reports`
       : `/api/projects/${project.id}/reports`;
@@ -138,6 +144,8 @@ function ReportPageInner() {
       trackReportCompletion(reportId, project.name || getDomain(project.prodUrl));
       refreshProjects();
       router.push(`/reports/${reportId}`);
+    } else {
+      setRunError(buildRunErrorDetails(await res.json().catch(() => null), project.id));
     }
   };
 
@@ -212,6 +220,7 @@ function ReportPageInner() {
 
   return (
     <div className="report">
+      <ErrorModal error={runError} onClose={() => setRunError(null)} />
       {activePageId && report && project && (
         <PageDetailPanel
           report={report}

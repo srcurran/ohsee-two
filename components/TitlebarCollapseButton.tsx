@@ -1,28 +1,40 @@
 "use client";
 
 import { useSidebar } from "./SidebarProvider";
+import { IS_ELECTRON_BUILD } from "@/lib/electron";
 
 /**
- * Sidebar collapse/expand button placed in the macOS title bar area,
- * 40px to the right of the stoplight buttons.
+ * Sidebar collapse/expand button. Position depends on state and runtime:
  *
- * The Electron window uses `titleBarStyle: "hiddenInset"` which puts the
- * traffic lights at their standard positions (close ~x=20, min ~40, zoom ~60,
- * right edge of the zoom button ~x=66). A 40px gap puts the button at ~106px.
+ * - Sidebar open (any runtime): pinned to the inside of the sidebar's right
+ *   edge so it reads as the panel's own affordance.
+ * - Sidebar collapsed, Electron: sits ~40px right of the macOS stoplight
+ *   buttons (titleBarStyle: "hiddenInset" places them around x=66).
+ * - Sidebar collapsed, web: sits in the top-right corner.
  *
- * `-webkit-app-region: no-drag` on the button is required so clicks activate
- * it instead of initiating a window drag.
+ * Transitions between positions are gated on the sidebar's `ready` flag so
+ * the button doesn't animate from a default position to its stored state on
+ * first paint.
+ *
+ * `-webkit-app-region: no-drag` (set in CSS) ensures clicks activate the
+ * button instead of initiating a window drag in Electron.
  */
 export default function TitlebarCollapseButton() {
-  const { collapsed, toggleCollapsed } = useSidebar();
+  const { collapsed, toggleCollapsed, ready } = useSidebar();
+
+  const stateMod = collapsed
+    ? IS_ELECTRON_BUILD
+      ? "titlebar-collapse--collapsed-electron"
+      : "titlebar-collapse--collapsed-web"
+    : "titlebar-collapse--open";
+  const animatedMod = ready ? "titlebar-collapse--animated" : "";
 
   return (
     <button
       onClick={toggleCollapsed}
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-      className="titlebar-collapse"
+      className={`titlebar-collapse ${stateMod} ${animatedMod}`}
     >
       {collapsed ? <SidebarIconFilled /> : <SidebarIconOutlined />}
     </button>

@@ -16,6 +16,12 @@ export default function AuthenticatedLayout({
     <SessionProvider>
       <div className="app-shell app-shell--flat">
         <SidebarProvider>
+          {/* Transparent strip across the macOS hiddenInset titlebar area
+              so the window can be dragged by clicking anywhere up there.
+              Interactive children (e.g. TitlebarCollapseButton) opt out via
+              `-webkit-app-region: no-drag`. Render first so it sits below
+              the collapse button and page title in stacking order. */}
+          <div aria-hidden className="titlebar-drag-region" />
           <TitlebarCollapseButton />
           <PageTitleBar />
           <Sidebar />

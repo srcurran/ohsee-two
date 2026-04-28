@@ -30,6 +30,11 @@ export default function ProjectTestsSettings() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
+  // Step (composition) drag state — mirrors path drag above. Kept separate so
+  // a step drag and a path drag can't accidentally interleave state.
+  const [stepDragIndex, setStepDragIndex] = useState<number | null>(null);
+  const [stepDragOverIndex, setStepDragOverIndex] = useState<number | null>(null);
+  const stepDragNode = useRef<HTMLDivElement | null>(null);
   const pathInputRef = useRef<HTMLInputElement | null>(null);
 
   const [openSection, setOpenSection] = useState<AccordionKey | null>("pages");
@@ -280,13 +285,34 @@ export default function ProjectTestsSettings() {
     });
   };
 
-  const moveStep = (index: number, direction: -1 | 1) => {
+  // Drag-to-reorder for composition steps. Mirrors the path-row pattern in
+  // handleDragStart/Enter/End above: live-reorder on dragenter so the row
+  // visibly slides as the user drags, then settle on dragend.
+  const handleStepDragStart = (index: number, e: React.DragEvent<HTMLDivElement>) => {
+    setStepDragIndex(index);
+    stepDragNode.current = e.currentTarget;
+    e.dataTransfer.effectAllowed = "move";
+    requestAnimationFrame(() => {
+      if (stepDragNode.current) stepDragNode.current.style.opacity = "0.4";
+    });
+  };
+
+  const handleStepDragEnter = (index: number) => {
     if (!composition) return;
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= composition.steps.length) return;
-    const steps = [...composition.steps];
-    [steps[index], steps[newIndex]] = [steps[newIndex], steps[index]];
-    setComposition({ ...composition, steps });
+    if (stepDragIndex === null || index === stepDragIndex) return;
+    setStepDragOverIndex(index);
+    const next = [...composition.steps];
+    const item = next.splice(stepDragIndex, 1)[0];
+    next.splice(index, 0, item);
+    setStepDragIndex(index);
+    setComposition({ ...composition, steps: next });
+  };
+
+  const handleStepDragEnd = () => {
+    if (stepDragNode.current) stepDragNode.current.style.opacity = "1";
+    stepDragNode.current = null;
+    setStepDragIndex(null);
+    setStepDragOverIndex(null);
   };
 
   const handleAddNewStep = async () => {
@@ -418,6 +444,7 @@ export default function ProjectTestsSettings() {
 
       <div className="test-settings-pane">
         <div className="test-list-sidebar">
+          <h2 className="test-list-sidebar__heading">Tests</h2>
           <div className="test-list-sidebar__list">
             {tests.map((test) => (
               <button
@@ -428,13 +455,15 @@ export default function ProjectTestsSettings() {
                 {test.name}
               </button>
             ))}
-            <button onClick={addTest} className="sidebar__add-test">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Add test
-            </button>
           </div>
+          {/* "Create a test" sits below the list as its own affordance — text on
+              the left, "+" trailing on the right (mirrors how the row reads). */}
+          <button onClick={addTest} className="test-list-sidebar__create">
+            <span>Create a test</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
 
         <div className="test-settings-pane__content">
@@ -549,7 +578,28 @@ export default function ProjectTestsSettings() {
                   <>
                     <div className="stack stack--xs" style={{ marginBottom: "var(--space-3)" }}>
                       {composition.steps.map((step, idx) => (
-                        <div key={step.id} className="comp-step">
+                        <div
+                          key={step.id}
+                          draggable
+                          onDragStart={(e) => handleStepDragStart(idx, e)}
+                          onDragEnter={() => handleStepDragEnter(idx)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDragEnd={handleStepDragEnd}
+                          className={`comp-step ${stepDragOverIndex === idx ? "comp-step--drag-over" : ""}`}
+                        >
+                          {/* Grab handle — same 6-dot pattern used by path-row
+                              so users learn one drag affordance across the app. */}
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            className="comp-step__grab"
+                            aria-hidden
+                          >
+                            <path d="M8 6h2v2H8zm6 0h2v2h-2zM8 11h2v2H8zm6 0h2v2h-2zM8 16h2v2H8zm6 0h2v2h-2z" fill="currentColor" />
+                          </svg>
+
                           <span className="comp-step__index">{idx + 1}.</span>
 
                           <button
@@ -570,27 +620,6 @@ export default function ProjectTestsSettings() {
                               <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
                             </svg>
                           </button>
-
-                          <div className="comp-step__reorder">
-                            <button
-                              onClick={() => moveStep(idx, -1)}
-                              disabled={idx === 0}
-                              className="comp-step__reorder-btn"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                <path d="M18 15l-6-6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => moveStep(idx, 1)}
-                              disabled={idx === composition.steps.length - 1}
-                              className="comp-step__reorder-btn"
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </button>
-                          </div>
 
                           <button onClick={() => removeStep(step.id)} className="comp-step__remove">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

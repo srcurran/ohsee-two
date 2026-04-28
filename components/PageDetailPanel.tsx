@@ -46,12 +46,19 @@ export default function PageDetailPanel({
 }: Props) {
   const [animState, setAnimState] = useState<"entering" | "visible" | "exiting">("entering");
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"tap" | "slider" | "changes">("tap");
+  // Default to the Changes view — it's the primary thing users come here to
+  // see. Tap/Slider remain one click away in the segmented control.
+  const [viewMode, setViewMode] = useState<"tap" | "slider" | "changes">("changes");
   const [showingDev, setShowingDev] = useState(false);
   const [forceDevLocked, setForceDevLocked] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const screenshotRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollTopRef = useRef(0);
+  // Captured by changeViewMode before we flip viewMode so the restore effect
+  // below can put scrollTop back where it was once the new content (DiffViewer
+  // / SliderComparison) has loaded. Null when no restore is pending.
+  const pendingRestoreRef = useRef<number | null>(null);
 
   const activeBp = initialBp;
   const activeVariant = initialVariant;
@@ -75,6 +82,17 @@ export default function PageDetailPanel({
     setAnimState("exiting");
     setTimeout(onClose, EXIT_MS);
   }, [onClose]);
+
+  // Always change viewMode through this so scroll restoration is armed.
+  // Capturing scrollTop here (synchronous with the click) is essential —
+  // the scroll listener below would overwrite scrollTopRef once the
+  // browser clamps scrollTop during the new image's loading gap.
+  const changeViewMode = useCallback((next: typeof viewMode) => {
+    if (next !== viewMode && scrollRef.current) {
+      pendingRestoreRef.current = scrollRef.current.scrollTop;
+    }
+    setViewMode(next);
+  }, [viewMode]);
 
   const getPanelStyle = (): React.CSSProperties => {
     const enterTransition = `top ${ANIM_MS}ms ${ANIM_EASE}, left ${ANIM_MS}ms ${ANIM_EASE}, width ${ANIM_MS}ms ${ANIM_EASE}, height ${ANIM_MS}ms ${ANIM_EASE}, border-radius ${ANIM_MS}ms ${ANIM_EASE}, opacity ${ANIM_MS}ms ${ANIM_EASE}`;
@@ -148,20 +166,45 @@ export default function PageDetailPanel({
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Preserve scroll position across view-mode toggles (Tap / Slider / Changes).
+  // Toggling swaps the screenshot column's child component, and the new
+  // <img> reports zero height until it loads — during that gap the browser
+  // clamps scrollTop. We snapshot scrollTop into pendingRestoreRef *before*
+  // the state change (in changeViewMode below), then re-apply it here once
+  // the screenshot wrapper has grown back to a sufficient height.
   useEffect(() => {
+    const target = pendingRestoreRef.current;
+    if (target === null) return;
+    pendingRestoreRef.current = null;
+
     const el = scrollRef.current;
-    if (!el) return;
+    const content = screenshotRef.current;
+    if (!el || !content) return;
+
+    const tryRestore = () => {
+      const max = el.scrollHeight - el.clientHeight;
+      const clamped = Math.min(target, max);
+      if (el.scrollTop !== clamped) el.scrollTop = clamped;
+      // Done if we were able to land at (or past) the original position.
+      return max >= target;
+    };
+
+    if (tryRestore()) return;
+
     const observer = new ResizeObserver(() => {
-      const maxScroll = el.scrollHeight - el.clientHeight;
-      const target = Math.min(scrollTopRef.current, maxScroll);
-      if (target > 0 && el.scrollTop < target) {
-        el.scrollTop = target;
-      }
+      if (tryRestore()) observer.disconnect();
     });
-    const content = el.firstElementChild;
-    if (content) observer.observe(content);
-    return () => observer.disconnect();
-  }, []);
+    observer.observe(content);
+
+    // Bail after the new image surely has loaded; if it never grows back
+    // to the original height, the clamped value is the best we can do.
+    const timeout = setTimeout(() => observer.disconnect(), 1500);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, [viewMode]);
 
   const currentIndex = report.pages.findIndex((p) => p.pageId === pageId);
   const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
@@ -331,7 +374,7 @@ export default function PageDetailPanel({
                 {bpResult && (
                   <div className="page-detail-panel__view-toggle page-detail-panel__view-toggle--sticky">
                     <button
-                      onClick={() => { setViewMode("tap"); setForceDevLocked(false); setShowingDev(false); }}
+                      onClick={() => { changeViewMode("tap"); setForceDevLocked(false); setShowingDev(false); }}
                       className={`page-detail-panel__view-label ${
                         (viewMode === "tap" && !showingDev) || viewMode === "changes" ? "page-detail-panel__view-label--active" : ""
                       }`}
@@ -345,7 +388,7 @@ export default function PageDetailPanel({
                         return (
                           <button
                             key={m}
-                            onClick={() => { setViewMode(m); if (m !== "tap") { setForceDevLocked(false); setShowingDev(false); } }}
+                            onClick={() => { changeViewMode(m); if (m !== "tap") { setForceDevLocked(false); setShowingDev(false); } }}
                             className={`segmented__item ${active ? "segmented__item--active-alt" : ""}`}
                           >
                             <span className="view-toggle-label">
@@ -357,7 +400,7 @@ export default function PageDetailPanel({
                       })}
                     </div>
                     <button
-                      onClick={() => { setViewMode("tap"); setForceDevLocked(true); setShowingDev(true); }}
+                      onClick={() => { changeViewMode("tap"); setForceDevLocked(true); setShowingDev(true); }}
                       className={`page-detail-panel__view-label page-detail-panel__view-label--right ${
                         viewMode === "tap" && showingDev ? "page-detail-panel__view-label--active" : ""
                       }`}
@@ -367,10 +410,11 @@ export default function PageDetailPanel({
                   </div>
                 )}
                 {bpResult ? (
-                  <div className="page-detail-panel__screenshot" style={{ maxWidth: activeBp }}>
+                  <div ref={screenshotRef} className="page-detail-panel__screenshot" style={{ maxWidth: activeBp }}>
                     {viewMode === "changes" ? (
                       <DiffViewer
-                        src={`/api/screenshots/${bpResult.diffScreenshot}`}
+                        prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
+                        devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
                         alt={`Diff for ${currentPage.path}`}
                         changes={bpResult.semanticChanges}
                         highlightedChangeId={highlightedChangeId}
@@ -380,7 +424,7 @@ export default function PageDetailPanel({
                         prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
                         devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
                         mode={viewMode}
-                        onModeChange={(m) => { setViewMode(m); if (m !== "tap") { setForceDevLocked(false); setShowingDev(false); } }}
+                        onModeChange={(m) => { changeViewMode(m); if (m !== "tap") { setForceDevLocked(false); setShowingDev(false); } }}
                         onPressedChange={setShowingDev}
                         forceDev={forceDevLocked}
                         hideHeader
@@ -403,6 +447,12 @@ export default function PageDetailPanel({
                       changes={bpResult.semanticChanges}
                       summary={bpResult.changeSummary}
                       onChangeClick={(id) => {
+                        // Tapping a change item is a request to inspect it —
+                        // force the Changes view so the marker is visible
+                        // before DiffViewer scrolls it into view. The user
+                        // is asking to be repositioned (scrollIntoView in
+                        // DiffViewer), so don't snapshot scrollTop here.
+                        if (viewMode !== "changes") setViewMode("changes");
                         setHighlightedChangeId(id);
                         setTimeout(() => setHighlightedChangeId(null), 3000);
                       }}
