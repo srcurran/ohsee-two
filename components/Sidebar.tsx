@@ -204,7 +204,8 @@ export default function Sidebar() {
                         <ProjectFavicon
                           url={project.prodUrl}
                           fallbackUrl={project.devUrl}
-                          size={32}
+                          size={16}
+                          borderRadius={2}
                         />
                         <span className="sidebar__title">{project.name || domain}</span>
                       </button>
