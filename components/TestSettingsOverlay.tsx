@@ -189,19 +189,22 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   };
 
   const undoDelete = () => {
+    // Read pendingDelete from state (not via the updater) so setSteps fires
+    // exactly once. Calling setSteps inside a setPendingDelete updater
+    // gets the splice run twice under React StrictMode and duplicates the
+    // restored step.
+    if (!pendingDelete) return;
     if (pendingTimerRef.current) {
       clearTimeout(pendingTimerRef.current);
       pendingTimerRef.current = null;
     }
-    setPendingDelete((cur) => {
-      if (!cur) return null;
-      setSteps((steps) => {
-        const next = [...steps];
-        next.splice(cur.index, 0, cur.step);
-        return next;
-      });
-      return null;
+    const { index, step } = pendingDelete;
+    setSteps((cur) => {
+      const next = [...cur];
+      next.splice(index, 0, step);
+      return next;
     });
+    setPendingDelete(null);
   };
 
   const handleStepDragEnter = (i: number) => {
