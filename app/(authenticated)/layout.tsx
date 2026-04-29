@@ -6,6 +6,8 @@ import Sidebar from "@/components/Sidebar";
 import SettingsOverlay from "@/components/SettingsOverlay";
 import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
 import TestSettingsOverlay from "@/components/TestSettingsOverlay";
+import NewProjectWizard from "@/components/NewProjectWizard";
+import NewTestWizard from "@/components/NewTestWizard";
 import TitlebarCollapseButton from "@/components/TitlebarCollapseButton";
 import PageTitleBar from "@/components/PageTitleBar";
 
@@ -31,6 +33,8 @@ export default function AuthenticatedLayout({
           <SettingsOverlay />
           <ProjectSettingsHost />
           <TestSettingsHost />
+          <NewProjectWizardHost />
+          <NewTestWizardHost />
         </SidebarProvider>
       </div>
     </SessionProvider>
@@ -62,6 +66,42 @@ function TestSettingsHost() {
       projectId={testSettings.projectId}
       testId={testSettings.testId}
       onClose={closeTestSettings}
+    />
+  );
+}
+
+/** Mounts the New-Project wizard while open. On creation, hands off to the
+ *  New-Test wizard pre-filled with the project's name so the two flows feel
+ *  continuous. */
+function NewProjectWizardHost() {
+  const {
+    newProjectWizardOpen,
+    closeNewProjectWizard,
+    refreshProjects,
+    openNewTestWizard,
+  } = useSidebar();
+  if (!newProjectWizardOpen) return null;
+  return (
+    <NewProjectWizard
+      onClose={closeNewProjectWizard}
+      onCreated={(projectId) => {
+        refreshProjects();
+        closeNewProjectWizard();
+        openNewTestWizard(projectId);
+      }}
+    />
+  );
+}
+
+/** Mounts the New-Test wizard while open. */
+function NewTestWizardHost() {
+  const { newTestWizard, closeNewTestWizard } = useSidebar();
+  if (!newTestWizard) return null;
+  return (
+    <NewTestWizard
+      projectId={newTestWizard.projectId}
+      initialName={newTestWizard.initialName}
+      onClose={closeNewTestWizard}
     />
   );
 }

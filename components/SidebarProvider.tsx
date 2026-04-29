@@ -33,6 +33,15 @@ interface SidebarContextValue {
   testSettings: { projectId: string; testId: string } | null;
   openTestSettings: (projectId: string, testId: string) => void;
   closeTestSettings: () => void;
+  /** New-project wizard state (null = not open). */
+  newProjectWizardOpen: boolean;
+  openNewProjectWizard: () => void;
+  closeNewProjectWizard: () => void;
+  /** New-test wizard state — projectId and optional pre-filled name (set
+   *  during the project→test handoff). */
+  newTestWizard: { projectId: string; initialName?: string } | null;
+  openNewTestWizard: (projectId: string, initialName?: string) => void;
+  closeNewTestWizard: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -55,6 +64,12 @@ const SidebarContext = createContext<SidebarContextValue>({
   testSettings: null,
   openTestSettings: () => {},
   closeTestSettings: () => {},
+  newProjectWizardOpen: false,
+  openNewProjectWizard: () => {},
+  closeNewProjectWizard: () => {},
+  newTestWizard: null,
+  openNewTestWizard: () => {},
+  closeNewTestWizard: () => {},
 });
 
 export function useSidebar() {
@@ -97,6 +112,8 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
   const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
+  const [newProjectWizardOpen, setNewProjectWizardOpen] = useState(false);
+  const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string } | null>(null);
   const pathname = usePathname();
 
   const refreshProjects = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -111,6 +128,14 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
     [],
   );
   const closeTestSettings = useCallback(() => setTestSettingsState(null), []);
+  const openNewProjectWizard = useCallback(() => setNewProjectWizardOpen(true), []);
+  const closeNewProjectWizard = useCallback(() => setNewProjectWizardOpen(false), []);
+  const openNewTestWizard = useCallback(
+    (projectId: string, initialName?: string) =>
+      setNewTestWizardState({ projectId, initialName }),
+    [],
+  );
+  const closeNewTestWizard = useCallback(() => setNewTestWizardState(null), []);
 
   // Hydrate collapsed state from localStorage, then enable transitions
   useEffect(() => {
@@ -167,6 +192,12 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
         testSettings,
         openTestSettings,
         closeTestSettings,
+        newProjectWizardOpen,
+        openNewProjectWizard,
+        closeNewProjectWizard,
+        newTestWizard,
+        openNewTestWizard,
+        closeNewTestWizard,
       }}
     >
       {children}

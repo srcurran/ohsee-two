@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "./SidebarProvider";
-import NewProjectOverlay from "./NewProjectOverlay";
 import ProjectFavicon from "./ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
@@ -32,11 +31,19 @@ function getTestWithLatestReport(test: SiteTest, reports: Report[]) {
 const MAX_VISIBLE_TESTS = 3;
 
 export default function Sidebar() {
-  const { refreshKey, refreshProjects, collapsed, ready, openSettings, openTestSettings } = useSidebar();
+  const {
+    refreshKey,
+    refreshProjects,
+    collapsed,
+    ready,
+    openSettings,
+    openTestSettings,
+    openNewProjectWizard,
+    openNewTestWizard,
+  } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const [data, setData] = useState<ProjectWithReports[]>([]);
-  const [showNewProject, setShowNewProject] = useState(false);
   const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -250,21 +257,7 @@ export default function Sidebar() {
                         )}
 
                         <button
-                          onClick={async () => {
-                            // Create a new empty test, then open its
-                            // settings overlay so the user can name it +
-                            // add steps inline.
-                            const res = await fetch(`/api/projects/${project.id}/tests`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ name: "New test" }),
-                            });
-                            if (res.ok) {
-                              const test = await res.json();
-                              refreshProjects();
-                              openTestSettings(project.id, test.id);
-                            }
-                          }}
+                          onClick={() => openNewTestWizard(project.id)}
                           className="sidebar__add-test"
                         >
                           <span>Add new test</span>
@@ -289,7 +282,7 @@ export default function Sidebar() {
               {hasProjects && <div className="sidebar__divider" />}
 
               <button
-                onClick={() => setShowNewProject(true)}
+                onClick={openNewProjectWizard}
                 className="sidebar__add-site"
               >
                 <span className="sidebar__plus">+</span>
@@ -311,16 +304,6 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {showNewProject && (
-        <NewProjectOverlay
-          onClose={() => setShowNewProject(false)}
-          onCreated={(projectId) => {
-            setShowNewProject(false);
-            refreshProjects();
-            router.push(`/projects/${projectId}`);
-          }}
-        />
-      )}
     </>
   );
 }

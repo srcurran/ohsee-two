@@ -4,14 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Project, Report } from "@/lib/types";
 import { useSidebar } from "@/components/SidebarProvider";
-import NewProjectOverlay from "@/components/NewProjectOverlay";
 
 export default function Home() {
   const router = useRouter();
-  const { refreshProjects } = useSidebar();
+  const { openNewProjectWizard } = useSidebar();
   const [loading, setLoading] = useState(true);
   const [hasProjects, setHasProjects] = useState(false);
-  const [showNewProject, setShowNewProject] = useState(false);
 
   useEffect(() => {
     async function redirectToLatest() {
@@ -91,24 +89,13 @@ export default function Home() {
               Ohsee compares screenshots of your production and dev sites to catch visual regressions before they ship.
             </p>
           </div>
-          <button onClick={() => setShowNewProject(true)} className="btn btn--primary">
+          <button onClick={openNewProjectWizard} className="btn btn--primary">
             Create your first project
           </button>
           <p className="empty-state__footnote">
             You&apos;ll add a production URL and a dev or staging URL. Ohsee handles the rest.
           </p>
         </div>
-
-        {showNewProject && (
-          <NewProjectOverlay
-            onClose={() => setShowNewProject(false)}
-            onCreated={(projectId) => {
-              setShowNewProject(false);
-              refreshProjects();
-              router.push(`/projects/${projectId}`);
-            }}
-          />
-        )}
       </>
     );
   }

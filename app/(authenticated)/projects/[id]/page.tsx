@@ -11,7 +11,7 @@ import { buildRunErrorDetails } from "@/components/run-error-details";
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { refreshProjects, openProjectSettings, openTestSettings } = useSidebar();
+  const { refreshProjects, openProjectSettings, openNewTestWizard } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [running, setRunning] = useState(false);
   // Structured run-failure payload (eyebrow / title / body / hint). Built
@@ -108,18 +108,7 @@ export default function ProjectPage() {
             </p>
             <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
               <button
-                onClick={async () => {
-                  const res = await fetch(`/api/projects/${params.id}/tests`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name: "New test" }),
-                  });
-                  if (res.ok) {
-                    const test = await res.json();
-                    refreshProjects();
-                    openTestSettings(params.id, test.id);
-                  }
-                }}
+                onClick={() => openNewTestWizard(params.id)}
                 className="btn btn--primary"
               >
                 Add Test
