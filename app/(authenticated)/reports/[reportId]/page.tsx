@@ -311,11 +311,9 @@ function ReportPageInner() {
                 <span className={`status-dot status-dot--${reportDotModifier(report)}`} />
               </button>
               <button
-                onClick={() => setShowReportNav(!showReportNav)}
+                onClick={openSettings}
                 className="icon-btn"
-                title="More report runs"
-                aria-haspopup="menu"
-                aria-expanded={showReportNav}
+                title={report?.siteTestId ? "Test settings" : "Project settings"}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="5" r="1.5" fill="currentColor" />

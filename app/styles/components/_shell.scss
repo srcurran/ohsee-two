@@ -28,8 +28,10 @@
   top: 4px;
   z-index: var(--z-toast);
   display: inline-flex;
+  /* Match the sidebar footer's gear icon size so the collapse button and
+   * the gear read as a vertical pair down the same x. */
   width: 32px;
-  height: 28px;
+  height: 32px;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
@@ -45,18 +47,17 @@
     background: var(--surface-hover);
   }
 
-  /* Sidebar open — inside the panel's right edge. The sidebar is 240px wide
-     (see SIDEBAR_WIDTH_OPEN in PageTitleBar.tsx); leave 4px breathing room. */
-  &--open { left: 204px; }
+  /* Sidebar open — pinned to the same x as the footer gear (right side of
+   * the 240px sidebar's 16px padding). 240 - 16 - 32 = 192. */
+  &--open { left: 192px; }
 
   /* Sidebar collapsed, Electron — ~40px right of the macOS stoplight buttons
      (close/min/zoom occupy roughly x=8..68 with hiddenInset). */
   &--collapsed-electron { left: 80px; }
 
-  /* Sidebar collapsed, web — top-right corner. Use `left` rather than `right`
-     so the position interpolates smoothly with the open/Electron states when
-     the user toggles. */
-  &--collapsed-web { left: calc(100vw - 44px); }
+  /* Sidebar collapsed, web — top-left corner. (Was top-right; users wanted
+   * the expand affordance to live where the collapse affordance had been.) */
+  &--collapsed-web { left: 12px; }
 
   /* Gated by `ready` in TitlebarCollapseButton so first paint doesn't animate
      from a default to the stored collapsed state. Matches the sidebar's

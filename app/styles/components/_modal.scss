@@ -706,3 +706,48 @@
     margin-top: var(--space-3);
   }
 }
+
+/* Sections inside the app-level SettingsOverlay (and reusable elsewhere)
+   when the panel chrome is provided by .project-settings-overlay. */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    &--column {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-2);
+    }
+  }
+
+  &__label {
+    margin: 0;
+    color: var(--foreground);
+    font-size: var(--font-size-base);
+  }
+
+  &__hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-md);
+  }
+
+  &__actions {
+    display: flex;
+    margin-top: var(--space-2);
+  }
+}
