@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import MaterialField from "@/components/MaterialField";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { useSidebar } from "@/components/SidebarProvider";
@@ -51,6 +51,17 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   >(null);
 
   const [openAccordion, setOpenAccordion] = useState<AccordionId | null>(null);
+
+  // Inline-undo for delete: when set, the step list renders a "Deleted: …
+  // Undo" row at this index in place of the removed step. Saves are
+  // deferred until the timer expires; if the user undoes within 3 s the
+  // step is restored at its original position with no save churn.
+  const [pendingDelete, setPendingDelete] = useState<{ index: number; step: TestStep } | null>(null);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Drag-to-reorder: tracks the current dragging step index. Reorder is
+  // committed on dragenter (live preview); save fires once on dragend.
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   const stateRef = useRef({ name, steps, breakpoints, variantIds, credentials });
   stateRef.current = { name, steps, breakpoints, variantIds, credentials };
@@ -155,19 +166,71 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   };
 
   const removeStep = (id: string) => {
+    const idx = steps.findIndex((s) => s.id === id);
+    if (idx === -1) return;
+    const step = steps[idx];
+
+    // If a previous pending delete is still active, finalize it before
+    // queuing the new one (don't lose its persistence).
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+      scheduleSave();
+    }
+
     setSteps((cur) => cur.filter((s) => s.id !== id));
+    setPendingDelete({ index: idx, step });
+
+    pendingTimerRef.current = setTimeout(() => {
+      pendingTimerRef.current = null;
+      setPendingDelete(null);
+      scheduleSave();
+    }, 3000);
+  };
+
+  const undoDelete = () => {
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    setPendingDelete((cur) => {
+      if (!cur) return null;
+      setSteps((steps) => {
+        const next = [...steps];
+        next.splice(cur.index, 0, cur.step);
+        return next;
+      });
+      return null;
+    });
+  };
+
+  const handleStepDragEnter = (i: number) => {
+    if (dragIndex === null || i === dragIndex) return;
+    setSteps((cur) => {
+      const next = [...cur];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(i, 0, moved);
+      return next;
+    });
+    setDragIndex(i);
+  };
+
+  const handleStepDragEnd = () => {
+    setDragIndex(null);
     scheduleSave();
   };
 
-  const reorderStep = (fromIndex: number, toIndex: number) => {
-    setSteps((cur) => {
-      const next = [...cur];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
-    scheduleSave();
-  };
+  // Persist any pending delete + drag save when the overlay unmounts.
+  useEffect(() => {
+    return () => {
+      if (pendingTimerRef.current) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+        // The pending step has already been removed from local state;
+        // flushSave on close will write it.
+      }
+    };
+  }, []);
 
   const addUrlStep = (url: string) => {
     const trimmed = url.trim();
@@ -215,16 +278,14 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             <button
               type="button"
               onClick={() => setStepEditor(null)}
-              className="icon-btn"
-              title="Back to test settings"
+              className="btn btn--text project-settings-overlay__back"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
+              <span>Back to steps</span>
             </button>
-          ) : null}
-
-          {!stepEditor && (
+          ) : (
             <>
               {editingName ? (
                 <input
@@ -269,26 +330,17 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                   </svg>
                 </button>
               )}
+              <button
+                type="button"
+                className="icon-btn project-settings-overlay__close"
+                onClick={handleClose}
+                title="Close"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
             </>
-          )}
-
-          {stepEditor && (
-            <span className="project-settings-overlay__title">
-              {stepEditor.mode === "create" ? "Add step" : "Edit step"}
-            </span>
-          )}
-
-          {!stepEditor && (
-            <button
-              type="button"
-              className="icon-btn project-settings-overlay__close"
-              onClick={handleClose}
-              title="Close"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
           )}
         </header>
 
@@ -320,21 +372,36 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                 ) : (
                   <ul className="test-steps__list">
                     {steps.map((step, i) => (
-                      <StepRow
-                        key={step.id}
-                        step={step}
-                        microTests={microTests}
-                        index={i}
-                        total={steps.length}
-                        onEdit={() => setStepEditor({ mode: "edit", stepId: step.id })}
-                        onToggleScreenshot={() =>
-                          updateStep(step.id, { captureScreenshot: step.captureScreenshot === false })
-                        }
-                        onRemove={() => removeStep(step.id)}
-                        onMoveUp={() => i > 0 && reorderStep(i, i - 1)}
-                        onMoveDown={() => i < steps.length - 1 && reorderStep(i, i + 1)}
-                      />
+                      <Fragment key={step.id}>
+                        {pendingDelete?.index === i && (
+                          <PendingDeleteRow
+                            step={pendingDelete.step}
+                            microTests={microTests}
+                            onUndo={undoDelete}
+                          />
+                        )}
+                        <StepRow
+                          step={step}
+                          microTests={microTests}
+                          dragging={dragIndex === i}
+                          onDragStart={() => setDragIndex(i)}
+                          onDragEnter={() => handleStepDragEnter(i)}
+                          onDragEnd={handleStepDragEnd}
+                          onEdit={() => setStepEditor({ mode: "edit", stepId: step.id })}
+                          onToggleScreenshot={() =>
+                            updateStep(step.id, { captureScreenshot: step.captureScreenshot === false })
+                          }
+                          onRemove={() => removeStep(step.id)}
+                        />
+                      </Fragment>
                     ))}
+                    {pendingDelete && pendingDelete.index >= steps.length && (
+                      <PendingDeleteRow
+                        step={pendingDelete.step}
+                        microTests={microTests}
+                        onUndo={undoDelete}
+                      />
+                    )}
                   </ul>
                 )}
 
@@ -423,23 +490,23 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 function StepRow({
   step,
   microTests,
+  dragging,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
   onEdit,
   onToggleScreenshot,
   onRemove,
-  onMoveUp,
-  onMoveDown,
-  index,
-  total,
 }: {
   step: TestStep;
   microTests: MicroTest[];
+  dragging?: boolean;
+  onDragStart: () => void;
+  onDragEnter: () => void;
+  onDragEnd: () => void;
   onEdit: () => void;
   onToggleScreenshot: () => void;
   onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  index: number;
-  total: number;
 }) {
   const label =
     step.type === "url"
@@ -449,26 +516,19 @@ function StepRow({
   const captureOn = step.captureScreenshot !== false;
 
   return (
-    <li className="step-row">
+    <li
+      className={`step-row${dragging ? " step-row--dragging" : ""}`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnd={onDragEnd}
+    >
       <span className="step-row__grip" aria-hidden="true">
-        <button
-          type="button"
-          onClick={onMoveUp}
-          disabled={index === 0}
-          className="step-row__grip-btn"
-          title="Move up"
-        >
-          ▴
-        </button>
-        <button
-          type="button"
-          onClick={onMoveDown}
-          disabled={index === total - 1}
-          className="step-row__grip-btn"
-          title="Move down"
-        >
-          ▾
-        </button>
+        <GripIcon />
       </span>
 
       <span
@@ -506,6 +566,29 @@ function StepRow({
   );
 }
 
+function PendingDeleteRow({
+  step,
+  microTests,
+  onUndo,
+}: {
+  step: TestStep;
+  microTests: MicroTest[];
+  onUndo: () => void;
+}) {
+  const label =
+    step.type === "url"
+      ? step.url || "(empty URL)"
+      : microTests.find((m) => m.id === step.microTestId)?.displayName || "(micro-test)";
+  return (
+    <li className="step-row step-row--deleted" aria-live="polite">
+      <span className="step-row__deleted-label">Deleted: {label}</span>
+      <button type="button" className="btn btn--text step-row__undo" onClick={onUndo}>
+        Undo
+      </button>
+    </li>
+  );
+}
+
 function EmptySteps({
   onPickUrl,
   onPickMicrotest,
@@ -515,10 +598,14 @@ function EmptySteps({
 }) {
   return (
     <div className="empty-steps">
-      <p className="empty-steps__copy">No steps yet — start with a URL or a Playwright snippet.</p>
+      <p className="empty-steps__heading">No steps yet.</p>
+      <p className="empty-steps__copy">
+        Start with a path you want to capture, or paste a Playwright script to
+        navigate the app.
+      </p>
       <div className="empty-steps__actions">
         <button type="button" className="btn btn--outline" onClick={onPickUrl}>
-          Add URL
+          Add path
         </button>
         <button type="button" className="btn btn--outline" onClick={onPickMicrotest}>
           Record with Playwright
@@ -790,6 +877,19 @@ function TrashIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M4 7h16M9 7V4h6v3M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function GripIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="9" cy="5" r="1.5" />
+      <circle cx="15" cy="5" r="1.5" />
+      <circle cx="9" cy="12" r="1.5" />
+      <circle cx="15" cy="12" r="1.5" />
+      <circle cx="9" cy="19" r="1.5" />
+      <circle cx="15" cy="19" r="1.5" />
     </svg>
   );
 }

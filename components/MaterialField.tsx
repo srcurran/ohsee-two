@@ -2,7 +2,17 @@
 
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
 
-export type MaterialFieldStatus = "idle" | "valid" | "invalid";
+/**
+ * - `idle`     — neutral, no styling.
+ * - `valid`    — format passes a sync check (e.g. URL parses). Silent: no
+ *                border tint, no trailing icon. Format-level success isn't
+ *                worth a green check; only confirmed reachability is.
+ * - `verified` — actually verified end-to-end (e.g. HEAD-checked URL).
+ *                Shows the green ✓. Reserve for cases where we've proven the
+ *                target works.
+ * - `invalid`  — red border + error icon.
+ */
+export type MaterialFieldStatus = "idle" | "valid" | "invalid" | "verified";
 
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "ref"> {
   /** Label rendered above the value (always visible — material-style). */
@@ -67,7 +77,7 @@ const MaterialField = forwardRef<HTMLInputElement, Props>(function MaterialField
 });
 
 function defaultTrailing(status: MaterialFieldStatus): ReactNode {
-  if (status === "valid") {
+  if (status === "verified") {
     return (
       <svg
         width="16"

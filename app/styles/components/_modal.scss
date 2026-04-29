@@ -305,6 +305,15 @@
     flex-shrink: 0;
   }
 
+  /* Step-editor "‹ Back to steps" link in the overlay header. Uses .btn--text
+     so it picks up the standard text-button hover. */
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0;
+  }
+
   &__body {
     display: flex;
     flex-direction: column;
@@ -323,7 +332,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: var(--space-3) 0;
+    padding: var(--space-4) 0;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -350,24 +359,25 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-7);
-    padding-top: var(--space-3);
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-2);
   }
 
   &__danger-section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-1);
   }
 
   &__danger-heading {
-    margin: 0;
-    font-size: var(--font-size-lg);
+    margin: 0 0 var(--space-1) 0;
+    font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
     color: var(--foreground);
   }
 
   &__danger-copy {
-    margin: 0 0 var(--space-2) 0;
+    margin: 0 0 var(--space-3) 0;
     font-size: var(--font-size-md);
     color: var(--text-muted);
   }
@@ -471,29 +481,42 @@
     border-bottom: none;
   }
 
+  /* Inline-undo replacement for a removed step. Soft-pink fill, persists for
+     3 s, replaces the visual slot of the deleted row so the layout doesn't
+     jump. */
+  &--deleted {
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    background: color-mix(in srgb, var(--severity-error) 8%, transparent);
+    border-radius: var(--radius-sm);
+    border-bottom: none;
+  }
+
+  /* Drag preview — fades the row being moved without removing it from
+     layout, so the surrounding rows can shift around it visibly. */
+  &--dragging {
+    opacity: 0.4;
+  }
+
+  &__deleted-label {
+    color: var(--text-muted);
+    font-size: var(--font-size-md);
+  }
+
+  &__undo {
+    color: var(--foreground);
+  }
+
   &__grip {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     color: var(--text-muted);
     line-height: 1;
-  }
+    cursor: grab;
 
-  &__grip-btn {
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: inherit;
-    cursor: pointer;
-    font-size: 10px;
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    &:hover:not(:disabled) {
-      color: var(--foreground);
+    &:active {
+      cursor: grabbing;
     }
   }
 
@@ -562,21 +585,31 @@
   gap: var(--space-3);
   padding: var(--space-4) 0;
 
+  &__heading {
+    margin: 0;
+    color: var(--foreground);
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+  }
+
   &__copy {
     margin: 0;
     color: var(--text-muted);
     font-size: var(--font-size-md);
+    line-height: var(--line-base);
+    max-width: 48ch;
   }
 
   &__actions {
     display: flex;
     gap: var(--space-3);
+    margin-top: var(--space-1);
   }
 }
 
 .ts-accordion {
   &__body {
-    padding-top: var(--space-3);
+    padding-top: var(--space-5);
     padding-bottom: var(--space-2);
   }
 }

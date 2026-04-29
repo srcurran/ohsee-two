@@ -21,10 +21,8 @@
       border-color: var(--foreground);
     }
 
-    &--valid {
-      border-color: var(--accent-green);
-    }
-
+    /* `valid` is silent — format passing isn't worth visual chrome. Only
+       `verified` (proven-reachable) and `invalid` color the border. */
     &--invalid {
       border-color: var(--severity-error);
     }
