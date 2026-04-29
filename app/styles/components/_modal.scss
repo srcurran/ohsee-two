@@ -324,7 +324,7 @@
   &__divider {
     border: none;
     border-top: 1px solid var(--border-primary);
-    margin: var(--space-4) 0 var(--space-1);
+    margin: 0;
   }
 
   &__danger-toggle {
@@ -332,7 +332,9 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: var(--space-4) 0;
+    /* Closed accordion rows want compact padding so adjacent toggles sit
+       close together with the divider between (matches Figma 169:877). */
+    padding: var(--space-3) 0;
     background: transparent;
     border: none;
     cursor: pointer;
