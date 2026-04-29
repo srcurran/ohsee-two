@@ -7,7 +7,6 @@ import type {
   MicroTest,
   Project,
   TestComposition,
-  TestCompositionStep,
 } from "./types";
 import type { AuthCookieConfig } from "./auth-token";
 

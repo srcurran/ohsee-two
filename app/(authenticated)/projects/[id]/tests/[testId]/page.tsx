@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import type { Project, SiteTest } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
 import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
 import { buildRunErrorDetails } from "@/components/run-error-details";
+import { useSidebar } from "@/components/SidebarProvider";
 
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();
   const router = useRouter();
+  const { openTestSettings } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [test, setTest] = useState<SiteTest | null>(null);
   const [running, setRunning] = useState(false);
@@ -90,12 +91,12 @@ export default function TestPage() {
         </p>
       )}
 
-      <Link
-        href={`/projects/${params.id}/settings/tests?testId=${params.testId}`}
+      <button
+        onClick={() => openTestSettings(params.id, params.testId)}
         className="btn btn--text"
       >
         Configure test settings
-      </Link>
+      </button>
     </div>
   );
 }

@@ -6,8 +6,8 @@ import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
 import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition } from "./types";
-import { executeFlow, getScreenshotStepIds, type FlowScreenshotResult } from "./flow-runner";
-import { executeTestComposition, getCompositionScreenshotSteps, type MicroTestStepResult } from "./micro-test-runner";
+import { executeFlow, getScreenshotStepIds } from "./flow-runner";
+import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
 

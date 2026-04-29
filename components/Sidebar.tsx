@@ -261,8 +261,6 @@ export default function Sidebar() {
                               const test = await res.json();
                               refreshProjects();
                               openTestSettings(project.id, test.id);
-                            } else {
-                              router.push(`/projects/${project.id}/settings/tests`);
                             }
                           }}
                           className="sidebar__add-test"
