@@ -7,10 +7,21 @@ const SIDEBAR_WIDTH_OPEN = 240;
 const MAIN_RIGHT_PADDING = 12;
 
 export default function PageTitleBar() {
-  const { pageTitle, collapsed } = useSidebar();
-  if (!pageTitle) return null;
+  const { pageTitle, pageHeader, collapsed } = useSidebar();
+  if (!pageHeader && !pageTitle) return null;
 
   const left = collapsed ? 0 : SIDEBAR_WIDTH_OPEN;
+
+  if (pageHeader) {
+    return (
+      <div
+        style={{ left, right: MAIN_RIGHT_PADDING }}
+        className="page-title-bar page-title-bar--custom"
+      >
+        {pageHeader}
+      </div>
+    );
+  }
 
   return (
     <div

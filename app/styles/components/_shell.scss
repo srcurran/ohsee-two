@@ -71,12 +71,14 @@
 
 .page-title-bar {
   position: fixed;
-  top: 0;
+  /* Match the sidebar collapse button (32px tall, 4px from top) so the
+     two top-row chrome elements align vertically. */
+  top: 4px;
   z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
+  height: 32px;
   pointer-events: none;
   transition: left 0.2s var(--ease-standard);
 
@@ -88,6 +90,20 @@
     font-size: var(--font-size-md);
     font-weight: var(--weight-semibold);
     color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  }
+
+  /* Custom header content (per-page React node, e.g. report eyebrow row).
+     Left-aligned and clickable. Pads to match the report content's
+     horizontal padding (var(--space-6)). */
+  &--custom {
+    justify-content: flex-start;
+    pointer-events: auto;
+    padding: 0 var(--space-6);
+    gap: var(--space-2);
+
+    /* Stay clickable inside the .titlebar-drag-region strip. */
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
   }
 }
 

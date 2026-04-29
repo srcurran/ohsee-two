@@ -17,6 +17,10 @@ interface SidebarContextValue {
   ready: boolean;
   pageTitle: string | null;
   setPageTitle: (title: string | null) => void;
+  /** Custom titlebar content (rendered inside the 36px drag region).
+   *  When set, takes precedence over pageTitle in PageTitleBar. */
+  pageHeader: ReactNode;
+  setPageHeader: (node: ReactNode) => void;
   /** Whether the app settings overlay is open. */
   settingsOpen: boolean;
   openSettings: () => void;
@@ -40,6 +44,8 @@ const SidebarContext = createContext<SidebarContextValue>({
   ready: false,
   pageTitle: null,
   setPageTitle: () => {},
+  pageHeader: null,
+  setPageHeader: () => {},
   settingsOpen: false,
   openSettings: () => {},
   closeSettings: () => {},
@@ -68,6 +74,18 @@ export function usePageTitle(title: string | null | undefined) {
   }, [title, setPageTitle]);
 }
 
+/**
+ * Sets a custom titlebar header (rendered inside the 36px drag region) for
+ * the duration of the calling component's lifetime. Pass null to clear.
+ */
+export function usePageHeader(node: ReactNode) {
+  const { setPageHeader } = useContext(SidebarContext);
+  useEffect(() => {
+    setPageHeader(node);
+    return () => setPageHeader(null);
+  }, [node, setPageHeader]);
+}
+
 const STORAGE_KEY = "ohsee-sidebar-collapsed";
 
 export default function SidebarProvider({ children }: { children: ReactNode }) {
@@ -75,6 +93,7 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsedState] = useState(false);
   const [ready, setReady] = useState(false);
   const [pageTitle, setPageTitleState] = useState<string | null>(null);
+  const [pageHeader, setPageHeaderState] = useState<ReactNode>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
   const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
@@ -82,6 +101,7 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
 
   const refreshProjects = useCallback(() => setRefreshKey((k) => k + 1), []);
   const setPageTitle = useCallback((title: string | null) => setPageTitleState(title), []);
+  const setPageHeader = useCallback((node: ReactNode) => setPageHeaderState(node), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openProjectSettings = useCallback((id: string) => setProjectSettingsId(id), []);
@@ -136,6 +156,8 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
         ready,
         pageTitle,
         setPageTitle,
+        pageHeader,
+        setPageHeader,
         settingsOpen,
         openSettings,
         closeSettings,

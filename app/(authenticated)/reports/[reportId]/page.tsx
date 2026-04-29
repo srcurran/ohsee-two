@@ -8,7 +8,7 @@ import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
 import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
 import { buildRunErrorDetails } from "@/components/run-error-details";
-import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
+import { useSidebar, usePageHeader } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
 import { reportDotModifier } from "@/lib/colors";
@@ -42,13 +42,6 @@ function ReportPageInner() {
   const activeBp = Number(searchParams.get("bp")) || 1024;
   const activeVariant = searchParams.get("variant") || null;
   const activePageId = searchParams.get("page") || null;
-
-  const titleLabel = project
-    ? siteTest
-      ? `${project.name || getDomain(project.prodUrl)} / ${siteTest.name}`
-      : project.name || getDomain(project.prodUrl)
-    : null;
-  usePageTitle(titleLabel);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -177,6 +170,32 @@ function ReportPageInner() {
     }
   }, [notFound, router]);
 
+  // Push a custom titlebar header (project eyebrow + project-settings icon)
+  // into the 36px drag region. Memoized so the slot doesn't reset on every
+  // render. Must be called unconditionally before any early return.
+  const projectLabel = project ? (project.name || getDomain(project.prodUrl)) : null;
+  const pageHeaderNode = useMemo(() => {
+    if (!project || !projectLabel) return null;
+    return (
+      <>
+        <span className="report__project-label">{projectLabel}</span>
+        <button
+          onClick={() => openProjectSettings(project.id)}
+          className="icon-btn icon-btn--sm"
+          title="Project settings"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="8" cy="6" r="2" fill="currentColor" />
+            <circle cx="16" cy="12" r="2" fill="currentColor" />
+            <circle cx="10" cy="18" r="2" fill="currentColor" />
+          </svg>
+        </button>
+      </>
+    );
+  }, [project, projectLabel, openProjectSettings]);
+  usePageHeader(pageHeaderNode);
+
   if (!report) {
     return (
       <div style={{ padding: "var(--space-6)" }}>
@@ -186,9 +205,8 @@ function ReportPageInner() {
   }
 
   const projectName = project ? (project.name || getDomain(project.prodUrl)) : "...";
-  // Two-line header: project sits as a small eyebrow above the bold test
-  // name. Legacy reports without a siteTest fall back to project-as-title.
-  const headerEyebrow = siteTest ? projectName : null;
+  // Title is the test name when present; legacy reports without a siteTest
+  // fall back to the project name. Project label lives in the titlebar slot.
   const headerTitle = siteTest?.name ?? projectName;
   // Both project-level and test-level reports now open overlays. Legacy
   // reports without a siteTestId open the project settings overlay.
@@ -248,26 +266,6 @@ function ReportPageInner() {
       )}
 
       <div className="report__sticky">
-        {(headerEyebrow || project) && (
-          <div className="report__eyebrow-row">
-            {headerEyebrow && <span className="report__project-label">{headerEyebrow}</span>}
-            {project && (
-              <button
-                onClick={openSettings}
-                className="icon-btn icon-btn--sm"
-                title="Test settings"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="8" cy="6" r="2" fill="currentColor" />
-                  <circle cx="16" cy="12" r="2" fill="currentColor" />
-                  <circle cx="10" cy="18" r="2" fill="currentColor" />
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
-
         <div className="report__title-row">
           <div className="report__title-group">
             <h1 className="report__title">{headerTitle}</h1>
