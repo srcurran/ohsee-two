@@ -164,7 +164,9 @@ export default function Sidebar() {
             <>
               {visibleData.map(({ project, reports }, index) => {
                 const domain = getDomain(project.prodUrl);
-                const tests = project.tests || [];
+                // Archived tests live on the project but are hidden here —
+                // they're restored from the project Danger Zone.
+                const tests = (project.tests || []).filter((t) => !t.archived);
                 const isExpanded = expandedTests.has(project.id);
                 const testsWithReports = tests.map((t) => getTestWithLatestReport(t, reports));
                 const visibleTests = isExpanded ? testsWithReports : testsWithReports.slice(0, MAX_VISIBLE_TESTS);
