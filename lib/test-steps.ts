@@ -82,9 +82,14 @@ export function splitStepsForRunner(
   for (const s of steps) {
     if (s.type === "url" && s.url) {
       pages.push({ id: s.id, path: s.url });
-    } else if (s.type === "microtest" && s.microTestId) {
+    } else if (s.type === "microtest" && (s.script || s.microTestId)) {
+      // Prefer inline script (post-migration shape). Fall back to
+      // microTestId for unmigrated tests — the runner's findMicroTest
+      // still resolves it from project.microTests in that case.
       microSteps.push({
         id: s.id,
+        script: s.script,
+        name: s.name,
         microTestId: s.microTestId,
         captureScreenshot: s.captureScreenshot !== false,
       });

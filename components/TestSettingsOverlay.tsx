@@ -1,6 +1,11 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { javascript } from "@codemirror/lang-javascript";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { basicSetup } from "codemirror";
 import MaterialField from "@/components/MaterialField";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { useSidebar } from "@/components/SidebarProvider";
@@ -8,7 +13,6 @@ import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import { getTestSteps } from "@/lib/test-steps";
 import { resolveProjectPath } from "@/lib/url-utils";
 import type {
-  MicroTest,
   Project,
   SiteTest,
   TestStep,
@@ -246,10 +250,16 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     scheduleSave();
   };
 
-  const addMicrotestStep = (microTestId: string) => {
+  const addScriptStep = (name: string, script: string) => {
     setSteps((cur) => [
       ...cur,
-      { id: crypto.randomUUID(), type: "microtest", microTestId, captureScreenshot: true },
+      {
+        id: crypto.randomUUID(),
+        type: "microtest",
+        name: name.trim() || "Untitled step",
+        script,
+        captureScreenshot: true,
+      },
     ]);
     setStepEditor(null);
     scheduleSave();
@@ -260,7 +270,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   const activeTest: SiteTest | undefined = project?.tests?.find((t) => t.id === testId);
 
   const otherTests = (project?.tests || []).filter((t) => t.id !== testId && !t.archived);
-  const microTests: MicroTest[] = project?.microTests || [];
 
   return (
     <div
@@ -352,15 +361,13 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             <p style={{ color: "var(--text-muted)" }}>Loading...</p>
           ) : stepEditor ? (
             <AddEditStepView
-              microTests={microTests}
-              steps={steps}
               projectUrls={[project.prodUrl, project.devUrl]}
               editing={stepEditor.mode === "edit"
                 ? steps.find((s) => s.id === stepEditor.stepId) ?? null
                 : null}
               onUpdate={updateStep}
               onAddUrl={addUrlStep}
-              onAddMicrotest={addMicrotestStep}
+              onAddScript={addScriptStep}
               onCancel={() => setStepEditor(null)}
             />
           ) : (
@@ -380,13 +387,11 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                         {pendingDelete?.index === i && (
                           <PendingDeleteRow
                             step={pendingDelete.step}
-                            microTests={microTests}
                             onUndo={undoDelete}
                           />
                         )}
                         <StepRow
                           step={step}
-                          microTests={microTests}
                           dragging={dragIndex === i}
                           onDragStart={() => setDragIndex(i)}
                           onDragEnter={() => handleStepDragEnter(i)}
@@ -402,7 +407,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                     {pendingDelete && pendingDelete.index >= steps.length && (
                       <PendingDeleteRow
                         step={pendingDelete.step}
-                        microTests={microTests}
                         onUndo={undoDelete}
                       />
                     )}
@@ -526,9 +530,14 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
 /* ── Subcomponents ───────────────────────────────────────────────────── */
 
+/** Display label for a step in the steps list and the deleted-undo row. */
+function stepLabel(step: TestStep): string {
+  if (step.type === "url") return step.url || "(empty path)";
+  return step.name || "(unnamed script)";
+}
+
 function StepRow({
   step,
-  microTests,
   dragging,
   onDragStart,
   onDragEnter,
@@ -538,7 +547,6 @@ function StepRow({
   onRemove,
 }: {
   step: TestStep;
-  microTests: MicroTest[];
   dragging?: boolean;
   onDragStart: () => void;
   onDragEnter: () => void;
@@ -547,10 +555,7 @@ function StepRow({
   onToggleScreenshot: () => void;
   onRemove: () => void;
 }) {
-  const label =
-    step.type === "url"
-      ? step.url || "(empty URL)"
-      : microTests.find((m) => m.id === step.microTestId)?.displayName || "(missing micro-test)";
+  const label = stepLabel(step);
 
   const captureOn = step.captureScreenshot !== false;
 
@@ -607,17 +612,12 @@ function StepRow({
 
 function PendingDeleteRow({
   step,
-  microTests,
   onUndo,
 }: {
   step: TestStep;
-  microTests: MicroTest[];
   onUndo: () => void;
 }) {
-  const label =
-    step.type === "url"
-      ? step.url || "(empty URL)"
-      : microTests.find((m) => m.id === step.microTestId)?.displayName || "(micro-test)";
+  const label = stepLabel(step);
   return (
     <li className="step-row step-row--deleted" aria-live="polite">
       <span className="step-row__deleted-label">Deleted: {label}</span>
@@ -741,30 +741,26 @@ function CredentialsSection({
 /* ── Add / Edit step view ────────────────────────────────────────────── */
 
 function AddEditStepView({
-  microTests,
   editing,
   projectUrls,
   onUpdate,
   onAddUrl,
-  onAddMicrotest,
+  onAddScript,
   onCancel,
 }: {
-  microTests: MicroTest[];
-  steps: TestStep[];
   editing: TestStep | null;
   /** Project's prod + dev URLs — used to validate that the user-entered
    *  path/URL belongs to one of our domains. */
   projectUrls: string[];
   onUpdate: (id: string, patch: Partial<TestStep>) => void;
   onAddUrl: (url: string) => void;
-  onAddMicrotest: (microTestId: string) => void;
+  onAddScript: (name: string, script: string) => void;
   onCancel: () => void;
 }) {
   const [pickedType, setPickedType] = useState<"url" | "microtest" | null>(
     editing ? editing.type : null,
   );
   const [pathInput, setPathInput] = useState<string>(editing?.url ?? "");
-  const [microId, setMicroId] = useState<string>(editing?.microTestId ?? microTests[0]?.id ?? "");
 
   // Resolve the input down to a path. Accepts full URLs (which get stripped
   // to their pathname) and bare paths. Errors on third-party domains.
@@ -780,16 +776,6 @@ function AddEditStepView({
       onCancel();
     } else {
       onAddUrl(value);
-    }
-  };
-
-  const handleSaveMicro = () => {
-    if (!microId) return;
-    if (editing) {
-      onUpdate(editing.id, { microTestId: microId });
-      onCancel();
-    } else {
-      onAddMicrotest(microId);
     }
   };
 
@@ -854,38 +840,106 @@ function AddEditStepView({
     );
   }
 
-  // Playwright (microtest) editor — minimal for Phase 2: pick from project's
-  // micro-test library or open the dedicated editor in another surface. Full
-  // inline script editing + record-with-Playwright is the next refinement.
+  // Playwright (script) editor — inline CodeMirror, no separate library.
+  return (
+    <ScriptStepEditor
+      editing={editing}
+      onSave={(name, script) => {
+        if (editing) {
+          onUpdate(editing.id, { name, script });
+          onCancel();
+        } else {
+          onAddScript(name, script);
+        }
+      }}
+      onCancel={onCancel}
+    />
+  );
+}
+
+/**
+ * Inline Playwright-script step editor. Lifted from the deleted
+ * MicroTestEditor — same CodeMirror setup, but writes the script directly
+ * onto the step instead of into a separate microTests collection.
+ */
+function ScriptStepEditor({
+  editing,
+  onSave,
+  onCancel,
+}: {
+  editing: TestStep | null;
+  onSave: (name: string, script: string) => void;
+  onCancel: () => void;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
+  const [name, setName] = useState(editing?.name ?? "");
+
+  // Stable callback ref so the keymap can call the latest version without
+  // us re-binding the editor. Mod-S grabs the live name + doc and saves.
+  const saveRef = useRef(() => {});
+  saveRef.current = () => {
+    const script = viewRef.current?.state.doc.toString() ?? editing?.script ?? "";
+    onSave(name, script);
+  };
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const state = EditorState.create({
+      doc: editing?.script ?? "",
+      extensions: [
+        basicSetup,
+        javascript({ typescript: true }),
+        oneDark,
+        EditorView.lineWrapping,
+        cmPlaceholder(
+          '// Your script receives `page` (Playwright Page) and `expect`\nawait page.click("button");',
+        ),
+        keymap.of([
+          {
+            key: "Mod-s",
+            run: () => {
+              saveRef.current();
+              return true;
+            },
+          },
+        ]),
+      ],
+    });
+    const view = new EditorView({ state, parent: editorRef.current });
+    viewRef.current = view;
+    return () => view.destroy();
+    // Re-mount only when switching between create/edit of different steps;
+    // keystrokes shouldn't reset the editor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing?.id]);
+
   return (
     <div className="step-editor">
-      <p className="step-editor__hint">
-        Pick an existing Playwright snippet from this project&apos;s library.
-        Inline script editing and Record-with-Playwright land in the next pass.
-      </p>
       <label className="step-editor__field">
-        <span className="step-editor__label">Micro-test</span>
-        <select
-          className="input"
-          value={microId}
-          onChange={(e) => setMicroId(e.target.value)}
-        >
-          {microTests.length === 0 ? (
-            <option value="">No micro-tests in this project yet</option>
-          ) : (
-            microTests.map((m) => (
-              <option key={m.id} value={m.id}>{m.displayName}</option>
-            ))
-          )}
-        </select>
+        <span className="step-editor__label">Name</span>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Click sign in"
+          className="input input--compact"
+          autoFocus
+        />
       </label>
+      <p className="step-editor__hint">
+        Your script receives <code className="code-inline code-inline--xs">page</code>{" "}
+        (Playwright Page) and <code className="code-inline code-inline--xs">expect</code>{" "}
+        as arguments.
+      </p>
+      <div ref={editorRef} className="code-editor" />
       <div className="step-editor__actions">
         <button type="button" className="btn btn--text" onClick={onCancel}>Cancel</button>
         <button
           type="button"
           className="btn btn--primary"
-          onClick={handleSaveMicro}
-          disabled={!microId}
+          onClick={() => saveRef.current()}
+          disabled={!name.trim()}
         >
           {editing ? "Save" : "Add step"}
         </button>

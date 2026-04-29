@@ -4,9 +4,9 @@ import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import type {
   DomSnapshot,
-  MicroTest,
   Project,
   TestComposition,
+  TestCompositionStep,
 } from "./types";
 import type { AuthCookieConfig } from "./auth-token";
 
@@ -90,10 +90,22 @@ export async function executeMicroTest(
 }
 
 /**
- * Look up a MicroTest by ID from the project's micro-test library.
+ * Resolve a step's script + display name. Prefers inline `step.script` /
+ * `step.name` (post-migration shape). Falls back to looking up
+ * `step.microTestId` in `project.microTests` for unmigrated tests.
  */
-function findMicroTest(project: Project, microTestId: string): MicroTest | undefined {
-  return project.microTests?.find((mt) => mt.id === microTestId);
+function resolveStepScript(
+  project: Project,
+  step: TestCompositionStep,
+): { script: string; displayName: string } | null {
+  if (step.script) {
+    return { script: step.script, displayName: step.name ?? step.id };
+  }
+  if (step.microTestId) {
+    const mt = project.microTests?.find((m) => m.id === step.microTestId);
+    if (mt) return { script: mt.script, displayName: mt.displayName };
+  }
+  return null;
 }
 
 /**
@@ -173,21 +185,21 @@ export async function executeTestComposition(options: {
 
         // Execute each composition step
         for (const step of composition.steps) {
-          const microTest = findMicroTest(project, step.microTestId);
-          if (!microTest) {
+          const resolved = resolveStepScript(project, step);
+          if (!resolved) {
             console.error(
               `Composition "${composition.name}" step "${step.id}": ` +
-              `micro-test "${step.microTestId}" not found — skipping`,
+              `no script (microTestId="${step.microTestId ?? "?"}") — skipping`,
             );
             continue;
           }
 
           try {
-            await executeMicroTest(page, microTest.script, STEP_TIMEOUT, baseUrl);
+            await executeMicroTest(page, resolved.script, STEP_TIMEOUT, baseUrl);
           } catch (err) {
             console.error(
               `Composition "${composition.name}" step "${step.id}" ` +
-              `(micro-test "${microTest.name}") failed at ${bp}px:`,
+              `("${resolved.displayName}") failed at ${bp}px:`,
               err,
             );
             // Still capture screenshot below — showing page state at failure
@@ -197,7 +209,7 @@ export async function executeTestComposition(options: {
           if (step.captureScreenshot) {
             try {
               await captureStepScreenshot(
-                page, step.id, microTest.displayName, bp, outputDir, prefix, results,
+                page, step.id, resolved.displayName, bp, outputDir, prefix, results,
               );
             } catch (screenshotErr) {
               console.error(
@@ -240,10 +252,10 @@ export function getCompositionScreenshotSteps(
 
   for (const step of composition.steps) {
     if (step.captureScreenshot) {
-      const microTest = findMicroTest(project, step.microTestId);
+      const resolved = resolveStepScript(project, step);
       result.push({
         id: step.id,
-        label: microTest?.displayName ?? `Step ${step.id}`,
+        label: resolved?.displayName ?? `Step ${step.id}`,
       });
     }
   }

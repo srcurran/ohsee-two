@@ -35,6 +35,12 @@ export interface SiteTest {
  * A single step in a test's unified `steps[]` list. URL steps and microtest
  * steps share the same shape with a discriminator — under the hood, a URL
  * step is just a simplified Playwright step (`page.goto(url)`).
+ *
+ * The "microtest" type historically referenced a separate MicroTest record
+ * stored on `project.microTests`. That collection was inlined: `script` and
+ * `name` now live directly on the step. `microTestId` is preserved only for
+ * legacy records that haven't been read through `readProjectsWithMigration`
+ * yet.
  */
 export interface TestStep {
   id: string;
@@ -45,7 +51,14 @@ export interface TestStep {
   /** url-step: the absolute or path-relative URL to navigate to. Path-only
    *  values are resolved against the project's prod/dev base at run time. */
   url?: string;
-  /** microtest-step: references a MicroTest by id from the project library. */
+  /** microtest-step: inline Playwright script body. Receives `page` and
+   *  `expect` as arguments. */
+  script?: string;
+  /** microtest-step: display label shown in the steps list and used in
+   *  error messages / screenshot filenames. */
+  name?: string;
+  /** Legacy: pre-inlining microtest reference. Migrated to inline script+name
+   *  on first read; kept for backward-compat if migration hasn't run. */
   microTestId?: string;
 }
 
@@ -86,7 +99,9 @@ export interface Project {
   flows?: FlowEntry[];
   /** Named tests for this site. Each test has its own pages + flows. */
   tests?: SiteTest[];
-  /** Reusable Playwright script steps shared across all tests for this site */
+  /** @deprecated Inlined onto step.script by readProjectsWithMigration on
+   *  first read; kept on the type for migration compatibility only. New
+   *  records do not write this field. */
   microTests?: MicroTest[];
 }
 
@@ -122,8 +137,12 @@ export interface MicroTest {
 
 export interface TestCompositionStep {
   id: string;
-  /** References a MicroTest.id from the project's microTests library */
-  microTestId: string;
+  /** Inline Playwright script body — receives `page` + `expect`. */
+  script?: string;
+  /** Display label used in error messages + screenshot filenames. */
+  name?: string;
+  /** Legacy reference to a project.microTests entry. Inlined on read. */
+  microTestId?: string;
   /** Whether to capture a screenshot after this step completes */
   captureScreenshot: boolean;
 }
