@@ -11,11 +11,14 @@
     margin-bottom: var(--space-5);
   }
 
+  /* Subtle eyebrow rather than a prominent heading — the active step's
+     question prompt (e.g. "What is the project's name?") carries the real
+     visual weight. Matches Figma 187:1092. */
   &__title {
     margin: 0;
-    font-size: var(--font-size-lg);
-    font-weight: var(--weight-bold);
-    color: var(--foreground);
+    font-size: var(--font-size-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
   }
 
   &__body {

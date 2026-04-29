@@ -100,6 +100,13 @@ export default function Sidebar() {
     return testReports.some((r) => pathname.startsWith(`/reports/${r.id}`));
   };
 
+  /** A project is "active" when the user is viewing its project page, one of
+   *  its tests, or one of its reports. */
+  const isProjectActive = (project: Project, reports: Report[]) => {
+    if (pathname.startsWith(`/projects/${project.id}`)) return true;
+    return reports.some((r) => pathname.startsWith(`/reports/${r.id}`));
+  };
+
   const handleProjectClick = (project: Project, reports: Report[]) => {
     if (reports.length > 0) {
       router.push(`/reports/${reports[0].id}`);
@@ -178,11 +185,12 @@ export default function Sidebar() {
                 const testsWithReports = tests.map((t) => getTestWithLatestReport(t, reports));
                 const visibleTests = isExpanded ? testsWithReports : testsWithReports.slice(0, MAX_VISIBLE_TESTS);
                 const hasMore = testsWithReports.length > MAX_VISIBLE_TESTS;
+                const projectActive = isProjectActive(project, reports);
 
                 return (
                   <div key={project.id}>
                     <div
-                      className="sidebar__group"
+                      className={`sidebar__group${projectActive ? " sidebar__group--active" : ""}`}
                       draggable
                       onDragStart={(e) => handleDragStart(index, e)}
                       onDragEnter={() => handleDragEnter(index)}
