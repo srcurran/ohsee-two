@@ -6,7 +6,7 @@ import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { useSidebar } from "@/components/SidebarProvider";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import { getTestSteps } from "@/lib/test-steps";
-import { checkUrl } from "@/lib/url-validation";
+import { resolveProjectPath } from "@/lib/url-utils";
 import type {
   MicroTest,
   Project,
@@ -19,7 +19,7 @@ const ENTER_MS = 180;
 const EXIT_MS = 140;
 const SAVE_DEBOUNCE_MS = 600;
 
-type AccordionId = "settings" | "credentials";
+type AccordionId = "settings" | "credentials" | "danger";
 
 interface Props {
   projectId: string;
@@ -351,6 +351,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             <AddEditStepView
               microTests={microTests}
               steps={steps}
+              projectUrls={[project.prodUrl, project.devUrl]}
               editing={stepEditor.mode === "edit"
                 ? steps.find((s) => s.id === stepEditor.stepId) ?? null
                 : null}
@@ -476,6 +477,41 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                     scheduleSave();
                   }}
                 />
+              </Accordion>
+
+              <hr className="project-settings-overlay__divider" />
+
+              <Accordion
+                title="Danger Zone"
+                open={openAccordion === "danger"}
+                onToggle={() =>
+                  setOpenAccordion((cur) => (cur === "danger" ? null : "danger"))
+                }
+              >
+                <div className="project-settings-overlay__danger-body">
+                  <section className="project-settings-overlay__danger-section">
+                    <h3 className="project-settings-overlay__danger-heading">
+                      Archive test
+                    </h3>
+                    <p className="project-settings-overlay__danger-copy">
+                      Hide this test from the sidebar. Reports are preserved
+                      and the test can be restored from the project Danger
+                      Zone.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn--outline"
+                      onClick={async () => {
+                        // Persist archive flag, then close overlay so the
+                        // sidebar stops showing the test.
+                        await persist({ archived: true });
+                        handleClose();
+                      }}
+                    >
+                      Archive
+                    </button>
+                  </section>
+                </div>
               </Accordion>
             </>
           )}
@@ -704,6 +740,7 @@ function CredentialsSection({
 function AddEditStepView({
   microTests,
   editing,
+  projectUrls,
   onUpdate,
   onAddUrl,
   onAddMicrotest,
@@ -712,28 +749,34 @@ function AddEditStepView({
   microTests: MicroTest[];
   steps: TestStep[];
   editing: TestStep | null;
+  /** Project's prod + dev URLs — used to validate that the user-entered
+   *  path/URL belongs to one of our domains. */
+  projectUrls: string[];
   onUpdate: (id: string, patch: Partial<TestStep>) => void;
   onAddUrl: (url: string) => void;
   onAddMicrotest: (microTestId: string) => void;
   onCancel: () => void;
 }) {
-  // Empty editor: pick URL or Playwright
   const [pickedType, setPickedType] = useState<"url" | "microtest" | null>(
     editing ? editing.type : null,
   );
-  const [urlValue, setUrlValue] = useState<string>(editing?.url ?? "");
+  const [pathInput, setPathInput] = useState<string>(editing?.url ?? "");
   const [microId, setMicroId] = useState<string>(editing?.microTestId ?? microTests[0]?.id ?? "");
 
-  const urlCheck = checkUrl(urlValue);
-  const urlStatus = !urlValue ? "idle" : urlCheck.ok ? "valid" : "invalid";
+  // Resolve the input down to a path. Accepts full URLs (which get stripped
+  // to their pathname) and bare paths. Errors on third-party domains.
+  const resolved = pathInput.trim() ? resolveProjectPath(pathInput, projectUrls) : null;
+  const pathStatus =
+    !pathInput ? "idle" : resolved?.ok ? "valid" : "invalid";
 
-  const handleSaveUrl = () => {
-    if (!urlCheck.ok) return;
+  const handleSavePath = () => {
+    if (!resolved?.ok) return;
+    const value = resolved.path;
     if (editing) {
-      onUpdate(editing.id, { url: urlValue.trim() });
+      onUpdate(editing.id, { url: value });
       onCancel();
     } else {
-      onAddUrl(urlValue.trim());
+      onAddUrl(value);
     }
   };
 
@@ -760,8 +803,8 @@ function AddEditStepView({
             onClick={() => setPickedType("url")}
           >
             <UrlIcon className="add-step-fork__card-icon" />
-            <span className="add-step-fork__card-title">URL</span>
-            <span className="add-step-fork__card-copy">Navigate to a URL and capture a screenshot.</span>
+            <span className="add-step-fork__card-title">Path</span>
+            <span className="add-step-fork__card-copy">Navigate to a page on this site and capture a screenshot.</span>
           </button>
           <button
             type="button"
@@ -781,12 +824,15 @@ function AddEditStepView({
     return (
       <div className="step-editor">
         <MaterialField
-          label="URL"
-          value={urlValue}
-          onChange={(e) => setUrlValue(e.target.value)}
-          placeholder="https://example.com or /about"
-          status={urlStatus}
-          error={urlStatus === "invalid" ? urlCheck.ok ? null : urlCheck.reason : null}
+          label="Path"
+          value={pathInput}
+          onChange={(e) => setPathInput(e.target.value)}
+          placeholder="/about"
+          status={pathStatus}
+          error={pathStatus === "invalid" && resolved && !resolved.ok ? resolved.error : null}
+          hint={resolved?.ok && resolved.path !== pathInput.trim()
+            ? `Will be saved as ${resolved.path}`
+            : undefined}
           autoFocus
           spellCheck={false}
         />
@@ -795,8 +841,8 @@ function AddEditStepView({
           <button
             type="button"
             className="btn btn--primary"
-            onClick={handleSaveUrl}
-            disabled={!urlCheck.ok}
+            onClick={handleSavePath}
+            disabled={!resolved?.ok}
           >
             {editing ? "Save" : "Add step"}
           </button>
