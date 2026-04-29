@@ -1,12 +1,8 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
-import { javascript } from "@codemirror/lang-javascript";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { basicSetup } from "codemirror";
 import MaterialField from "@/components/MaterialField";
+import ScriptStepEditor from "@/components/ScriptStepEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { useSidebar } from "@/components/SidebarProvider";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
@@ -49,7 +45,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   // Sub-views: when an step is being added or edited, the overlay body is
   // replaced by AddEditStepView. `null` = step list is shown.
   const [stepEditor, setStepEditor] = useState<
-    | { mode: "create" }
+    | { mode: "create"; initialType?: "url" | "microtest" }
     | { mode: "edit"; stepId: string }
     | null
   >(null);
@@ -365,6 +361,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
               editing={stepEditor.mode === "edit"
                 ? steps.find((s) => s.id === stepEditor.stepId) ?? null
                 : null}
+              initialType={stepEditor.mode === "create" ? stepEditor.initialType : undefined}
               onUpdate={updateStep}
               onAddUrl={addUrlStep}
               onAddScript={addScriptStep}
@@ -377,8 +374,8 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
                 {steps.length === 0 ? (
                   <EmptySteps
-                    onPickUrl={() => setStepEditor({ mode: "create" })}
-                    onPickMicrotest={() => setStepEditor({ mode: "create" })}
+                    onPickUrl={() => setStepEditor({ mode: "create", initialType: "url" })}
+                    onPickMicrotest={() => setStepEditor({ mode: "create", initialType: "microtest" })}
                   />
                 ) : (
                   <ul className="test-steps__list">
@@ -742,6 +739,7 @@ function CredentialsSection({
 
 function AddEditStepView({
   editing,
+  initialType,
   projectUrls,
   onUpdate,
   onAddUrl,
@@ -749,6 +747,10 @@ function AddEditStepView({
   onCancel,
 }: {
   editing: TestStep | null;
+  /** Pre-pick the path or script editor when creating a new step (skipping
+   *  the fork). Set when the user clicks the empty-state "Add path" or
+   *  "Record with Playwright" buttons. */
+  initialType?: "url" | "microtest";
   /** Project's prod + dev URLs — used to validate that the user-entered
    *  path/URL belongs to one of our domains. */
   projectUrls: string[];
@@ -758,7 +760,7 @@ function AddEditStepView({
   onCancel: () => void;
 }) {
   const [pickedType, setPickedType] = useState<"url" | "microtest" | null>(
-    editing ? editing.type : null,
+    editing ? editing.type : (initialType ?? null),
   );
   const [pathInput, setPathInput] = useState<string>(editing?.url ?? "");
 
@@ -854,97 +856,6 @@ function AddEditStepView({
       }}
       onCancel={onCancel}
     />
-  );
-}
-
-/**
- * Inline Playwright-script step editor. Lifted from the deleted
- * MicroTestEditor — same CodeMirror setup, but writes the script directly
- * onto the step instead of into a separate microTests collection.
- */
-function ScriptStepEditor({
-  editing,
-  onSave,
-  onCancel,
-}: {
-  editing: TestStep | null;
-  onSave: (name: string, script: string) => void;
-  onCancel: () => void;
-}) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  const [name, setName] = useState(editing?.name ?? "");
-
-  // Stable callback ref so the keymap can call the latest version without
-  // us re-binding the editor. Mod-S grabs the live name + doc and saves.
-  const saveRef = useRef(() => {});
-  saveRef.current = () => {
-    const script = viewRef.current?.state.doc.toString() ?? editing?.script ?? "";
-    onSave(name, script);
-  };
-
-  useEffect(() => {
-    if (!editorRef.current) return;
-    const state = EditorState.create({
-      doc: editing?.script ?? "",
-      extensions: [
-        basicSetup,
-        javascript({ typescript: true }),
-        oneDark,
-        EditorView.lineWrapping,
-        cmPlaceholder(
-          '// Your script receives `page` (Playwright Page) and `expect`\nawait page.click("button");',
-        ),
-        keymap.of([
-          {
-            key: "Mod-s",
-            run: () => {
-              saveRef.current();
-              return true;
-            },
-          },
-        ]),
-      ],
-    });
-    const view = new EditorView({ state, parent: editorRef.current });
-    viewRef.current = view;
-    return () => view.destroy();
-    // Re-mount only when switching between create/edit of different steps;
-    // keystrokes shouldn't reset the editor.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing?.id]);
-
-  return (
-    <div className="step-editor">
-      <label className="step-editor__field">
-        <span className="step-editor__label">Name</span>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Click sign in"
-          className="input input--compact"
-          autoFocus
-        />
-      </label>
-      <p className="step-editor__hint">
-        Your script receives <code className="code-inline code-inline--xs">page</code>{" "}
-        (Playwright Page) and <code className="code-inline code-inline--xs">expect</code>{" "}
-        as arguments.
-      </p>
-      <div ref={editorRef} className="code-editor" />
-      <div className="step-editor__actions">
-        <button type="button" className="btn btn--text" onClick={onCancel}>Cancel</button>
-        <button
-          type="button"
-          className="btn btn--primary"
-          onClick={() => saveRef.current()}
-          disabled={!name.trim()}
-        >
-          {editing ? "Save" : "Add step"}
-        </button>
-      </div>
-    </div>
   );
 }
 

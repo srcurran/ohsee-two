@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/MaterialField";
+import ScriptStepEditor from "@/components/ScriptStepEditor";
+import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/Wizard";
 import { useSidebar } from "@/components/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";
 import { trackReportCompletion } from "@/lib/electron";
-import type { Project, TestStep } from "@/lib/types";
+import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
+import type { Project, SiteTest, TestStep, TestCredentials } from "@/lib/types";
 
 interface Props {
   projectId: string;
@@ -18,26 +21,38 @@ interface Props {
   onClose: () => void;
 }
 
+type WizardStep = 1 | 2 | 3 | 4;
+const TOTAL_STEPS = 4;
+
 /**
- * Two-step new-test flow per Figma 187:1094:
- *   1. Name (single field)
- *   2. Steps editor — list of TestStep rows, "Add path" inline form, plus
- *      a "Record with Playwright" pivot to the full test settings overlay.
+ * Four-step new-test flow:
+ *   1. Name
+ *   2. Steps editor — add paths or Playwright scripts. The Playwright path
+ *      swaps in the shared ScriptStepEditor.
+ *   3. Screen sizes / variants — BreakpointEditor + light/dark/auto checkboxes.
+ *   4. Credentials — opt-in session-cookie minting + copy-from-other-test.
  *      Primary action is "Run test" which creates the test, kicks off a
  *      report, and navigates to the new report page.
- *
- * Playwright/script steps are deferred to the full test settings overlay so
- * the wizard stays compact. The user can save with just paths, then refine
- * scripts after the run completes.
  */
 export default function NewTestWizard({ projectId, initialName, onClose }: Props) {
   const router = useRouter();
   const { refreshProjects, openTestSettings } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
-  const [step, setStep] = useState<1 | 2>(initialName ? 2 : 1);
+  const [step, setStep] = useState<WizardStep>(initialName ? 2 : 1);
   const [name, setName] = useState(initialName ?? "");
+
+  // Step 2 state: steps list + inline path adder + script-editor swap
   const [steps, setSteps] = useState<TestStep[]>([]);
   const [pathInput, setPathInput] = useState("");
+  const [scriptEditorOpen, setScriptEditorOpen] = useState(false);
+
+  // Step 3 state: breakpoints + variants
+  const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
+  const [variantIds, setVariantIds] = useState<string[]>([]);
+
+  // Step 4 state: credentials
+  const [credentials, setCredentials] = useState<TestCredentials | undefined>(undefined);
+
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -49,6 +64,9 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
   const projectUrls = project ? [project.prodUrl, project.devUrl] : [];
   const pathResolved = pathInput.trim() ? resolveProjectPath(pathInput, projectUrls) : null;
 
+  // Other (non-archived) tests we can copy credentials from.
+  const otherTests: SiteTest[] = (project?.tests || []).filter((t) => !t.archived);
+
   const addPath = () => {
     if (!pathResolved?.ok) return;
     setSteps((cur) => [
@@ -56,6 +74,20 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
       { id: crypto.randomUUID(), type: "url", url: pathResolved.path, captureScreenshot: true },
     ]);
     setPathInput("");
+  };
+
+  const addScript = (scriptName: string, script: string) => {
+    setSteps((cur) => [
+      ...cur,
+      {
+        id: crypto.randomUUID(),
+        type: "microtest",
+        name: scriptName.trim() || "Untitled step",
+        script,
+        captureScreenshot: true,
+      },
+    ]);
+    setScriptEditorOpen(false);
   };
 
   const removeStep = (id: string) => {
@@ -75,26 +107,24 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
       if (!testRes.ok) return;
       const test = await testRes.json();
 
-      // Persist the steps onto it (the create endpoint accepts pages but not
-      // unified steps; use the project PUT path that TestSettingsOverlay uses).
-      if (steps.length > 0) {
-        const projects = (project.tests || []).map((t) =>
-          t.id === test.id ? { ...t, steps } : t,
-        );
-        // Reload latest project (the test was just appended) so we don't
-        // overwrite siblings.
-        const latest = await fetch(`/api/projects/${projectId}`).then((r) => r.json());
-        const latestTests = (latest.tests || []).map((t: { id: string }) =>
-          t.id === test.id ? { ...t, steps } : t,
-        );
-        await fetch(`/api/projects/${projectId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tests: latestTests }),
-        });
-        // Use `projects` to silence unused-var eslint without changing behavior.
-        void projects;
-      }
+      // Persist all wizard state onto the new test via the project PUT.
+      // Reload latest first so we don't clobber siblings created in
+      // parallel.
+      const latest = await fetch(`/api/projects/${projectId}`).then((r) => r.json());
+      const patch: Partial<SiteTest> = {
+        steps,
+        breakpoints,
+        variants: BUILT_IN_VARIANTS.filter((v) => variantIds.includes(v.id)),
+        credentials,
+      };
+      const latestTests = (latest.tests || []).map((t: { id: string }) =>
+        t.id === test.id ? { ...t, ...patch } : t,
+      );
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tests: latestTests }),
+      });
 
       refreshProjects();
 
@@ -108,7 +138,7 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
         onClose();
         router.push(`/reports/${reportId}`);
       } else {
-        // Fall back: just open the test in settings if the run couldn't start.
+        // Fall back: open the test in settings if the run couldn't start.
         onClose();
         openTestSettings(projectId, test.id);
       }
@@ -117,12 +147,13 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
     }
   };
 
+  // ── Step 1: Name ───────────────────────────────────────────────────────
   if (step === 1) {
     return (
       <Wizard
         title="New test"
         step={1}
-        totalSteps={2}
+        totalSteps={TOTAL_STEPS}
         nextLabel="Next"
         nextDisabled={!name.trim()}
         onNext={() => setStep(2)}
@@ -139,69 +170,207 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
     );
   }
 
+  // ── Step 2: Steps editor ───────────────────────────────────────────────
+  if (step === 2) {
+    if (scriptEditorOpen) {
+      return (
+        <Wizard
+          title="New test"
+          step={2}
+          totalSteps={TOTAL_STEPS}
+          // ScriptStepEditor renders its own primary; suppress wizard's
+          // by leaving Next disabled. Footer still shows Previous/step
+          // count for orientation.
+          nextLabel="Save"
+          nextDisabled
+          onPrev={() => setScriptEditorOpen(false)}
+          onNext={() => {}}
+          onClose={onClose}
+        >
+          <ScriptStepEditor
+            editing={null}
+            onSave={addScript}
+            onCancel={() => setScriptEditorOpen(false)}
+            primaryLabel="Add step"
+          />
+        </Wizard>
+      );
+    }
+    return (
+      <Wizard
+        title="New test"
+        step={2}
+        totalSteps={TOTAL_STEPS}
+        nextLabel="Next"
+        nextDisabled={steps.length === 0}
+        onPrev={() => setStep(1)}
+        onNext={() => setStep(3)}
+        onClose={onClose}
+      >
+        <div className="wizard__fields">
+          <h3 className="wizard__section-title">Test steps</h3>
+
+          {steps.length === 0 ? (
+            <p className="wizard__hint">
+              Add a path to capture, or write a Playwright script to navigate
+              the app before capturing.
+            </p>
+          ) : (
+            <ul className="wizard__step-list">
+              {steps.map((s) => (
+                <li key={s.id} className="wizard__step-item">
+                  <span className="wizard__step-label">
+                    {s.type === "url" ? s.url : (s.name || "Playwright step")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeStep(s.id)}
+                    className="btn btn--text"
+                    aria-label="Remove"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="wizard__add-row">
+            <MaterialField
+              label="Path"
+              value={pathInput}
+              onChange={(e) => setPathInput(e.target.value)}
+              placeholder="/about"
+              status={!pathInput ? "idle" : pathResolved?.ok ? "valid" : "invalid"}
+              error={pathResolved && !pathResolved.ok ? pathResolved.error : null}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addPath();
+                }
+              }}
+              spellCheck={false}
+            />
+            <button
+              type="button"
+              className="btn btn--outline"
+              onClick={addPath}
+              disabled={!pathResolved?.ok}
+            >
+              Add path
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn--outline"
+            onClick={() => setScriptEditorOpen(true)}
+          >
+            Add Playwright script
+          </button>
+        </div>
+      </Wizard>
+    );
+  }
+
+  // ── Step 3: Screen sizes / variants ────────────────────────────────────
+  if (step === 3) {
+    return (
+      <Wizard
+        title="New test"
+        step={3}
+        totalSteps={TOTAL_STEPS}
+        nextLabel="Next"
+        onPrev={() => setStep(2)}
+        onNext={() => setStep(4)}
+        onClose={onClose}
+      >
+        <div className="wizard__fields">
+          <h3 className="wizard__section-title">Screen sizes &amp; modes</h3>
+          <BreakpointEditor breakpoints={breakpoints} onChange={setBreakpoints} />
+          <div className="wizard__variants">
+            <p className="wizard__variants-label">Variants</p>
+            <div className="variant-list">
+              {BUILT_IN_VARIANTS.map((v) => {
+                const active = variantIds.includes(v.id);
+                return (
+                  <label key={v.id} className="variant-option">
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...variantIds, v.id]
+                          : variantIds.filter((id) => id !== v.id);
+                        setVariantIds(next);
+                      }}
+                      className="checkbox"
+                    />
+                    {v.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </Wizard>
+    );
+  }
+
+  // ── Step 4: Credentials + Run test ─────────────────────────────────────
+  const credEnabled = credentials?.enabled === true;
+  const copyFromId = credentials?.copyFromTestId ?? "";
   return (
     <Wizard
       title="New test"
-      step={2}
-      totalSteps={2}
+      step={4}
+      totalSteps={TOTAL_STEPS}
       nextLabel="Run test"
-      nextDisabled={steps.length === 0}
       busy={submitting}
-      onPrev={() => setStep(1)}
+      onPrev={() => setStep(3)}
       onNext={handleRunTest}
       onClose={onClose}
     >
       <div className="wizard__fields">
-        <h3 className="wizard__section-title">Test steps</h3>
+        <h3 className="wizard__section-title">Credentials</h3>
 
-        {steps.length === 0 ? (
-          <p className="wizard__hint">
-            Add a path you want to capture. You can record a Playwright
-            script for it later in test settings.
-          </p>
-        ) : (
-          <ul className="wizard__step-list">
-            {steps.map((s) => (
-              <li key={s.id} className="wizard__step-item">
-                <span className="wizard__step-label">{s.url}</span>
-                <button
-                  type="button"
-                  onClick={() => removeStep(s.id)}
-                  className="btn btn--text"
-                  aria-label="Remove"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="wizard__add-row">
-          <MaterialField
-            label="Path"
-            value={pathInput}
-            onChange={(e) => setPathInput(e.target.value)}
-            placeholder="/about"
-            status={!pathInput ? "idle" : pathResolved?.ok ? "valid" : "invalid"}
-            error={pathResolved && !pathResolved.ok ? pathResolved.error : null}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addPath();
-              }
-            }}
-            spellCheck={false}
+        <label className="credentials-section__row">
+          <input
+            type="checkbox"
+            checked={credEnabled}
+            onChange={(e) =>
+              setCredentials({ ...credentials, enabled: e.target.checked })
+            }
+            className="checkbox"
           />
-          <button
-            type="button"
-            className="btn btn--outline"
-            onClick={addPath}
-            disabled={!pathResolved?.ok}
+          <span>Mint a session cookie before each capture (require auth)</span>
+        </label>
+
+        <div className="credentials-section__row">
+          <label className="credentials-section__label">Copy from other settings…</label>
+          <select
+            className="input input--compact"
+            value={copyFromId}
+            onChange={(e) =>
+              setCredentials({
+                ...credentials,
+                copyFromTestId: e.target.value || undefined,
+              })
+            }
+            disabled={otherTests.length === 0}
           >
-            Add path
-          </button>
+            <option value="">Don&apos;t copy</option>
+            {otherTests.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
         </div>
+
+        {!credEnabled && !copyFromId && (
+          <p className="credentials-section__hint">
+            No credentials configured — runs use the project default.
+          </p>
+        )}
       </div>
     </Wizard>
   );
