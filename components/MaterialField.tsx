@@ -1,6 +1,13 @@
 "use client";
 
-import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 
 /**
  * - `idle`     — neutral, no styling.
@@ -37,12 +44,54 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, "ref"> {
  * etc.). For inline-edit affordances (click-to-rename a title), use a
  * different pattern — material framing reads as "form" not "title."
  */
+/** ms to wait after the last keystroke before surfacing an error. Errors
+ *  shown while the user is mid-typing are noisy and create panic flickers
+ *  ("https" → "Missing http://" → "https://" — fine). Blur skips the
+ *  debounce so the user sees the error immediately when they leave the
+ *  field. */
+const ERROR_DEBOUNCE_MS = 500;
+
 const MaterialField = forwardRef<HTMLInputElement, Props>(function MaterialField(
-  { label, trailing, status = "idle", hint, error, className, id, ...inputProps },
+  { label, trailing, status = "idle", hint, error, className, id, onChange, onBlur, ...inputProps },
   ref,
 ) {
   const fieldId = id ?? `mf-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  const effectiveStatus: MaterialFieldStatus = error ? "invalid" : status;
+
+  // Debounce error visibility: while the user is typing, suppress the
+  // invalid styling + error caption until they pause for ERROR_DEBOUNCE_MS
+  // (or blur). Initial render shows the error so a pre-filled invalid
+  // value isn't silently masked.
+  const [errorVisible, setErrorVisible] = useState(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setErrorVisible(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setErrorVisible(true), ERROR_DEBOUNCE_MS);
+    onChange?.(e);
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    setErrorVisible(true);
+    onBlur?.(e);
+  };
+
+  const showError = !!error && errorVisible;
+  const effectiveStatus: MaterialFieldStatus = showError
+    ? "invalid"
+    : error
+      ? status
+      : status;
 
   const trailingNode = trailing ?? defaultTrailing(effectiveStatus);
 
@@ -62,14 +111,16 @@ const MaterialField = forwardRef<HTMLInputElement, Props>(function MaterialField
             id={fieldId}
             className="material-field__input"
             aria-invalid={effectiveStatus === "invalid" ? "true" : undefined}
+            onChange={handleChange}
+            onBlur={handleBlur}
             {...inputProps}
           />
         </div>
         {trailingNode && <div className="material-field__trailing">{trailingNode}</div>}
       </div>
-      {(error || hint) && (
-        <p className={`material-field__caption ${error ? "material-field__caption--error" : ""}`}>
-          {error || hint}
+      {(showError || hint) && (
+        <p className={`material-field__caption ${showError ? "material-field__caption--error" : ""}`}>
+          {showError ? error : hint}
         </p>
       )}
     </div>
