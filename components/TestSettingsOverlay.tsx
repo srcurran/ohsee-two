@@ -419,8 +419,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                 </button>
               </section>
 
-              <hr className="project-settings-overlay__divider" />
-
               <Accordion
                 title="Test settings"
                 open={openAccordion === "settings"}
@@ -464,8 +462,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                 </div>
               </Accordion>
 
-              <hr className="project-settings-overlay__divider" />
-
               <Accordion
                 title="Credentials"
                 open={openAccordion === "credentials"}
@@ -482,8 +478,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                   }}
                 />
               </Accordion>
-
-              <hr className="project-settings-overlay__divider" />
 
               <Accordion
                 title="Danger Zone"
@@ -663,7 +657,7 @@ function Accordion({
   children: React.ReactNode;
 }) {
   return (
-    <div className="ts-accordion">
+    <div className={`ts-accordion ${open ? "ts-accordion--open" : ""}`}>
       <button
         type="button"
         className="project-settings-overlay__danger-toggle"
@@ -671,11 +665,16 @@ function Accordion({
         aria-expanded={open}
       >
         <span className="project-settings-overlay__section-title">{title}</span>
-        <span className="project-settings-overlay__danger-glyph" aria-hidden="true">
-          {open ? "−" : "+"}
-        </span>
+        <span
+          className={`ts-accordion__glyph ${open ? "ts-accordion__glyph--open" : ""}`}
+          aria-hidden="true"
+        />
       </button>
-      {open && <div className="ts-accordion__body">{children}</div>}
+      <div className="ts-accordion__collapse" aria-hidden={!open}>
+        <div className="ts-accordion__collapse-inner">
+          <div className="ts-accordion__body">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }

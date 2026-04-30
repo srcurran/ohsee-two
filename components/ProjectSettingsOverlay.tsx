@@ -253,21 +253,22 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             spellCheck={false}
           />
 
-          <hr className="project-settings-overlay__divider" />
-
-          <button
-            type="button"
-            className="project-settings-overlay__danger-toggle"
-            onClick={() => setDangerOpen((v) => !v)}
-            aria-expanded={dangerOpen}
-          >
-            <span className="project-settings-overlay__section-title">Danger Zone</span>
-            <span className="project-settings-overlay__danger-glyph" aria-hidden="true">
-              {dangerOpen ? "−" : "+"}
-            </span>
-          </button>
-
-          {dangerOpen && project && (
+          <div className={`ts-accordion ${dangerOpen ? "ts-accordion--open" : ""}`}>
+            <button
+              type="button"
+              className="project-settings-overlay__danger-toggle"
+              onClick={() => setDangerOpen((v) => !v)}
+              aria-expanded={dangerOpen}
+            >
+              <span className="project-settings-overlay__section-title">Danger Zone</span>
+              <span
+                className={`ts-accordion__glyph ${dangerOpen ? "ts-accordion__glyph--open" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+            <div className="ts-accordion__collapse" aria-hidden={!dangerOpen}>
+              <div className="ts-accordion__collapse-inner">
+                {project && (
             <div className="project-settings-overlay__danger-body">
               <section className="project-settings-overlay__danger-section">
                 <h3 className="project-settings-overlay__danger-heading">
@@ -341,7 +342,10 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
                 )}
               </section>
             </div>
-          )}
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

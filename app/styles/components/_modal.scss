@@ -610,9 +610,72 @@
 }
 
 .ts-accordion {
+  /* Border on the wrapper instead of <hr> siblings — adjacent accordions
+     share a single rule via :first-of-type / :last-of-type below. */
+  border-top: 1px solid var(--border-primary);
+
+  &:last-of-type {
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  /* CSS-grid height animation: the collapse wrapper goes from 0fr → 1fr
+     and the inner element has min-height: 0 with overflow hidden. This
+     animates the natural height of arbitrary content without measuring. */
+  &__collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-standard);
+  }
+
+  &--open &__collapse {
+    grid-template-rows: 1fr;
+  }
+
+  &__collapse-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
   &__body {
     padding-top: var(--space-5);
     padding-bottom: var(--space-2);
+  }
+
+  /* Animated +/− glyph — two 1px lines forming a plus; the vertical line
+     scales to 0 when open so it morphs into a minus. */
+  &__glyph {
+    position: relative;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: currentColor;
+      transition: transform var(--duration-base) var(--ease-standard);
+    }
+    /* Horizontal bar — always visible. */
+    &::before {
+      width: 100%;
+      height: 1.5px;
+      transform: translate(-50%, -50%);
+    }
+    /* Vertical bar — collapses to 0 when open. */
+    &::after {
+      width: 1.5px;
+      height: 100%;
+      transform: translate(-50%, -50%) scaleY(1);
+    }
+
+    &--open::after {
+      transform: translate(-50%, -50%) scaleY(0);
+    }
   }
 }
 
