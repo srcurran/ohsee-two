@@ -220,13 +220,6 @@ export async function executeTestComposition(options: {
             await onProgress?.(step.id, bp);
           }
         }
-
-        // Always capture a final state screenshot
-        const finalId = `auto-final-${composition.id}`;
-        await captureStepScreenshot(
-          page, finalId, "Final State", bp, outputDir, prefix, results,
-        );
-        await onProgress?.(finalId, bp);
       } catch (err) {
         console.error(`Composition "${composition.name}" failed at ${bp}px (setup):`, err);
       } finally {
@@ -242,7 +235,6 @@ export async function executeTestComposition(options: {
 
 /**
  * Returns the list of step IDs that will produce screenshots for a composition.
- * Includes the auto-appended final state screenshot.
  */
 export function getCompositionScreenshotSteps(
   project: Project,
@@ -259,9 +251,6 @@ export function getCompositionScreenshotSteps(
       });
     }
   }
-
-  // Auto-appended final state
-  result.push({ id: `auto-final-${composition.id}`, label: "Final State" });
 
   return result;
 }
