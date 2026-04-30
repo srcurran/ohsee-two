@@ -12,7 +12,7 @@ const MAIN_RIGHT_PADDING = 12;
 // _shell.scss .titlebar-collapse positioning: web at left 24px (var
 // --space-6, aligning with the content rail; 32px wide); Electron at
 // left 80px (32px wide, after stoplights).
-const COLLAPSED_LEFT_WEB = 24 + 32 + 8; // 64
+const COLLAPSED_LEFT_WEB = 40;
 const COLLAPSED_LEFT_ELECTRON = 80 + 32 + 8; // 120
 
 export default function PageTitleBar() {
