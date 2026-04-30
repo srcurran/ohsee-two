@@ -39,7 +39,7 @@ function ReportPageInner() {
   // Structured run-failure payload (eyebrow / title / body / hint). See
   // buildRunErrorDetails + lib/url-reachability.ts.
   const [runError, setRunError] = useState<ErrorModalDetails | null>(null);
-  const activeBp = Number(searchParams.get("bp")) || 1024;
+  const bpParam = Number(searchParams.get("bp")) || null;
   const activeVariant = searchParams.get("variant") || null;
   const activePageId = searchParams.get("page") || null;
 
@@ -234,6 +234,20 @@ function ReportPageInner() {
       for (const bp of Object.keys(page.breakpoints)) bpSet.add(Number(bp));
     }
     return [...bpSet].sort((a, b) => a - b);
+  })();
+
+  // Use the URL bp if it's actually in this report; otherwise pick the
+  // closest available to a desktop default (1024) so tiles always render.
+  const activeBp: number = (() => {
+    if (bpParam && reportBreakpoints.includes(bpParam)) return bpParam;
+    if (reportBreakpoints.length === 0) return bpParam ?? 1024;
+    let best = reportBreakpoints[0];
+    let bestDist = Math.abs(best - 1024);
+    for (const bp of reportBreakpoints) {
+      const d = Math.abs(bp - 1024);
+      if (d < bestDist) { best = bp; bestDist = d; }
+    }
+    return best;
   })();
 
   const bpChangeCounts: Record<string, number> = {};
