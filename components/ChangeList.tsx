@@ -4,14 +4,59 @@ import { useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 
+/** Semantic landmark elements — these usually delineate page regions
+ *  worth grouping by. Used to escape the "everything-is-#root" trap on
+ *  React-like apps where the topmost selector segment is meaningless. */
+const SEMANTIC_TAGS = new Set([
+  "header", "main", "footer", "nav", "section", "article", "aside",
+]);
+
+/** Generic root wrappers worth skipping when no semantic landmark is
+ *  available. Lowercased for cheap comparison. */
+const GENERIC_WRAPPERS = new Set([
+  "html", "body", "#root", "#__next", "#app",
+]);
+
+/** Pull the leading tag/id/class token out of a selector segment so we
+ *  can compare against SEMANTIC_TAGS / GENERIC_WRAPPERS without worrying
+ *  about pseudo-class / nth-of-type suffixes. */
+function tagFromSegment(seg: string): string {
+  const trimmed = seg.trim();
+  // Bare leading `>` shows up when selectors have been rendered as
+  // relative paths — strip it before tag extraction.
+  const naked = trimmed.startsWith(">") ? trimmed.slice(1).trim() : trimmed;
+  const match = naked.match(/^[a-zA-Z][\w-]*|^#[\w-]+|^\.[\w-]+/);
+  return match ? match[0].toLowerCase() : naked.toLowerCase();
+}
+
 /**
- * Group key — top-level CSS selector segment. Changes that share the same
- * outermost element (e.g., `section:nth-of-type(2)`) are about the same
- * region of the page even if some apply to descendants.
+ * Group key — pick a meaningful ancestor so changes in different page
+ * regions land in different buckets.
+ *
+ *   1. Prefer the deepest semantic landmark (header/main/footer/...).
+ *      This keeps changes in `<header>` separate from `<main>` even
+ *      when both share `#root` as the outermost selector segment.
+ *   2. Fall back to the first segment that isn't a generic root
+ *      wrapper (#root, body, html, #__next, #app).
+ *   3. As a last resort, use the original outermost segment so
+ *      grouping is at worst no-op for unstructured pages.
  */
 function topLevelSelector(sel: string): string {
   const parts = sel.split(" > ");
-  return parts[0] ?? sel;
+  if (parts.length === 0) return sel;
+
+  let lastSemantic = -1;
+  for (let i = 0; i < parts.length; i++) {
+    if (SEMANTIC_TAGS.has(tagFromSegment(parts[i]))) lastSemantic = i;
+  }
+  if (lastSemantic >= 0) {
+    return parts.slice(0, lastSemantic + 1).join(" > ");
+  }
+
+  for (const seg of parts) {
+    if (!GENERIC_WRAPPERS.has(tagFromSegment(seg))) return seg;
+  }
+  return parts[0];
 }
 
 /**
