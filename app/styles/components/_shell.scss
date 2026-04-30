@@ -55,9 +55,10 @@
      (close/min/zoom occupy roughly x=8..68 with hiddenInset). */
   &--collapsed-electron { left: 80px; }
 
-  /* Sidebar collapsed, web — top-left corner. (Was top-right; users wanted
-   * the expand affordance to live where the collapse affordance had been.) */
-  &--collapsed-web { left: 12px; }
+  /* Sidebar collapsed, web — sits at the same x as the report content's
+     left rail (var(--space-6)) so the collapse affordance aligns with the
+     header below it instead of floating in the corner. */
+  &--collapsed-web { left: var(--space-6); }
 
   /* Gated by `ready` in TitlebarCollapseButton so first paint doesn't animate
      from a default to the stored collapsed state. Matches the sidebar's

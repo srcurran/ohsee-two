@@ -24,7 +24,9 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
-    padding: var(--space-2) var(--space-6) var(--space-5);
+    /* 32px top gap puts the page header a normal flow distance below
+       the 36px titlebar/icon row above it. */
+    padding: var(--space-8) var(--space-6) var(--space-5);
   }
 
   &__title-group {
