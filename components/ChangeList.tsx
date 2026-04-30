@@ -110,11 +110,12 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
       ? changes
       : changes.filter((c) => c.category === activeFilter);
 
-  // Drag-to-scroll the pill row horizontally. We use Pointer Events with
-  // capture so the gesture survives a fast drag that leaves the strip's
-  // bounds. Once the cursor has moved past DRAG_THRESHOLD_PX we set a
-  // data-dragging flag — pill click handlers below check it to swallow
-  // the click that the browser would otherwise fire on pointerup.
+  // Drag-to-scroll the pill row horizontally. We use Pointer Events but
+  // intentionally do NOT call setPointerCapture on pointerdown — capturing
+  // the pointer to the wrapper would re-target the synthesized click event
+  // away from the inner pill buttons, breaking filter clicks. Capture is
+  // only acquired once the gesture passes DRAG_THRESHOLD_PX (i.e., the
+  // user is actually dragging), so simple clicks click as normal.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Mouse: left button only. Touch/pen: always.
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -126,7 +127,6 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
       startScroll: el.scrollLeft,
       moved: false,
     };
-    el.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -137,6 +137,9 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     if (!ds.moved && Math.abs(dx) >= DRAG_THRESHOLD_PX) {
       ds.moved = true;
       el.dataset.dragging = "true";
+      // Now that we know it's a drag, capture the pointer so a fast drag
+      // that leaves the strip's bounds keeps scrolling.
+      try { el.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     }
     if (ds.moved) {
       el.scrollLeft = ds.startScroll - dx;
