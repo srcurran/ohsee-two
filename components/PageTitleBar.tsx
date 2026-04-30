@@ -1,16 +1,27 @@
 "use client";
 
 import { useSidebar } from "./SidebarProvider";
+import { IS_ELECTRON_BUILD } from "@/lib/electron";
 
 // Matches sidebar widths in components/Sidebar.tsx.
 const SIDEBAR_WIDTH_OPEN = 240;
 const MAIN_RIGHT_PADDING = 12;
+// When the sidebar is collapsed the title bar shares the top strip with
+// the TitlebarCollapseButton (and, in Electron, the macOS stoplights).
+// These offsets keep the title clear of both. Numbers come from
+// _shell.scss .titlebar-collapse positioning: web at left 12px (32px
+// wide), Electron at left 80px (32px wide, after stoplights).
+const COLLAPSED_LEFT_WEB = 12 + 32 + 8; // 52
+const COLLAPSED_LEFT_ELECTRON = 80 + 32 + 8; // 120
 
 export default function PageTitleBar() {
   const { pageTitle, pageHeader, collapsed } = useSidebar();
   if (!pageHeader && !pageTitle) return null;
 
-  const left = collapsed ? 0 : SIDEBAR_WIDTH_OPEN;
+  const collapsedLeft = IS_ELECTRON_BUILD
+    ? COLLAPSED_LEFT_ELECTRON
+    : COLLAPSED_LEFT_WEB;
+  const left = collapsed ? collapsedLeft : SIDEBAR_WIDTH_OPEN;
 
   if (pageHeader) {
     return (
