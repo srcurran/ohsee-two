@@ -9,6 +9,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Horizontal margin so the panel never touches the edge of the
+     viewport — important on narrow widths where max-width could equal
+     viewport width. */
+  padding: var(--space-4);
   background: var(--overlay-backdrop);
 
   &--light-scrim {
@@ -223,11 +227,17 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 8vh;
-  padding-bottom: var(--space-8);
+  padding: 8vh var(--space-4) var(--space-8);
   background: var(--overlay-backdrop-light);
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-standard);
+
+  /* Narrow viewports: drop the top breathing room so the panel uses
+     more of the available height, but keep horizontal margin. */
+  @media (max-width: 640px) {
+    padding-top: var(--space-6);
+    padding-inline: var(--space-3);
+  }
 
   &--visible {
     opacity: 1;

@@ -129,4 +129,16 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-6);
+
+  /* 2-up below the desktop breakpoint where the side-by-side change
+     panel still fits next to the screenshot column. */
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Single column on narrow viewports — phone / tight panels. */
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
 }

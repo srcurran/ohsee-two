@@ -137,17 +137,49 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   );
   const closeNewTestWizard = useCallback(() => setNewTestWizardState(null), []);
 
-  // Hydrate collapsed state from localStorage, then enable transitions
+  // Hydrate collapsed state from localStorage, then enable transitions.
+  // Narrow viewports always start collapsed regardless of stored prefs —
+  // the desktop preference shouldn't follow the user onto a narrow window
+  // where an open sidebar would cover the content.
   useEffect(() => {
-    try {
-      setCollapsedState(localStorage.getItem(STORAGE_KEY) === "1");
-    } catch {
-      // ignore
+    const NARROW_QUERY = "(max-width: 1024px)";
+    const isNarrow =
+      typeof window !== "undefined" &&
+      window.matchMedia(NARROW_QUERY).matches;
+
+    if (isNarrow) {
+      setCollapsedState(true);
+    } else {
+      try {
+        setCollapsedState(localStorage.getItem(STORAGE_KEY) === "1");
+      } catch {
+        // ignore
+      }
     }
+
+    // Re-collapse whenever the viewport becomes narrow (e.g. window resize),
+    // and restore the stored preference when it widens again.
+    const mm = window.matchMedia(NARROW_QUERY);
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setCollapsedState(true);
+      } else {
+        try {
+          setCollapsedState(localStorage.getItem(STORAGE_KEY) === "1");
+        } catch {
+          // ignore
+        }
+      }
+    };
+    mm.addEventListener("change", handler);
+
     // Defer one frame so the state change is committed before we opt back into
     // CSS transitions — otherwise the state snap would animate.
     const raf = requestAnimationFrame(() => setReady(true));
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      mm.removeEventListener("change", handler);
+    };
   }, []);
 
   const setCollapsed = useCallback((next: boolean) => {

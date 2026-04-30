@@ -88,6 +88,15 @@
     flex: 1;
     overflow: hidden;
     background: var(--surface-tertiary);
+
+    /* Narrow viewports: stack screenshot above changes panel so each gets
+       full width. The panel takes its natural height, the screenshot
+       column scrolls. The whole thing scrolls within the panel rather
+       than the columns scrolling independently. */
+    @media (max-width: 1024px) {
+      flex-direction: column;
+      overflow-y: auto;
+    }
   }
 
   &__screenshot-col {
@@ -102,6 +111,11 @@
       padding-top: 0;
       padding-inline: var(--space-6);
       padding-bottom: var(--space-6);
+    }
+
+    /* Stacked layout: parent __main scrolls, columns flow naturally. */
+    @media (max-width: 1024px) {
+      overflow-y: visible;
     }
   }
 
@@ -173,6 +187,15 @@
     border-left: 1px solid var(--border-primary);
     background: var(--surface-content);
     padding: var(--space-6);
+
+    /* Stacked under the screenshot at narrow widths — full bleed with
+       a top border instead of the side border. */
+    @media (max-width: 1024px) {
+      width: 100%;
+      overflow-y: visible;
+      border-left: none;
+      border-top: 1px solid var(--border-primary);
+    }
   }
 }
 

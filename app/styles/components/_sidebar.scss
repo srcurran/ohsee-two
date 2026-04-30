@@ -33,6 +33,41 @@
     transition: width 0.2s var(--ease-standard), padding 0.2s var(--ease-standard);
   }
 
+  /* Narrow viewports: detach the sidebar from the flex flow so it doesn't
+     eat horizontal space — when expanded it overlays the main content
+     instead of pushing it. The width transition still animates open/close. */
+  @media (max-width: 1024px) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-overlay);
+    box-shadow: var(--elevation-lg);
+  }
+}
+
+/* Backdrop shown when the sidebar is expanded over content at narrow
+   viewports. Click to collapse. Hidden on desktop where the sidebar
+   shares the layout. */
+.sidebar-scrim {
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-overlay) - 1);
+    background: var(--overlay-backdrop-light);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s var(--ease-standard);
+
+    &--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}
+
   &__footer-row {
     display: flex;
     justify-content: flex-end;

@@ -29,6 +29,7 @@ export default function AuthenticatedLayout({
           <TitlebarCollapseButton />
           <PageTitleBar />
           <Sidebar />
+          <SidebarScrim />
           <MainFrame>{children}</MainFrame>
           <SettingsOverlay />
           <ProjectSettingsHost />
@@ -113,5 +114,19 @@ function MainFrame({ children }: { children: React.ReactNode }) {
     <main className="app-main app-main--flat">
       <div className="app-main__scroll">{children}</div>
     </main>
+  );
+}
+
+/** Backdrop visible only when the sidebar is expanded at a narrow viewport
+ *  (CSS handles the viewport gate via @media). Click collapses the sidebar
+ *  so the user can dismiss the overlay by tapping outside it. */
+function SidebarScrim() {
+  const { collapsed, setCollapsed } = useSidebar();
+  return (
+    <div
+      aria-hidden
+      className={`sidebar-scrim ${collapsed ? "" : "sidebar-scrim--visible"}`}
+      onClick={() => setCollapsed(true)}
+    />
   );
 }
