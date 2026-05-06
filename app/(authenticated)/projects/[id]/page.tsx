@@ -11,7 +11,7 @@ import { buildRunErrorDetails } from "@/components/run-error-details";
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects, openProjectSettings, openNewTestWizard } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [running, setRunning] = useState(false);
   // Structured run-failure payload (eyebrow / title / body / hint). Built
@@ -89,7 +89,7 @@ export default function ProjectPage() {
                 </svg>
               </button>
               <button
-                onClick={() => router.push(`/projects/${params.id}/settings`)}
+                onClick={() => openProjectSettings(params.id)}
                 className="btn btn--outline-soft"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,13 +108,13 @@ export default function ProjectPage() {
             </p>
             <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
               <button
-                onClick={() => router.push(`/projects/${params.id}/settings/tests`)}
+                onClick={() => openNewTestWizard(params.id)}
                 className="btn btn--primary"
               >
                 Add Test
               </button>
               <button
-                onClick={() => router.push(`/projects/${params.id}/settings`)}
+                onClick={() => openProjectSettings(params.id)}
                 className="btn btn--outline-soft"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

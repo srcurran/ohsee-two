@@ -4,14 +4,59 @@ import { useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 
+/** Semantic landmark elements — these usually delineate page regions
+ *  worth grouping by. Used to escape the "everything-is-#root" trap on
+ *  React-like apps where the topmost selector segment is meaningless. */
+const SEMANTIC_TAGS = new Set([
+  "header", "main", "footer", "nav", "section", "article", "aside",
+]);
+
+/** Generic root wrappers worth skipping when no semantic landmark is
+ *  available. Lowercased for cheap comparison. */
+const GENERIC_WRAPPERS = new Set([
+  "html", "body", "#root", "#__next", "#app",
+]);
+
+/** Pull the leading tag/id/class token out of a selector segment so we
+ *  can compare against SEMANTIC_TAGS / GENERIC_WRAPPERS without worrying
+ *  about pseudo-class / nth-of-type suffixes. */
+function tagFromSegment(seg: string): string {
+  const trimmed = seg.trim();
+  // Bare leading `>` shows up when selectors have been rendered as
+  // relative paths — strip it before tag extraction.
+  const naked = trimmed.startsWith(">") ? trimmed.slice(1).trim() : trimmed;
+  const match = naked.match(/^[a-zA-Z][\w-]*|^#[\w-]+|^\.[\w-]+/);
+  return match ? match[0].toLowerCase() : naked.toLowerCase();
+}
+
 /**
- * Group key — top-level CSS selector segment. Changes that share the same
- * outermost element (e.g., `section:nth-of-type(2)`) are about the same
- * region of the page even if some apply to descendants.
+ * Group key — pick a meaningful ancestor so changes in different page
+ * regions land in different buckets.
+ *
+ *   1. Prefer the deepest semantic landmark (header/main/footer/...).
+ *      This keeps changes in `<header>` separate from `<main>` even
+ *      when both share `#root` as the outermost selector segment.
+ *   2. Fall back to the first segment that isn't a generic root
+ *      wrapper (#root, body, html, #__next, #app).
+ *   3. As a last resort, use the original outermost segment so
+ *      grouping is at worst no-op for unstructured pages.
  */
 function topLevelSelector(sel: string): string {
   const parts = sel.split(" > ");
-  return parts[0] ?? sel;
+  if (parts.length === 0) return sel;
+
+  let lastSemantic = -1;
+  for (let i = 0; i < parts.length; i++) {
+    if (SEMANTIC_TAGS.has(tagFromSegment(parts[i]))) lastSemantic = i;
+  }
+  if (lastSemantic >= 0) {
+    return parts.slice(0, lastSemantic + 1).join(" > ");
+  }
+
+  for (const seg of parts) {
+    if (!GENERIC_WRAPPERS.has(tagFromSegment(seg))) return seg;
+  }
+  return parts[0];
 }
 
 /**
@@ -110,11 +155,12 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
       ? changes
       : changes.filter((c) => c.category === activeFilter);
 
-  // Drag-to-scroll the pill row horizontally. We use Pointer Events with
-  // capture so the gesture survives a fast drag that leaves the strip's
-  // bounds. Once the cursor has moved past DRAG_THRESHOLD_PX we set a
-  // data-dragging flag — pill click handlers below check it to swallow
-  // the click that the browser would otherwise fire on pointerup.
+  // Drag-to-scroll the pill row horizontally. We use Pointer Events but
+  // intentionally do NOT call setPointerCapture on pointerdown — capturing
+  // the pointer to the wrapper would re-target the synthesized click event
+  // away from the inner pill buttons, breaking filter clicks. Capture is
+  // only acquired once the gesture passes DRAG_THRESHOLD_PX (i.e., the
+  // user is actually dragging), so simple clicks click as normal.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Mouse: left button only. Touch/pen: always.
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -126,7 +172,6 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
       startScroll: el.scrollLeft,
       moved: false,
     };
-    el.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -137,6 +182,9 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     if (!ds.moved && Math.abs(dx) >= DRAG_THRESHOLD_PX) {
       ds.moved = true;
       el.dataset.dragging = "true";
+      // Now that we know it's a drag, capture the pointer so a fast drag
+      // that leaves the strip's bounds keeps scrolling.
+      try { el.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     }
     if (ds.moved) {
       el.scrollLeft = ds.startScroll - dx;

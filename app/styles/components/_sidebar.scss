@@ -15,8 +15,11 @@
   padding: var(--space-8) var(--space-4);
 
   &--flat {
-    background: #fafafa;
-    border-right: 1px solid var(--neutral-dark-100);
+    /* Use the off-white surface token so the sidebar flips with the
+     * theme — the previous hardcoded #fafafa stayed near-white in dark
+     * mode and made the white sidebar text unreadable. */
+    background: var(--surface-secondary);
+    border-right: 1px solid var(--border-primary);
     padding-block: 44px var(--space-5);
   }
 
@@ -28,6 +31,17 @@
 
   &--animated {
     transition: width 0.2s var(--ease-standard), padding 0.2s var(--ease-standard);
+  }
+
+  /* Narrow viewports: detach the sidebar from the flex flow so it doesn't
+     eat horizontal space — when expanded it overlays the main content
+     instead of pushing it. The width transition still animates open/close. */
+  @media (max-width: 1024px) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-overlay);
+    box-shadow: var(--elevation-lg);
   }
 
   &__footer-row {
@@ -48,6 +62,16 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
+    padding: var(--space-3) var(--space-2);
+    border-radius: var(--radius-md);
+    transition: background-color var(--duration-base) var(--ease-standard);
+  }
+
+  /* The project the user is currently viewing (project page, one of its
+     tests, or one of its reports). Soft surface highlight to mirror the
+     selected-row pattern used elsewhere. */
+  &__group--active {
+    background: var(--surface-hover);
   }
 
   &__header {
@@ -67,7 +91,7 @@
   }
 
   &__title {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-lg);
     font-weight: var(--weight-semibold);
     color: var(--foreground);
     overflow: hidden;
@@ -349,5 +373,28 @@
 
   &__inner {
     max-width: 560px;
+  }
+}
+
+/* Backdrop shown when the sidebar is expanded over content at narrow
+   viewports. Click to collapse. Hidden on desktop where the sidebar
+   shares the layout. */
+.sidebar-scrim {
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-overlay) - 1);
+    background: var(--overlay-backdrop-light);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s var(--ease-standard);
+
+    &--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 }

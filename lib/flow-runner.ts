@@ -6,27 +6,11 @@ import type { DomSnapshot, FlowEntry, FlowAction } from "./types";
 import type { AuthCookieConfig } from "./auth-token";
 
 /**
- * If the last step in a flow isn't already a screenshot, append an
- * auto-generated "Final State" screenshot step so the user always
- * gets a capture of the end result.
- */
-export function ensureFinalScreenshot(flow: FlowEntry): FlowAction[] {
-  const steps = [...flow.steps];
-  if (steps.length > 0 && steps[steps.length - 1].type !== "screenshot") {
-    steps.push({ id: `auto-final-${flow.id}`, type: "screenshot", label: "Final State" });
-  }
-  return steps;
-}
-
-/**
  * Returns the list of step IDs that will produce screenshots for a flow.
- * Uses `ensureFinalScreenshot` so the auto-added final step is included
- * in progress totals and result matching.
  */
 export function getScreenshotStepIds(flow: FlowEntry): { id: string; label: string }[] {
-  const steps = ensureFinalScreenshot(flow);
   const result: { id: string; label: string }[] = [];
-  for (const step of steps) {
+  for (const step of flow.steps) {
     if (step.type === "screenshot") {
       result.push({ id: step.id, label: step.label });
     } else if (step.captureScreenshot !== false) {
@@ -63,6 +47,8 @@ export interface FlowScreenshotResult {
   label: string;
   breakpoint: number;
   filePath: string;
+  /** The URL Playwright was on at the moment of capture (post-navigation). */
+  url: string;
   domSnapshot?: DomSnapshot;
 }
 
@@ -144,12 +130,9 @@ export async function executeFlow(options: {
           page.waitForTimeout(5000),
         ]);
 
-        // Use augmented steps so a "Final State" screenshot is auto-appended
-        const augmentedSteps = ensureFinalScreenshot(flow);
-
         // Execute each step — errors are caught per-step so one failure
         // doesn't prevent later steps from executing
-        for (const step of augmentedSteps) {
+        for (const step of flow.steps) {
           try {
             if (step.type === "screenshot") {
               // Legacy standalone screenshot step — always capture
@@ -201,14 +184,16 @@ async function captureStepScreenshot(
   const filePath = path.join(outputDir, `${prefix}-${stepId}-${bp}.png`);
   await page.screenshot({ fullPage: true, path: filePath });
 
+  const capturedUrl = page.url();
+
   let domSnapshot: DomSnapshot | undefined;
   try {
-    domSnapshot = await extractDomSnapshot(page, page.url(), bp);
+    domSnapshot = await extractDomSnapshot(page, capturedUrl, bp);
   } catch (err) {
     console.error(`Flow DOM snapshot failed at step "${label}" ${bp}px:`, err);
   }
 
-  results.push({ stepId, label, breakpoint: bp, filePath, domSnapshot });
+  results.push({ stepId, label, breakpoint: bp, filePath, url: capturedUrl, domSnapshot });
 }
 
 /**

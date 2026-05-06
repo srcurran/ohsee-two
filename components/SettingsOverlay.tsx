@@ -10,20 +10,21 @@ import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
 
-type Tab = "general" | "defaults" | "credentials";
+const ENTER_MS = 180;
+const EXIT_MS = 140;
 
-const PANEL = { top: 28, right: 28, bottom: 28, left: 28 };
-const ANIM_MS = 200;
-const EXIT_MS = 150;
-const ANIM_EASE = "cubic-bezier(0.2, 0, 0, 1)";
-
+/**
+ * App-level settings (theme, defaults, optional credentials in Electron).
+ * Reuses the .project-settings-overlay panel chrome so this matches the
+ * project + test settings overlays — single column, ~640px wide, sections
+ * stacked with their own headings rather than a side-nav.
+ */
 export default function SettingsOverlay() {
   const { settingsOpen, closeSettings } = useSidebar();
   const [animState, setAnimState] = useState<"entering" | "visible" | "exiting">("entering");
   const [mounted, setMounted] = useState(false);
 
   const { theme, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<Tab>("general");
   const [settings, setSettings] = useState<UserSettings | null>(null);
 
   useEffect(() => setMounted(true), []);
@@ -31,11 +32,9 @@ export default function SettingsOverlay() {
   useEffect(() => {
     if (!settingsOpen) return;
     setAnimState("entering");
-    requestAnimationFrame(() => setAnimState("visible"));
+    requestAnimationFrame(() => requestAnimationFrame(() => setAnimState("visible")));
     if (!settings) {
-      fetch("/api/settings")
-        .then((r) => r.json())
-        .then(setSettings);
+      fetch("/api/settings").then((r) => r.json()).then(setSettings);
     }
   }, [settingsOpen, settings]);
 
@@ -72,160 +71,129 @@ export default function SettingsOverlay() {
 
   if (!settingsOpen) return null;
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "general", label: "General" },
-    { id: "defaults", label: "Defaults" },
-    ...(mounted && isElectronRuntime() ? [{ id: "credentials" as Tab, label: "Credentials" }] : []),
-  ];
-
-  const panelStyle: React.CSSProperties = animState === "exiting"
-    ? {
-        position: "fixed",
-        top: PANEL.top,
-        left: PANEL.left,
-        width: `calc(100vw - ${PANEL.left + PANEL.right}px)`,
-        height: `calc(100vh - ${PANEL.top + PANEL.bottom}px)`,
-        borderRadius: 12,
-        opacity: 0,
-        transform: "scale(0.96)",
-        transition: `opacity ${EXIT_MS}ms ease-in, transform ${EXIT_MS}ms ease-in`,
-      }
-    : {
-        position: "fixed",
-        top: PANEL.top,
-        left: PANEL.left,
-        width: `calc(100vw - ${PANEL.left + PANEL.right}px)`,
-        height: `calc(100vh - ${PANEL.top + PANEL.bottom}px)`,
-        borderRadius: 12,
-        opacity: animState === "entering" ? 0 : 1,
-        transform: animState === "entering" ? "scale(0.98)" : "scale(1)",
-        transition: `opacity ${ANIM_MS}ms ${ANIM_EASE}, transform ${ANIM_MS}ms ${ANIM_EASE}`,
-      };
+  const showCredentials = mounted && isElectronRuntime();
 
   return (
     <div
-      className={`settings-overlay ${animState === "visible" ? "settings-overlay--visible" : "settings-overlay--hidden"}`}
-      style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ANIM_MS}ms` }}
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+      className={`project-settings-overlay project-settings-overlay--${animState}`}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ENTER_MS}ms` }}
     >
-      <div className="settings-overlay__panel" style={panelStyle}>
-        <aside className="settings-overlay__nav">
-          {tabs.map((tab) => {
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`settings-overlay__nav-item ${active ? "settings-overlay__nav-item--active" : ""}`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </aside>
-
-        <div className="settings-overlay__content">
+      <div
+        className="project-settings-overlay__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="app-settings-title"
+      >
+        <header className="project-settings-overlay__header">
+          <span id="app-settings-title" className="project-settings-overlay__title">
+            Settings
+          </span>
           <button
+            type="button"
+            className="icon-btn project-settings-overlay__close"
             onClick={handleClose}
-            title="Close settings"
-            className="icon-btn icon-btn--lg settings-overlay__close"
+            title="Close"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
+        </header>
 
-          <div className="settings-overlay__body">
-            <div style={{ maxWidth: 560 }}>
-              {activeTab === "general" && (
-                <div>
-                  {mounted && (
-                    <section className="section-block">
-                      <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Theme</p>
-                      <div className="segmented" style={{ width: "fit-content" }}>
-                        {(["light", "dark", "system"] as const).map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => setTheme(opt)}
-                            className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
-                            style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  )}
+        <div className="project-settings-overlay__body">
+          <section className="settings-section">
+            <h3 className="settings-section__title">General</h3>
 
-                  <section className="section-block">
-                    <div className="row row--between row--lg">
-                      <div>
-                        <p style={{ fontSize: "var(--font-size-base)", color: "var(--foreground)" }}>Alert notifications</p>
-                        <p style={{ fontSize: "var(--font-size-md)", color: "var(--text-muted)" }}>Notify me when a report run finishes.</p>
-                      </div>
-                      <Toggle
-                        checked={settings?.alertNotifications ?? false}
-                        disabled={!settings}
-                        onChange={(v) => settings && saveSettings({ ...settings, alertNotifications: v })}
-                        label="Alert notifications"
-                      />
-                    </div>
-                  </section>
-
-                  <section>
+            {mounted && (
+              <div className="settings-section__row">
+                <span className="settings-section__label">Theme</span>
+                <div className="segmented" style={{ width: "fit-content" }}>
+                  {(["light", "dark", "system"] as const).map((opt) => (
                     <button
-                      onClick={() => signOut({ callbackUrl: "/sign-in" })}
-                      className="btn btn--ghost"
+                      key={opt}
+                      onClick={() => setTheme(opt)}
+                      className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
+                      style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
                     >
-                      Sign out
+                      {opt}
                     </button>
-                  </section>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {activeTab === "credentials" && <CredentialsSettings />}
-
-              {activeTab === "defaults" && (
-                <div>
-                  {settings ? (
-                    <>
-                      <p className="section-body" style={{ marginBottom: "var(--space-6)" }}>
-                        Applied to new projects by default.
-                      </p>
-                      <section className="section-block">
-                        <BreakpointEditor
-                          breakpoints={settings.defaultBreakpoints}
-                          onChange={(bp) => saveSettings({ ...settings, defaultBreakpoints: bp })}
-                        />
-                      </section>
-                      <section className="section-block">
-                        <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Variants</p>
-                        <div className="variant-list">
-                          {BUILT_IN_VARIANTS.map((v) => {
-                            const active = (settings.defaultVariants || []).includes(v.id);
-                            return (
-                              <label key={v.id} className="variant-option">
-                                <input
-                                  type="checkbox"
-                                  checked={active}
-                                  onChange={() => toggleVariant(v.id)}
-                                  className="checkbox"
-                                />
-                                {v.label}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </section>
-                    </>
-                  ) : (
-                    <p className="loader-text">Loading...</p>
-                  )}
-                </div>
-              )}
+            <div className="settings-section__row">
+              <div>
+                <p className="settings-section__label">Alert notifications</p>
+                <p className="settings-section__hint">Notify me when a report run finishes.</p>
+              </div>
+              <Toggle
+                checked={settings?.alertNotifications ?? false}
+                disabled={!settings}
+                onChange={(v) => settings && saveSettings({ ...settings, alertNotifications: v })}
+                label="Alert notifications"
+              />
             </div>
-          </div>
+
+            <div className="settings-section__actions">
+              <button
+                onClick={() => signOut({ callbackUrl: "/sign-in" })}
+                className="btn btn--outline"
+              >
+                Sign out
+              </button>
+            </div>
+          </section>
+
+          <hr className="project-settings-overlay__divider" />
+
+          <section className="settings-section">
+            <h3 className="settings-section__title">Defaults</h3>
+            <p className="settings-section__hint">Applied to new projects.</p>
+
+            {settings ? (
+              <>
+                <BreakpointEditor
+                  breakpoints={settings.defaultBreakpoints}
+                  onChange={(bp) => saveSettings({ ...settings, defaultBreakpoints: bp })}
+                />
+                <div className="settings-section__row settings-section__row--column">
+                  <span className="settings-section__label">Variants</span>
+                  <div className="variant-list">
+                    {BUILT_IN_VARIANTS.map((v) => {
+                      const active = (settings.defaultVariants || []).includes(v.id);
+                      return (
+                        <label key={v.id} className="variant-option">
+                          <input
+                            type="checkbox"
+                            checked={active}
+                            onChange={() => toggleVariant(v.id)}
+                            className="checkbox"
+                          />
+                          {v.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="loader-text">Loading...</p>
+            )}
+          </section>
+
+          {showCredentials && (
+            <>
+              <hr className="project-settings-overlay__divider" />
+              <section className="settings-section">
+                <h3 className="settings-section__title">Credentials</h3>
+                <CredentialsSettings />
+              </section>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,0 +1,117 @@
+/* Wizard shell — used by NewProjectWizard + NewTestWizard. Lives inside a
+   .modal scrim with a .modal__panel container, so all positioning chrome
+   comes from .modal. This file only owns the internals. */
+
+.wizard {
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  /* Subtle eyebrow rather than a prominent heading — the active step's
+     question prompt (e.g. "What is the project's name?") carries the real
+     visual weight. Matches Figma 187:1092. */
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--weight-semibold);
+    color: var(--text-muted);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  &__fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--weight-regular);
+    color: var(--text-muted);
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: var(--font-size-md);
+    color: var(--text-muted);
+    line-height: var(--line-base);
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+
+  &__step-count {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+  }
+
+  &__footer-actions {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  /* Steps editor inside step 2 of NewTestWizard. Compact list with a
+     trailing add-row form. */
+  &__step-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__step-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-primary);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__step-label {
+    color: var(--foreground);
+    font-size: var(--font-size-base);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__add-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-top: var(--space-3);
+
+    /* The MaterialField inside should flex to fill the row. */
+    > .material-field {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    /* Align the button vertically with the field shell (label + input). */
+    > button {
+      margin-top: var(--space-5);
+      flex-shrink: 0;
+    }
+  }
+}

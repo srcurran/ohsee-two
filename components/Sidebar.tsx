@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "./SidebarProvider";
-import NewProjectOverlay from "./NewProjectOverlay";
 import ProjectFavicon from "./ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
@@ -32,11 +31,19 @@ function getTestWithLatestReport(test: SiteTest, reports: Report[]) {
 const MAX_VISIBLE_TESTS = 3;
 
 export default function Sidebar() {
-  const { refreshKey, refreshProjects, collapsed, ready, openSettings } = useSidebar();
+  const {
+    refreshKey,
+    refreshProjects,
+    collapsed,
+    ready,
+    openSettings,
+    openTestSettings,
+    openNewProjectWizard,
+    openNewTestWizard,
+  } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const [data, setData] = useState<ProjectWithReports[]>([]);
-  const [showNewProject, setShowNewProject] = useState(false);
   const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set());
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -91,6 +98,13 @@ export default function Sidebar() {
   const isTestActive = (test: SiteTest, reports: Report[]) => {
     const testReports = reports.filter((r) => r.siteTestId === test.id);
     return testReports.some((r) => pathname.startsWith(`/reports/${r.id}`));
+  };
+
+  /** A project is "active" when the user is viewing its project page, one of
+   *  its tests, or one of its reports. */
+  const isProjectActive = (project: Project, reports: Report[]) => {
+    if (pathname.startsWith(`/projects/${project.id}`)) return true;
+    return reports.some((r) => pathname.startsWith(`/reports/${r.id}`));
   };
 
   const handleProjectClick = (project: Project, reports: Report[]) => {
@@ -164,16 +178,19 @@ export default function Sidebar() {
             <>
               {visibleData.map(({ project, reports }, index) => {
                 const domain = getDomain(project.prodUrl);
-                const tests = project.tests || [];
+                // Archived tests live on the project but are hidden here —
+                // they're restored from the project Danger Zone.
+                const tests = (project.tests || []).filter((t) => !t.archived);
                 const isExpanded = expandedTests.has(project.id);
                 const testsWithReports = tests.map((t) => getTestWithLatestReport(t, reports));
                 const visibleTests = isExpanded ? testsWithReports : testsWithReports.slice(0, MAX_VISIBLE_TESTS);
                 const hasMore = testsWithReports.length > MAX_VISIBLE_TESTS;
+                const projectActive = isProjectActive(project, reports);
 
                 return (
                   <div key={project.id}>
                     <div
-                      className="sidebar__group"
+                      className={`sidebar__group${projectActive ? " sidebar__group--active" : ""}`}
                       draggable
                       onDragStart={(e) => handleDragStart(index, e)}
                       onDragEnter={() => handleDragEnter(index)}
@@ -187,7 +204,8 @@ export default function Sidebar() {
                         <ProjectFavicon
                           url={project.prodUrl}
                           fallbackUrl={project.devUrl}
-                          size={32}
+                          size={16}
+                          borderRadius={2}
                         />
                         <span className="sidebar__title">{project.name || domain}</span>
                       </button>
@@ -216,7 +234,7 @@ export default function Sidebar() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/projects/${project.id}/settings/tests`);
+                                  openTestSettings(project.id, test.id);
                                 }}
                                 className="sidebar__test-action"
                                 title="Test settings"
@@ -248,7 +266,7 @@ export default function Sidebar() {
                         )}
 
                         <button
-                          onClick={() => router.push(`/projects/${project.id}/settings/tests`)}
+                          onClick={() => openNewTestWizard(project.id)}
                           className="sidebar__add-test"
                         >
                           <span>Add new test</span>
@@ -273,7 +291,7 @@ export default function Sidebar() {
               {hasProjects && <div className="sidebar__divider" />}
 
               <button
-                onClick={() => setShowNewProject(true)}
+                onClick={openNewProjectWizard}
                 className="sidebar__add-site"
               >
                 <span className="sidebar__plus">+</span>
@@ -295,16 +313,6 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {showNewProject && (
-        <NewProjectOverlay
-          onClose={() => setShowNewProject(false)}
-          onCreated={(projectId) => {
-            setShowNewProject(false);
-            refreshProjects();
-            router.push(`/projects/${projectId}`);
-          }}
-        />
-      )}
     </>
   );
 }

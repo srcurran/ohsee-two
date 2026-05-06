@@ -3,8 +3,11 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "--port", "4002"],
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "OHSEE_LOCAL_USER_ID=local npx next dev --port 4002"
+      ],
       "port": 4002
     },
     {

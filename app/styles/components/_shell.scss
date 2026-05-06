@@ -28,8 +28,10 @@
   top: 4px;
   z-index: var(--z-toast);
   display: inline-flex;
+  /* Match the sidebar footer's gear icon size so the collapse button and
+   * the gear read as a vertical pair down the same x. */
   width: 32px;
-  height: 28px;
+  height: 32px;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
@@ -45,18 +47,18 @@
     background: var(--surface-hover);
   }
 
-  /* Sidebar open — inside the panel's right edge. The sidebar is 240px wide
-     (see SIDEBAR_WIDTH_OPEN in PageTitleBar.tsx); leave 4px breathing room. */
-  &--open { left: 204px; }
+  /* Sidebar open — pinned to the same x as the footer gear (right side of
+   * the 240px sidebar's 16px padding). 240 - 16 - 32 = 192. */
+  &--open { left: 192px; }
 
   /* Sidebar collapsed, Electron — ~40px right of the macOS stoplight buttons
      (close/min/zoom occupy roughly x=8..68 with hiddenInset). */
   &--collapsed-electron { left: 80px; }
 
-  /* Sidebar collapsed, web — top-right corner. Use `left` rather than `right`
-     so the position interpolates smoothly with the open/Electron states when
-     the user toggles. */
-  &--collapsed-web { left: calc(100vw - 44px); }
+  /* Sidebar collapsed, web — sits at the same x as the report content's
+     left rail (var(--space-6)) so the collapse affordance aligns with the
+     header below it instead of floating in the corner. */
+  &--collapsed-web { left: var(--space-6); }
 
   /* Gated by `ready` in TitlebarCollapseButton so first paint doesn't animate
      from a default to the stored collapsed state. Matches the sidebar's
@@ -70,12 +72,14 @@
 
 .page-title-bar {
   position: fixed;
-  top: 0;
+  /* Match the sidebar collapse button (32px tall, 4px from top) so the
+     two top-row chrome elements align vertically. */
+  top: 4px;
   z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 36px;
+  height: 32px;
   pointer-events: none;
   transition: left 0.2s var(--ease-standard);
 
@@ -87,6 +91,20 @@
     font-size: var(--font-size-md);
     font-weight: var(--weight-semibold);
     color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  }
+
+  /* Custom header content (per-page React node, e.g. report eyebrow row).
+     Left-aligned and clickable. Pads to match the report content's
+     horizontal padding (var(--space-6)). */
+  &--custom {
+    justify-content: flex-start;
+    pointer-events: auto;
+    padding: 0 var(--space-6);
+    gap: var(--space-2);
+
+    /* Stay clickable inside the .titlebar-drag-region strip. */
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
   }
 }
 
@@ -185,8 +203,8 @@
     flex-shrink: 0;
     flex-direction: column;
     gap: var(--space-1);
-    border-right: 1px solid var(--neutral-dark-100);
-    background: #fafafa;
+    border-right: 1px solid var(--border-primary);
+    background: var(--surface-secondary);
     padding: var(--space-4);
   }
 

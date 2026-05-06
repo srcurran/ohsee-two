@@ -57,9 +57,18 @@ export default function DiffViewer({
     img.addEventListener("load", update);
     window.addEventListener("resize", update);
 
+    // ResizeObserver catches layout changes that don't fire `load` or
+    // `resize` — e.g. the panel animating in from off-screen. Without
+    // this, a cached image (img.complete === true at mount) gets
+    // measured once at the wrong size, scale stays tiny, and every
+    // marker collapses near y=0.
+    const ro = new ResizeObserver(update);
+    ro.observe(img);
+
     return () => {
       img.removeEventListener("load", update);
       window.removeEventListener("resize", update);
+      ro.disconnect();
     };
   }, [devSrc]);
 

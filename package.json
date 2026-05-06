@@ -4,7 +4,7 @@
   "private": true,
   "main": ".electron-out/main.js",
   "scripts": {
-    "dev": "next dev --port 4000",
+    "dev": "OHSEE_LOCAL_USER_ID=local OHSEE_DATA_DIR=./data-electron-dev next dev --port 4000",
     "build": "next build",
     "start": "next start",
     "start:stable": "next start --port 4001",

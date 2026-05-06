@@ -13,12 +13,68 @@ export interface SiteTest {
   flows: FlowEntry[];
   /** Micro-test compositions (new-style flows using reusable script steps) */
   compositions?: TestComposition[];
+  /** Unified ordered steps (URLs + Playwright micro-tests) — preferred shape
+   *  for new tests. When present, supersedes pages + compositions for both
+   *  the UI and the runner. Lazily derived from pages + compositions on
+   *  first read for legacy tests via lib/test-steps.ts. */
+  steps?: TestStep[];
   /** Breakpoints for this test (uses user/global defaults if omitted) */
   breakpoints?: number[];
   /** Optional theme/variant captures (e.g., light + dark) */
   variants?: TestVariant[];
+  /** Soft-deleted / hidden from sidebar; restorable from project Danger Zone. */
+  archived?: boolean;
+  /** Per-test auth/credentials configuration. Replaces the project-level
+   *  requiresAuth flag so different tests can target different identities. */
+  credentials?: TestCredentials;
   createdAt: string;
   lastRunAt: string | null;
+}
+
+/**
+ * A single step in a test's unified `steps[]` list. URL steps and microtest
+ * steps share the same shape with a discriminator — under the hood, a URL
+ * step is just a simplified Playwright step (`page.goto(url)`).
+ *
+ * The "microtest" type historically referenced a separate MicroTest record
+ * stored on `project.microTests`. That collection was inlined: `script` and
+ * `name` now live directly on the step. `microTestId` is preserved only for
+ * legacy records that haven't been read through `readProjectsWithMigration`
+ * yet.
+ */
+export interface TestStep {
+  id: string;
+  type: "url" | "microtest";
+  /** Whether to capture a screenshot at the end of this step. Defaults to
+   *  true; set false to use the step purely as a setup/navigation action. */
+  captureScreenshot?: boolean;
+  /** url-step: the absolute or path-relative URL to navigate to. Path-only
+   *  values are resolved against the project's prod/dev base at run time. */
+  url?: string;
+  /** microtest-step: inline Playwright script body. Receives `page` and
+   *  `expect` as arguments. */
+  script?: string;
+  /** microtest-step: display label shown in the steps list and used in
+   *  error messages / screenshot filenames. */
+  name?: string;
+  /** Legacy: pre-inlining microtest reference. Migrated to inline script+name
+   *  on first read; kept for backward-compat if migration hasn't run. */
+  microTestId?: string;
+}
+
+/**
+ * Per-test credentials configuration. Mirrors the project-level requiresAuth
+ * model (mints a NextAuth session cookie via mintSessionCookie) but keyed
+ * per-test so different tests can run as different identities.
+ */
+export interface TestCredentials {
+  /** When true, the runner mints + injects a session cookie before captures. */
+  enabled?: boolean;
+  /** Reuse another test's credentials (shared identity). When set, the
+   *  runner reads that test's credentials instead. */
+  copyFromTestId?: string;
+  /** Optional vault entry id (Electron only) — names a stored identity. */
+  vaultEntryId?: string;
 }
 
 export interface Project {
@@ -43,7 +99,9 @@ export interface Project {
   flows?: FlowEntry[];
   /** Named tests for this site. Each test has its own pages + flows. */
   tests?: SiteTest[];
-  /** Reusable Playwright script steps shared across all tests for this site */
+  /** @deprecated Inlined onto step.script by readProjectsWithMigration on
+   *  first read; kept on the type for migration compatibility only. New
+   *  records do not write this field. */
   microTests?: MicroTest[];
 }
 
@@ -79,8 +137,12 @@ export interface MicroTest {
 
 export interface TestCompositionStep {
   id: string;
-  /** References a MicroTest.id from the project's microTests library */
-  microTestId: string;
+  /** Inline Playwright script body — receives `page` + `expect`. */
+  script?: string;
+  /** Display label used in error messages + screenshot filenames. */
+  name?: string;
+  /** Legacy reference to a project.microTests entry. Inlined on read. */
+  microTestId?: string;
   /** Whether to capture a screenshot after this step completes */
   captureScreenshot: boolean;
 }
@@ -140,6 +202,10 @@ export interface BreakpointResult {
   diffScreenshot: string;
   alignedProdScreenshot?: string;
   alignedDevScreenshot?: string;
+  /** Actual URL Playwright was on when the prod screenshot was taken (post-redirects, post-flow-navigation). */
+  prodUrl?: string;
+  /** Actual URL Playwright was on when the dev screenshot was taken. */
+  devUrl?: string;
   changeCount: number;
   totalPixels: number;
   changePercentage: number;

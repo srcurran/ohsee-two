@@ -22,6 +22,13 @@
   --surface-hover-soft: color-mix(in srgb, var(--foreground) 5%,  transparent);
   --surface-hover-bare: color-mix(in srgb, var(--foreground) 3%,  transparent);
 
+  /* Foreground-tinted text — re-pinned per theme below.
+   * Why: a flat percentage that "looks subtle" on white reads as nearly
+   * invisible on dark, so the dark block overrides these to taste. */
+  --text-faint:      color-mix(in srgb, var(--foreground) 40%, transparent);
+  --text-subdued:    color-mix(in srgb, var(--foreground) 70%, transparent);
+  --text-dim:        color-mix(in srgb, var(--foreground) 60%, transparent);
+
   /* ── Text ──────────────────────────────────────────────────────── */
   --foreground:      var(--neutral-dark-900);
   --text-secondary:  var(--neutral-dark-700);
@@ -29,10 +36,8 @@
   --text-subtle:     var(--neutral-dark-400);
   --text-disabled:   var(--neutral-dark-100);
 
-  /* Foreground-tinted text (hover/supporting text) */
-  --text-faint:      color-mix(in srgb, var(--foreground) 40%, transparent);
-  --text-subdued:    color-mix(in srgb, var(--foreground) 70%, transparent);
-  --text-dim:        color-mix(in srgb, var(--foreground) 60%, transparent);
+  /* (Foreground-tinted text aliases are declared above so the dark-mode
+     block can override them without losing the light-mode definition.) */
 
   /* ── Borders ───────────────────────────────────────────────────── */
   --border-primary:   var(--neutral-dark-100);
@@ -100,15 +105,19 @@
 /* ── Dark Mode ──────────────────────────────────────────────────── */
 
 .dark {
-  /* Neutral / Dark → light text */
+  /* Neutral / Dark → light text. Alphas are deliberately stronger than
+   * the light-mode 1:1 inversion: white-on-dark needs ~10% more luminance
+   * at every level to read the same as black-on-light, especially for
+   * supporting text and borders. Material Design's dark-mode guidance
+   * uses 87/60/38 for emphasis levels; we land close to that. */
   --neutral-dark-900: #ffffff;
-  --neutral-dark-800: rgba(255, 255, 255, 0.9);
-  --neutral-dark-700: rgba(255, 255, 255, 0.7);
-  --neutral-dark-500: rgba(255, 255, 255, 0.5);
-  --neutral-dark-400: rgba(255, 255, 255, 0.4);
-  --neutral-dark-200: rgba(255, 255, 255, 0.2);
-  --neutral-dark-150: rgba(255, 255, 255, 0.15);
-  --neutral-dark-100: rgba(255, 255, 255, 0.1);
+  --neutral-dark-800: rgba(255, 255, 255, 0.92);
+  --neutral-dark-700: rgba(255, 255, 255, 0.82);
+  --neutral-dark-500: rgba(255, 255, 255, 0.65);
+  --neutral-dark-400: rgba(255, 255, 255, 0.55);
+  --neutral-dark-200: rgba(255, 255, 255, 0.28);
+  --neutral-dark-150: rgba(255, 255, 255, 0.22);
+  --neutral-dark-100: rgba(255, 255, 255, 0.16);
 
   /* Neutral / Light → dark surfaces */
   --neutral-light-100: #1e1e1e;
@@ -144,6 +153,12 @@
   --surface-content:   #1e1e1e;
   --surface-fade-from: #1e1e1e;
   --surface-fade-via:  rgba(30, 30, 30, 0.9);
+
+  /* Foreground-tinted text — bumped per theme so supporting copy is
+   * readable. The light-mode values stay as defined above. */
+  --text-faint:   color-mix(in srgb, var(--foreground) 60%, transparent);
+  --text-dim:     color-mix(in srgb, var(--foreground) 72%, transparent);
+  --text-subdued: color-mix(in srgb, var(--foreground) 82%, transparent);
 
   /* Legacy alias */
   --background: #1e1e1e;

@@ -1,9 +1,13 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import SidebarProvider from "@/components/SidebarProvider";
+import SidebarProvider, { useSidebar } from "@/components/SidebarProvider";
 import Sidebar from "@/components/Sidebar";
 import SettingsOverlay from "@/components/SettingsOverlay";
+import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
+import TestSettingsOverlay from "@/components/TestSettingsOverlay";
+import NewProjectWizard from "@/components/NewProjectWizard";
+import NewTestWizard from "@/components/NewTestWizard";
 import TitlebarCollapseButton from "@/components/TitlebarCollapseButton";
 import PageTitleBar from "@/components/PageTitleBar";
 
@@ -25,11 +29,81 @@ export default function AuthenticatedLayout({
           <TitlebarCollapseButton />
           <PageTitleBar />
           <Sidebar />
+          <SidebarScrim />
           <MainFrame>{children}</MainFrame>
           <SettingsOverlay />
+          <ProjectSettingsHost />
+          <TestSettingsHost />
+          <NewProjectWizardHost />
+          <NewTestWizardHost />
         </SidebarProvider>
       </div>
     </SessionProvider>
+  );
+}
+
+/** Subscribes to projectSettingsId from the sidebar context and mounts
+ *  ProjectSettingsOverlay only while that ID is set. Splitting this out
+ *  keeps useSidebar() out of the layout's outer scope (it lives outside
+ *  SidebarProvider). */
+function ProjectSettingsHost() {
+  const { projectSettingsId, closeProjectSettings } = useSidebar();
+  if (!projectSettingsId) return null;
+  return (
+    <ProjectSettingsOverlay
+      projectId={projectSettingsId}
+      onClose={closeProjectSettings}
+    />
+  );
+}
+
+/** Mounts the per-test settings overlay only while a test is selected via
+ *  openTestSettings. Sibling to ProjectSettingsHost. */
+function TestSettingsHost() {
+  const { testSettings, closeTestSettings } = useSidebar();
+  if (!testSettings) return null;
+  return (
+    <TestSettingsOverlay
+      projectId={testSettings.projectId}
+      testId={testSettings.testId}
+      onClose={closeTestSettings}
+    />
+  );
+}
+
+/** Mounts the New-Project wizard while open. On creation, hands off to the
+ *  New-Test wizard pre-filled with the project's name so the two flows feel
+ *  continuous. */
+function NewProjectWizardHost() {
+  const {
+    newProjectWizardOpen,
+    closeNewProjectWizard,
+    refreshProjects,
+    openNewTestWizard,
+  } = useSidebar();
+  if (!newProjectWizardOpen) return null;
+  return (
+    <NewProjectWizard
+      onClose={closeNewProjectWizard}
+      onCreated={(projectId) => {
+        refreshProjects();
+        closeNewProjectWizard();
+        openNewTestWizard(projectId);
+      }}
+    />
+  );
+}
+
+/** Mounts the New-Test wizard while open. */
+function NewTestWizardHost() {
+  const { newTestWizard, closeNewTestWizard } = useSidebar();
+  if (!newTestWizard) return null;
+  return (
+    <NewTestWizard
+      projectId={newTestWizard.projectId}
+      initialName={newTestWizard.initialName}
+      onClose={closeNewTestWizard}
+    />
   );
 }
 
@@ -40,5 +114,19 @@ function MainFrame({ children }: { children: React.ReactNode }) {
     <main className="app-main app-main--flat">
       <div className="app-main__scroll">{children}</div>
     </main>
+  );
+}
+
+/** Backdrop visible only when the sidebar is expanded at a narrow viewport
+ *  (CSS handles the viewport gate via @media). Click collapses the sidebar
+ *  so the user can dismiss the overlay by tapping outside it. */
+function SidebarScrim() {
+  const { collapsed, setCollapsed } = useSidebar();
+  return (
+    <div
+      aria-hidden
+      className={`sidebar-scrim ${collapsed ? "" : "sidebar-scrim--visible"}`}
+      onClick={() => setCollapsed(true)}
+    />
   );
 }

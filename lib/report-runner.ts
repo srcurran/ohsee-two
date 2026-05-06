@@ -6,8 +6,9 @@ import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
 import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition } from "./types";
-import { executeFlow, getScreenshotStepIds, type FlowScreenshotResult } from "./flow-runner";
-import { executeTestComposition, getCompositionScreenshotSteps, type MicroTestStepResult } from "./micro-test-runner";
+import { executeFlow, getScreenshotStepIds } from "./flow-runner";
+import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
+import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -99,16 +100,29 @@ export async function runReport(
     ? siteTest.breakpoints
     : project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
 
-  // Resolve pages and flows from siteTest (preferred) or project (legacy)
-  const testPages = siteTest?.pages ?? project.pages;
-  const testFlows = siteTest?.flows ?? project.flows ?? [];
+  // When the new unified steps[] is present, decompose it into legacy
+  // pages + a synthetic composition the existing executors already
+  // understand. Falls through to project/legacy fields otherwise.
+  const unified = siteTest?.steps && siteTest.steps.length > 0
+    ? splitStepsForRunner(siteTest.steps)
+    : null;
+
+  const testPages = unified
+    ? unified.pages
+    : siteTest?.pages ?? project.pages;
+  const testFlows = unified
+    ? []  // unified steps supersede legacy flows
+    : siteTest?.flows ?? project.flows ?? [];
 
   // Use test-level variants if set, then fall back to project-level (legacy)
   const testVariants = siteTest?.variants ?? project.variants ?? [];
   // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
   const variantCount = testVariants.length;
-  // Resolve compositions from siteTest
-  const testCompositions: TestComposition[] = siteTest?.compositions ?? [];
+  // Resolve compositions from the unified steps split (preferred) or
+  // siteTest.compositions (legacy).
+  const testCompositions: TestComposition[] = unified
+    ? unified.composition ? [unified.composition] : []
+    : siteTest?.compositions ?? [];
 
   // Count screenshot steps across all flows
   const flowScreenshotSteps = testFlows.reduce((sum, flow) =>
@@ -139,10 +153,16 @@ export async function runReport(
   };
 
   try {
-    // Mint auth cookies if project requires authentication
+    // Mint auth cookies. Per-test credentials (siteTest.credentials.enabled
+    // — possibly via copyFromTestId) take precedence over the legacy
+    // project.requiresAuth flag so different tests can run as different
+    // identities. The actual identity comes from `userId` in either case;
+    // future work will plumb a vault entry id through to support distinct
+    // accounts per test.
+    const credentialsEnabled = resolveCredentialsEnabled(project, siteTest);
     let prodAuthConfig: AuthCookieConfig | undefined;
     let devAuthConfig: AuthCookieConfig | undefined;
-    if (project.requiresAuth) {
+    if (credentialsEnabled) {
       prodAuthConfig = await mintSessionCookie({ userId, targetUrl: project.prodUrl });
       devAuthConfig = await mintSessionCookie({ userId, targetUrl: project.devUrl });
     }
@@ -511,6 +531,8 @@ async function captureAndDiff(options: {
         diffScreenshot: path.relative(dataBase, diffPath),
         alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
         alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+        prodUrl: prodShot.url,
+        devUrl: devShot.url,
         changeCount: diffResult.changeCount,
         totalPixels: diffResult.totalPixels,
         changePercentage: diffResult.changePercentage,
@@ -631,6 +653,8 @@ async function captureAndDiffFlow(options: {
           diffScreenshot: path.relative(dataBase, diffPath),
           alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
           alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+          prodUrl: prodShot.url,
+          devUrl: devShot.url,
           changeCount: diffResult.changeCount,
           totalPixels: diffResult.totalPixels,
           changePercentage: diffResult.changePercentage,
@@ -659,6 +683,25 @@ async function captureAndDiffFlow(options: {
   }
 
   return results;
+}
+
+/**
+ * Resolve whether a run should mint + inject auth cookies. Per-test
+ * credentials (with optional copy-from indirection) override the legacy
+ * project-level `requiresAuth` flag so different tests can target
+ * different identities — though distinct account values still need a
+ * vault entry id once that path is wired up.
+ */
+function resolveCredentialsEnabled(project: Project, siteTest?: SiteTest): boolean {
+  const creds = siteTest?.credentials;
+  if (creds) {
+    if (creds.copyFromTestId) {
+      const referenced = project.tests?.find((t) => t.id === creds.copyFromTestId);
+      if (referenced?.credentials?.enabled) return true;
+    }
+    if (creds.enabled) return true;
+  }
+  return Boolean(project.requiresAuth);
 }
 
 /**
@@ -752,6 +795,8 @@ async function captureAndDiffComposition(options: {
           diffScreenshot: path.relative(dataBase, diffPath),
           alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
           alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+          prodUrl: prodShot.url,
+          devUrl: devShot.url,
           changeCount: diffResult.changeCount,
           totalPixels: diffResult.totalPixels,
           changePercentage: diffResult.changePercentage,

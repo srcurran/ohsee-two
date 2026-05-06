@@ -8,7 +8,7 @@ import VariantTabs from "@/components/VariantTabs";
 import ChangeBadge from "@/components/ChangeBadge";
 import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
 import { buildRunErrorDetails } from "@/components/run-error-details";
-import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
+import { useSidebar, usePageHeader } from "@/components/SidebarProvider";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
 import { reportDotModifier } from "@/lib/colors";
@@ -27,7 +27,7 @@ function ReportPageInner() {
   const params = useParams<{ reportId: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects, openProjectSettings, openTestSettings } = useSidebar();
   const [report, setReport] = useState<Report | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -39,16 +39,9 @@ function ReportPageInner() {
   // Structured run-failure payload (eyebrow / title / body / hint). See
   // buildRunErrorDetails + lib/url-reachability.ts.
   const [runError, setRunError] = useState<ErrorModalDetails | null>(null);
-  const activeBp = Number(searchParams.get("bp")) || 1024;
+  const bpParam = Number(searchParams.get("bp")) || null;
   const activeVariant = searchParams.get("variant") || null;
   const activePageId = searchParams.get("page") || null;
-
-  const titleLabel = project
-    ? siteTest
-      ? `${project.name || getDomain(project.prodUrl)} / ${siteTest.name}`
-      : project.name || getDomain(project.prodUrl)
-    : null;
-  usePageTitle(titleLabel);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -177,6 +170,32 @@ function ReportPageInner() {
     }
   }, [notFound, router]);
 
+  // Push a custom titlebar header (project eyebrow + project-settings icon)
+  // into the 36px drag region. Memoized so the slot doesn't reset on every
+  // render. Must be called unconditionally before any early return.
+  const projectLabel = project ? (project.name || getDomain(project.prodUrl)) : null;
+  const pageHeaderNode = useMemo(() => {
+    if (!project || !projectLabel) return null;
+    return (
+      <>
+        <span className="report__project-label">{projectLabel}</span>
+        <button
+          onClick={() => openProjectSettings(project.id)}
+          className="icon-btn icon-btn--sm"
+          title="Project settings"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="8" cy="6" r="2" fill="currentColor" />
+            <circle cx="16" cy="12" r="2" fill="currentColor" />
+            <circle cx="10" cy="18" r="2" fill="currentColor" />
+          </svg>
+        </button>
+      </>
+    );
+  }, [project, projectLabel, openProjectSettings]);
+  usePageHeader(pageHeaderNode);
+
   if (!report) {
     return (
       <div style={{ padding: "var(--space-6)" }}>
@@ -186,10 +205,19 @@ function ReportPageInner() {
   }
 
   const projectName = project ? (project.name || getDomain(project.prodUrl)) : "...";
-  const hasMultipleTests = (project?.tests?.length ?? 0) > 1;
-  const displayUrl = hasMultipleTests && siteTest
-    ? `${projectName} › ${siteTest.name}`
-    : projectName;
+  // Title is the test name when present; legacy reports without a siteTest
+  // fall back to the project name. Project label lives in the titlebar slot.
+  const headerTitle = siteTest?.name ?? projectName;
+  // Both project-level and test-level reports now open overlays. Legacy
+  // reports without a siteTestId open the project settings overlay.
+  const openSettings = () => {
+    if (!project) return;
+    if (report?.siteTestId) {
+      openTestSettings(project.id, report.siteTestId);
+    } else {
+      openProjectSettings(project.id);
+    }
+  };
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
@@ -206,6 +234,20 @@ function ReportPageInner() {
       for (const bp of Object.keys(page.breakpoints)) bpSet.add(Number(bp));
     }
     return [...bpSet].sort((a, b) => a - b);
+  })();
+
+  // Use the URL bp if it's actually in this report; otherwise pick the
+  // closest available to a desktop default (1024) so tiles always render.
+  const activeBp: number = (() => {
+    if (bpParam && reportBreakpoints.includes(bpParam)) return bpParam;
+    if (reportBreakpoints.length === 0) return bpParam ?? 1024;
+    let best = reportBreakpoints[0];
+    let bestDist = Math.abs(best - 1024);
+    for (const bp of reportBreakpoints) {
+      const d = Math.abs(bp - 1024);
+      if (d < bestDist) { best = bp; bestDist = d; }
+    }
+    return best;
   })();
 
   const bpChangeCounts: Record<string, number> = {};
@@ -239,7 +281,8 @@ function ReportPageInner() {
 
       <div className="report__sticky">
         <div className="report__title-row">
-          <div className="report__left">
+          <div className="report__title-group">
+            <h1 className="report__title">{headerTitle}</h1>
             {report.status !== "running" ? (
               <button onClick={handleRun} className="run-pill">
                 Run now
@@ -265,10 +308,8 @@ function ReportPageInner() {
             )}
           </div>
 
-          <p className="report__title">{displayUrl}</p>
-
           <div className="report__right">
-            <div style={{ position: "relative" }}>
+            <div className="report__nav-anchor">
               <button
                 onClick={() => setShowReportNav(!showReportNav)}
                 className="report__date-btn"
@@ -280,6 +321,17 @@ function ReportPageInner() {
                   {formatRelativeTime(report.createdAt)}
                 </span>
                 <span className={`status-dot status-dot--${reportDotModifier(report)}`} />
+              </button>
+              <button
+                onClick={openSettings}
+                className="icon-btn"
+                title={report?.siteTestId ? "Test settings" : "Project settings"}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                </svg>
               </button>
               {showReportNav && (
                 <>
@@ -307,25 +359,6 @@ function ReportPageInner() {
                 </>
               )}
             </div>
-
-            {project && (
-              <button
-                onClick={() => router.push(
-                  report?.siteTestId
-                    ? `/projects/${project.id}/settings/tests?testId=${report.siteTestId}`
-                    : `/projects/${project.id}/settings`
-                )}
-                className="icon-btn icon-btn--lg"
-                title="Project settings"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <circle cx="8" cy="6" r="2" fill="currentColor" />
-                  <circle cx="16" cy="12" r="2" fill="currentColor" />
-                  <circle cx="10" cy="18" r="2" fill="currentColor" />
-                </svg>
-              </button>
-            )}
           </div>
         </div>
 
