@@ -1,246 +1,173 @@
-/* Report overview route + related chrome (report nav, progress bar) */
+/* Report overview route — top-level layout and chrome.
+ * Structure mirrors the JSX tree of app/(authenticated)/reports/[reportId]/page.tsx:
+ *   <div .report>
+ *     <div .report__sticky>
+ *       <div .report__title-row>                ← ReportHeader
+ *         <div .report__title-group>
+ *           <h1 .report__title> … </h1>
+ *         <div .report__right>
+ *           <div .report__nav-anchor>
+ *             <button .report__date-btn>
+ *               <span .report__date> … </span>
+ *       <div .report__status-banner [--error]>   ← ReportStatusBanner
+ *         <p .report__status-banner-title [--error]>
+ *         <pre .report__status-banner-detail>
+ *       <VariantTabs />
+ *       <div .report__breakpoints> BreakpointTabs </div>
+ *     <div .report__grid-wrap>
+ *       <ReportPageGrid>
+ *         <div .report__flow-section>
+ *           <div .report__flow-header>
+ *             <h3 .report__flow-title> … </h3>
+ *
+ *   <span .report__project-label> — injected into the titlebar slot via
+ *     usePageHeader, so it renders OUTSIDE the .report subtree. Kept at the
+ *     top level here so the descendant selector still matches.
+ */
+
+.report__project-label {
+  font-size: var(--font-size-md);
+  color: var(--report-project-label-color);
+}
 
 .report {
   position: relative;
   min-height: 100%;
   overflow: hidden;
 
-  &__sticky {
+  .report__sticky {
     position: sticky;
     top: 0;
     z-index: var(--z-dropdown);
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
-    background: var(--surface-content);
-  }
+    background: var(--report-sticky-background);
 
-  &__project-label {
-    font-size: var(--font-size-md);
-    color: var(--text-muted);
-  }
+    .report__title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      /* 32px top gap puts the page header a normal flow distance below
+         the 36px titlebar/icon row above it. */
+      padding: var(--space-8) var(--space-6) var(--space-5);
 
-  &__title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-4);
-    /* 32px top gap puts the page header a normal flow distance below
-       the 36px titlebar/icon row above it. */
-    padding: var(--space-8) var(--space-6) var(--space-5);
-  }
+      .report__title-group {
+        display: flex;
+        align-items: center;
+        gap: var(--space-5);
+        flex-shrink: 0;
+        min-width: 0;
 
-  &__title-group {
-    display: flex;
-    align-items: center;
-    gap: var(--space-5);
-    flex-shrink: 0;
-    min-width: 0;
-  }
+        .report__title {
+          margin: 0;
+          font-size: var(--font-size-3xl);
+          font-weight: var(--weight-bold);
+          color: var(--report-title-color);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
 
-  &__title {
-    margin: 0;
-    font-size: var(--font-size-3xl);
-    font-weight: var(--weight-bold);
-    color: var(--foreground);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+      .report__right {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: var(--space-1);
 
-  &__right {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: var(--space-1);
-  }
+        .report__nav-anchor {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
 
-  &__nav-anchor {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
-  }
+          .report__date-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-md);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition:
+              background-color var(--duration-base) var(--ease-standard);
 
-  &__date-btn {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-md);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition:
-      background-color var(--duration-base) var(--ease-standard);
+            &:hover {
+              background: var(--report-date-btn-background-hover);
+            }
 
-    &:hover {
-      background: var(--surface-hover-bare);
-    }
-  }
-
-  &__date {
-    font-size: var(--font-size-lg);
-    color: var(--foreground);
-  }
-
-  &__status-banner {
-    margin-inline: var(--space-8);
-    margin-bottom: var(--space-3);
-    border-radius: var(--radius-md);
-    padding: var(--space-4);
-    border: 1px solid var(--border-primary);
-    background: var(--surface-tertiary);
-
-    &--error {
-      border-color: var(--status-error-border);
-      background: var(--status-error-muted);
-    }
-
-    &-title {
-      margin: 0;
-      font-size: var(--font-size-md);
-      color: var(--text-muted);
-
-      &--error {
-        font-weight: var(--weight-bold);
-        color: var(--status-error-strong);
+            .report__date {
+              font-size: var(--font-size-lg);
+              color: var(--report-date-color);
+            }
+          }
+        }
       }
     }
 
-    &-detail {
-      margin: var(--space-2) 0 0 0;
-      max-height: 200px;
-      overflow: auto;
-      white-space: pre-wrap;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: var(--font-size-sm);
-      color: var(--status-error-text);
+    .report__status-banner {
+      margin-inline: var(--space-8);
+      margin-bottom: var(--space-3);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      border: 1px solid var(--report-status-banner-border);
+      background: var(--report-status-banner-background);
+
+      &--error {
+        border-color: var(--report-status-banner-border-error);
+        background: var(--report-status-banner-background-error);
+      }
+
+      &-title {
+        margin: 0;
+        font-size: var(--font-size-md);
+        color: var(--report-status-banner-title-color);
+
+        &--error {
+          font-weight: var(--weight-bold);
+          color: var(--report-status-banner-title-color-error);
+        }
+      }
+
+      &-detail {
+        margin: var(--space-2) 0 0 0;
+        max-height: 200px;
+        overflow: auto;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: var(--font-size-sm);
+        color: var(--report-status-banner-detail-color);
+      }
+    }
+
+    .report__breakpoints {
+      padding: 0 var(--space-6);
     }
   }
 
-  &__breakpoints {
-    padding: 0 var(--space-6);
-  }
-
-  &__grid-wrap {
+  .report__grid-wrap {
     padding: var(--space-6);
+
+    .report__flow-section {
+      margin-top: var(--space-8);
+
+      &:first-child { margin-top: 0; }
+
+      .report__flow-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+
+        .report__flow-title {
+          margin: 0;
+          font-size: var(--font-size-lg);
+          font-weight: var(--weight-bold);
+          color: var(--report-flow-title-color);
+        }
+      }
+    }
   }
-
-  &__flow-section {
-    margin-top: var(--space-8);
-
-    &:first-child { margin-top: 0; }
-  }
-
-  &__flow-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-  }
-
-  &__flow-title {
-    margin: 0;
-    font-size: var(--font-size-lg);
-    font-weight: var(--weight-bold);
-    color: var(--foreground);
-  }
-}
-
-.progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-
-  &__bar {
-    height: 6px;
-    width: 120px;
-    overflow: hidden;
-    border-radius: var(--radius-full);
-    background: var(--surface-tertiary);
-  }
-
-  &__fill {
-    height: 100%;
-    border-radius: var(--radius-full);
-    background: var(--accent-primary);
-    transition: width var(--duration-slow) var(--ease-standard);
-  }
-
-  &__text {
-    font-size: var(--font-size-md);
-    color: var(--text-muted);
-  }
-}
-
-.run-pill {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
-  padding: var(--space-2) var(--space-5) var(--space-2) var(--space-6);
-  font-size: var(--font-size-lg);
-  color: var(--foreground);
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  transition:
-    var(--transition-colors),
-    var(--transition-transform),
-    var(--transition-shadow);
-
-  &:hover:not(:disabled) {
-    background: var(--surface-tertiary);
-    box-shadow: var(--elevation-md);
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &--lg {
-    font-size: var(--font-size-xl);
-    padding: var(--space-3) var(--space-6);
-  }
-
-  &__icon {
-    color: var(--text-subtle);
-  }
-}
-
-.loader-spinner {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  border: 3px solid var(--surface-tertiary);
-  border-top-color: var(--accent-primary);
-  animation: spin 1s linear infinite;
-}
-
-.loader-centered {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  padding-block: var(--space-10);
-}
-
-.loader-text {
-  font-size: var(--font-size-base);
-  color: var(--text-muted);
-}
-
-/* Project tile save button label */
-.save-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.save-feedback {
-  font-size: var(--font-size-base);
-  color: var(--accent-green);
 }

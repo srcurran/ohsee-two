@@ -1,167 +1,58 @@
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import BreakpointTabs from "@/components/BreakpointTabs";
-import VariantTabs from "@/components/VariantTabs";
-import ChangeBadge from "@/components/ChangeBadge";
-import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
-import { buildRunErrorDetails } from "@/components/run-error-details";
-import { useSidebar, usePageHeader } from "@/components/SidebarProvider";
-import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
-import type { Report, Project, SiteTest, ReportPage } from "@/lib/types";
-import { reportDotModifier } from "@/lib/colors";
-import PageDetailPanel from "@/components/PageDetailPanel";
-import { trackReportCompletion } from "@/lib/electron";
-
-function getDomain(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
+import { useEffect, useMemo, Suspense } from "react";
+import { useParams, useRouter } from "next/navigation";
+import BreakpointTabs from "@/components/index/BreakpointTabs";
+import VariantTabs from "@/components/index/VariantTabs";
+import ErrorModal from "@/components/utility/ErrorModal";
+import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
+import PageDetailPanel from "@/components/detail/PageDetailPanel";
+import { ReportHeader } from "@/components/index/ReportHeader";
+import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
+import { ReportPageGrid } from "@/components/index/ReportPageGrid";
+import { ProjectMenuIcon } from "@/components/utility/icons";
+import { useReportData } from "@/components/index/use/reportData";
+import { useReportUrlState } from "@/components/index/use/reportUrlState";
+import {
+  computeBpChangeCounts,
+  computeReportBreakpoints,
+  computeReportVariants,
+  getDomain,
+  pickActiveBp,
+} from "@/components/index/utils/report";
 
 function ReportPageInner() {
   const params = useParams<{ reportId: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { refreshProjects, openProjectSettings, openTestSettings } = useSidebar();
-  const [report, setReport] = useState<Report | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [project, setProject] = useState<Project | null>(null);
-  const [allReports, setAllReports] = useState<Report[]>([]);
-  const [siteTest, setSiteTest] = useState<SiteTest | null>(null);
-  const [showReportNav, setShowReportNav] = useState(false);
-  const [pageOriginRect, setPageOriginRect] = useState<DOMRect | null>(null);
-  const [pageOriginThumb, setPageOriginThumb] = useState<{ rect: DOMRect; src: string } | null>(null);
-  // Structured run-failure payload (eyebrow / title / body / hint). See
-  // buildRunErrorDetails + lib/url-reachability.ts.
-  const [runError, setRunError] = useState<ErrorModalDetails | null>(null);
-  const bpParam = Number(searchParams.get("bp")) || null;
-  const activeVariant = searchParams.get("variant") || null;
-  const activePageId = searchParams.get("page") || null;
 
-  useEffect(() => {
-    const loadReport = async () => {
-      const res = await fetch(`/api/reports/${params.reportId}`);
-      if (!res.ok) {
-        setNotFound(true);
-        return;
-      }
-      const r = await res.json();
-      setReport(r);
-      if (!project) {
-        const pRes = await fetch(`/api/projects/${r.projectId}`);
-        if (pRes.ok) {
-          const p = await pRes.json();
-          setProject(p);
-          if (r.siteTestId && p.tests) {
-            const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
-            if (test) setSiteTest(test);
-          }
-          const reportsUrl = r.siteTestId
-            ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
-            : `/api/projects/${r.projectId}/reports`;
-          const allRes = await fetch(reportsUrl);
-          if (allRes.ok) setAllReports(await allRes.json());
-        }
-      }
-    };
-    loadReport();
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/reports/${params.reportId}`);
-      if (res.ok) {
-        const r = await res.json();
-        setReport((prev) => {
-          if (prev?.status === "running" && r.status !== "running") {
-            refreshProjects();
-          }
-          return r;
-        });
-        if (r.status !== "running") clearInterval(interval);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.reportId, refreshProjects]);
+  const {
+    report,
+    project,
+    siteTest,
+    allReports,
+    notFound,
+    runError,
+    setRunError,
+    runNow,
+    cancel,
+  } = useReportData({ reportId: params.reportId, refreshProjects });
 
-  const handleBpChange = (bp: number) => {
-    const p = new URLSearchParams(searchParams.toString());
-    p.set("bp", String(bp));
-    router.push(`?${p.toString()}`, { scroll: false });
-  };
+  const {
+    bpParam,
+    activeVariant,
+    activePageId,
+    pageOriginRect,
+    pageOriginThumb,
+    setPageOriginRect,
+    setPageOriginThumb,
+    handleBpChange,
+    handleVariantChange,
+    openPage,
+    closePage,
+  } = useReportUrlState();
 
-  const openPage = (pageId: string, e?: React.MouseEvent) => {
-    if (e) {
-      const card = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setPageOriginRect(card);
-      const img = (e.currentTarget as HTMLElement).querySelector("img");
-      if (img) {
-        setPageOriginThumb({ rect: img.getBoundingClientRect(), src: img.src });
-      } else {
-        setPageOriginThumb(null);
-      }
-    }
-    const p = new URLSearchParams(searchParams.toString());
-    p.set("page", pageId);
-    router.push(`?${p.toString()}`, { scroll: false });
-  };
-
-  const closePage = () => {
-    const p = new URLSearchParams(searchParams.toString());
-    p.delete("page");
-    router.push(`?${p.toString()}`, { scroll: false });
-  };
-
-  const handleVariantChange = (variantId: string | null) => {
-    const p = new URLSearchParams(searchParams.toString());
-    if (variantId) {
-      p.set("variant", variantId);
-    } else {
-      p.delete("variant");
-    }
-    router.push(`?${p.toString()}`, { scroll: false });
-  };
-
-  const handleRun = async () => {
-    if (!project) return;
-    setRunError(null);
-    const url = report?.siteTestId
-      ? `/api/projects/${project.id}/tests/${report.siteTestId}/reports`
-      : `/api/projects/${project.id}/reports`;
-    const res = await fetch(url, { method: "POST" });
-    if (res.ok) {
-      const { reportId } = await res.json();
-      trackReportCompletion(reportId, project.name || getDomain(project.prodUrl));
-      refreshProjects();
-      router.push(`/reports/${reportId}`);
-    } else {
-      setRunError(buildRunErrorDetails(await res.json().catch(() => null), project.id));
-    }
-  };
-
-  const handleCancel = async () => {
-    const res = await fetch(`/api/reports/${params.reportId}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      setReport((prev) => prev ? { ...prev, status: "cancelled" } : prev);
-      refreshProjects();
-    }
-  };
-
-  const reportVariants = useMemo(() => {
-    if (!report) return [];
-    const ids = new Set<string>();
-    for (const page of report.pages) {
-      if (page.variants) {
-        for (const vid of Object.keys(page.variants)) ids.add(vid);
-      }
-    }
-    return Array.from(ids);
-  }, [report]);
+  const reportVariants = useMemo(() => computeReportVariants(report), [report]);
 
   useEffect(() => {
     if (notFound) {
@@ -184,12 +75,7 @@ function ReportPageInner() {
           className="icon-btn icon-btn--sm"
           title="Project settings"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <circle cx="8" cy="6" r="2" fill="currentColor" />
-            <circle cx="16" cy="12" r="2" fill="currentColor" />
-            <circle cx="10" cy="18" r="2" fill="currentColor" />
-          </svg>
+          <ProjectMenuIcon />
         </button>
       </>
     );
@@ -218,47 +104,10 @@ function ReportPageInner() {
       openProjectSettings(project.id);
     }
   };
-  const progressCompleted = report.progress?.completed || 0;
-  const progressTotal = report.progress?.total || 1;
 
-  const getPageBp = (page: ReportPage, bp: string) => {
-    if (activeVariant && page.variants?.[activeVariant]) {
-      return page.variants[activeVariant][bp];
-    }
-    return page.breakpoints[bp];
-  };
-
-  const reportBreakpoints: number[] = (() => {
-    const bpSet = new Set<number>();
-    for (const page of report.pages) {
-      for (const bp of Object.keys(page.breakpoints)) bpSet.add(Number(bp));
-    }
-    return [...bpSet].sort((a, b) => a - b);
-  })();
-
-  // Use the URL bp if it's actually in this report; otherwise pick the
-  // closest available to a desktop default (1024) so tiles always render.
-  const activeBp: number = (() => {
-    if (bpParam && reportBreakpoints.includes(bpParam)) return bpParam;
-    if (reportBreakpoints.length === 0) return bpParam ?? 1024;
-    let best = reportBreakpoints[0];
-    let bestDist = Math.abs(best - 1024);
-    for (const bp of reportBreakpoints) {
-      const d = Math.abs(bp - 1024);
-      if (d < bestDist) { best = bp; bestDist = d; }
-    }
-    return best;
-  })();
-
-  const bpChangeCounts: Record<string, number> = {};
-  for (const page of report.pages) {
-    const bpData = activeVariant && page.variants?.[activeVariant]
-      ? page.variants[activeVariant]
-      : page.breakpoints;
-    for (const [bp, result] of Object.entries(bpData)) {
-      bpChangeCounts[bp] = (bpChangeCounts[bp] || 0) + (result.semanticChanges?.length ?? 0);
-    }
-  }
+  const reportBreakpoints = computeReportBreakpoints(report);
+  const activeBp = pickActiveBp(bpParam, reportBreakpoints);
+  const bpChangeCounts = computeBpChangeCounts(report, activeVariant);
 
   return (
     <div className="report">
@@ -280,101 +129,18 @@ function ReportPageInner() {
       )}
 
       <div className="report__sticky">
-        <div className="report__title-row">
-          <div className="report__title-group">
-            <h1 className="report__title">{headerTitle}</h1>
-            {report.status !== "running" ? (
-              <button onClick={handleRun} className="run-pill">
-                Run now
-                <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="run-pill__icon">
-                  <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
-                </svg>
-              </button>
-            ) : (
-              <div className="progress">
-                <div className="progress__bar">
-                  <div
-                    className="progress__fill"
-                    style={{ width: `${(progressCompleted / progressTotal) * 100}%` }}
-                  />
-                </div>
-                <span className="progress__text">
-                  {progressCompleted}/{progressTotal}
-                </span>
-                <button onClick={handleCancel} className="status-pill">
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
+        <ReportHeader
+          report={report}
+          allReports={allReports}
+          headerTitle={headerTitle}
+          activeBp={activeBp}
+          onRun={runNow}
+          onCancel={cancel}
+          onOpenSettings={openSettings}
+          settingsTitle={report?.siteTestId ? "Test settings" : "Project settings"}
+        />
 
-          <div className="report__right">
-            <div className="report__nav-anchor">
-              <button
-                onClick={() => setShowReportNav(!showReportNav)}
-                className="report__date-btn"
-              >
-                <span
-                  className="report__date"
-                  title={formatFullDateTime(report.createdAt)}
-                >
-                  {formatRelativeTime(report.createdAt)}
-                </span>
-                <span className={`status-dot status-dot--${reportDotModifier(report)}`} />
-              </button>
-              <button
-                onClick={openSettings}
-                className="icon-btn"
-                title={report?.siteTestId ? "Test settings" : "Project settings"}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-                  <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                  <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-                </svg>
-              </button>
-              {showReportNav && (
-                <>
-                  <div
-                    className="dropdown-backdrop"
-                    onClick={() => setShowReportNav(false)}
-                  />
-                  <div className="dropdown-panel" style={{ position: "absolute", right: 0, top: 40, zIndex: 40, minWidth: 320 }}>
-                    {allReports.map((r) => {
-                      const isCurrent = r.id === report.id;
-                      return (
-                        <Link
-                          key={r.id}
-                          href={`/reports/${r.id}?bp=${activeBp}`}
-                          onClick={() => setShowReportNav(false)}
-                          title={formatFullDateTime(r.createdAt)}
-                          className={`dropdown-item ${isCurrent ? "dropdown-item--active" : "dropdown-item--muted"}`}
-                        >
-                          <span className="dropdown-item__label">{formatRelativeTime(r.createdAt)}</span>
-                          <span className={`status-dot status-dot--${reportDotModifier(r)}`} />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {report.status === "cancelled" && (
-          <div className="report__status-banner">
-            <p className="report__status-banner-title">This report was cancelled by the user.</p>
-          </div>
-        )}
-        {report.status === "failed" && (
-          <div className="report__status-banner report__status-banner--error">
-            <p className="report__status-banner-title report__status-banner-title--error">Report failed</p>
-            {report.error && (
-              <pre className="report__status-banner-detail">{report.error}</pre>
-            )}
-          </div>
-        )}
+        <ReportStatusBanner report={report} />
 
         <VariantTabs
           variants={reportVariants}
@@ -394,98 +160,12 @@ function ReportPageInner() {
       </div>
 
       <div className="report__grid-wrap">
-        {(() => {
-          const regularPages = report.pages.filter((p) => !p.flowId);
-          const flowPages = report.pages.filter((p) => p.flowId);
-
-          const flowGroups = new Map<string, ReportPage[]>();
-          for (const fp of flowPages) {
-            const group = flowGroups.get(fp.flowId!) || [];
-            group.push(fp);
-            flowGroups.set(fp.flowId!, group);
-          }
-
-          const renderPageCard = (page: ReportPage, index: number) => {
-            const bpResult = getPageBp(page, String(activeBp));
-            const changeCount = bpResult?.semanticChanges?.length ?? 0;
-            const hasScreenshot = !!bpResult?.prodScreenshot;
-            const diffSrc = bpResult?.diffScreenshot
-              ? `/api/screenshots/${bpResult.diffScreenshot}`
-              : null;
-
-            return (
-              <button
-                key={page.id}
-                onClick={(e) => openPage(page.pageId, e)}
-                className="page-tile animate-card-in"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="page-tile__thumb page-tile__thumb--center">
-                  {diffSrc ? (
-                    <img
-                      src={diffSrc}
-                      alt={page.stepLabel || page.path}
-                      className="page-tile__thumb-img page-tile__thumb-img--clamped"
-                      style={{ maxWidth: activeBp }}
-                    />
-                  ) : (
-                    <div className="page-tile__thumb-empty">No screenshot</div>
-                  )}
-                </div>
-                <div className="page-tile__footer">
-                  <span className="page-tile__label">
-                    {page.stepLabel || page.path}
-                  </span>
-                  <ChangeBadge count={changeCount} noData={!hasScreenshot} />
-                </div>
-              </button>
-            );
-          };
-
-          return (
-            <>
-              {regularPages.length > 0 && (
-                <div className="page-grid">
-                  {regularPages.map((page, i) => renderPageCard(page, i))}
-                </div>
-              )}
-
-              {Array.from(flowGroups.entries()).map(([flowId, pages]) => {
-                const flowName = pages[0]?.path.split(" > ")[0] || "Flow";
-                return (
-                  <div key={flowId} className="report__flow-section">
-                    <div className="report__flow-header">
-                      <span className="badge badge--flow">Flow</span>
-                      <h3 className="report__flow-title">{flowName}</h3>
-                    </div>
-                    <div className="page-grid">
-                      {pages.map((page, i) => renderPageCard(page, regularPages.length + i))}
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          );
-        })()}
-
-        {report.pages.length === 0 && report.status === "running" && (
-          <div className="loader-centered">
-            <div className="loader-spinner" />
-            <p className="loader-text">Capturing screenshots...</p>
-          </div>
-        )}
-
-        {report.pages.length === 0 && report.status === "failed" && (
-          <p className="loader-text" style={{ textAlign: "center" }}>
-            No pages were processed before the report failed.
-          </p>
-        )}
-
-        {report.pages.length === 0 && report.status === "completed" && (
-          <p className="loader-text" style={{ textAlign: "center" }}>
-            No pages in this report.
-          </p>
-        )}
+        <ReportPageGrid
+          report={report}
+          activeBp={activeBp}
+          activeVariant={activeVariant}
+          onOpenPage={openPage}
+        />
       </div>
     </div>
   );

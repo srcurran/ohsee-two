@@ -1,0 +1,86 @@
+/* SliderComparison — tap-to-reveal + draggable slider comparing two screenshots.
+ * Structure mirrors the JSX tree (two separate top-level classes):
+ *
+ *   <div .comparison [--tap|--slider]>
+ *     <img .comparison__image>            ← dev (base)
+ *     <img .comparison__overlay>          ← prod (tap mode)
+ *     <div .comparison__clip>             ← slider mode
+ *       <img .comparison__image>
+ *     <div .comparison__divider>          ← slider mode
+ *       <div .comparison__handle>
+ *
+ *   <div .comparison-header>              ← Prod | segmented | Dev
+ *     <span .comparison-header__label [--active]>
+ */
+
+.comparison {
+  position: relative;
+  user-select: none;
+  overflow: hidden;
+  background: var(--comparison-background);
+
+  &--tap { cursor: pointer; }
+  &--slider { cursor: col-resize; }
+
+  .comparison__image {
+    display: block;
+    width: 100%;
+  }
+
+  .comparison__overlay {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  .comparison__clip {
+    position: absolute;
+    inset: 0;
+  }
+
+  .comparison__divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: var(--z-10);
+    width: 2px;
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateX(-1px);
+
+    .comparison__handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      width: 36px;
+      height: 36px;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+      background: var(--comparison-handle-background);
+      font-size: var(--font-size-base);
+      color: #fff;
+      backdrop-filter: blur(8.6px);
+    }
+  }
+}
+
+.comparison-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-base);
+
+  .comparison-header__label {
+    transition: color var(--duration-fast) var(--ease-standard);
+    color: var(--comparison-header-label-color);
+
+    &--active {
+      font-weight: var(--weight-bold);
+      color: var(--comparison-header-label-color-active);
+    }
+  }
+}

@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Project, SiteTest } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
-import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
-import { buildRunErrorDetails } from "@/components/run-error-details";
-import { useSidebar } from "@/components/SidebarProvider";
+import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
+import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { useSidebar } from "@/components/utility/SidebarProvider";
 
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();

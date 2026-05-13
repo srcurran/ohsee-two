@@ -1,0 +1,239 @@
+/* Page detail route wrapper — /reports/[reportId]/pages/[pageId].
+ * Structure mirrors the JSX tree (page.tsx + PageRouteHeader/CompareRow/Issues):
+ *
+ *   <div .report-page>
+ *     <div .report-page__sticky>             ← sticky title + tabs + headers
+ *       <div .report-page__header>           ← PageRouteHeader root
+ *         <div .report-page__title-row>
+ *           <div .report-page__title-group>  ← left side: breadcrumb + badge
+ *             <div .report-page__title-inner>
+ *               <Link .report-page__domain>
+ *               <span .report-page__slash>
+ *               <div .report-page__page-name-wrap>
+ *                 <button .report-page__page-btn>
+ *                   <span .report-page__page-name>
+ *           <div .report-page__nav>          ← right side: date + arrows
+ *             <button .report-page__date-btn>
+ *             <Link .report-page__arrow [--disabled]>     (prev/next/close)
+ *       <div .report-page__headers>          ← two-column section labels
+ *         <div .report-page__header-col>
+ *     <div .report-page__body>
+ *       <div .report-page__compare-row>      ← PageRouteCompareRow
+ *         <div .report-page__compare-col>    (x2: DiffViewer + SliderComparison)
+ *       <div .report-page__collapsible>      ← PageRouteIssues
+ *         <div .report-page__collapsible-inner>
+ *         <div .report-page__fade>
+ *           <button .report-page__show-all>
+ *       <button .report-page__collapse>
+ */
+
+.report-page {
+  animation: fade-in-up 0.35s var(--ease-standard) both;
+
+  .report-page__sticky {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-overlay);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+    background: var(--report-page-sticky-background);
+
+    .report-page__header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      padding: var(--space-6) var(--space-5) 0;
+
+      .report-page__title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+
+        .report-page__title-group {
+          display: flex;
+          min-width: 0;
+          max-width: 66%;
+          align-items: center;
+          gap: var(--space-4);
+
+          .report-page__title-inner {
+            display: flex;
+            min-width: 0;
+            align-items: baseline;
+            gap: var(--space-1);
+
+            .report-page__domain {
+              flex-shrink: 0;
+              font-size: var(--font-size-6xl);
+              color: var(--report-page-domain-color);
+              transition: var(--transition-opacity);
+              text-decoration: none;
+
+              &:hover { opacity: 0.7; }
+            }
+
+            .report-page__slash {
+              flex-shrink: 0;
+              font-size: var(--font-size-6xl);
+              color: var(--report-page-slash-color);
+            }
+
+            .report-page__page-name-wrap {
+              position: relative;
+              min-width: 0;
+
+              .report-page__page-btn {
+                display: block;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                border-radius: var(--radius-md);
+                transition: background-color var(--duration-base) var(--ease-standard);
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                padding: 0;
+
+                &:hover {
+                  background: var(--report-page-page-btn-background-hover);
+                }
+
+                .report-page__page-name {
+                  font-size: var(--font-size-6xl);
+                  color: var(--report-page-page-name-color);
+                }
+              }
+            }
+          }
+        }
+
+        .report-page__nav {
+          display: flex;
+          flex-shrink: 0;
+          align-items: center;
+          gap: var(--space-6);
+
+          .report-page__date-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--font-size-lg);
+            color: var(--report-page-date-btn-color);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition-opacity);
+            font-family: inherit;
+
+            &:hover { opacity: 0.7; }
+          }
+
+          .report-page__arrow {
+            display: inline-flex;
+            width: 24px;
+            height: 24px;
+            align-items: center;
+            justify-content: center;
+            color: var(--report-page-arrow-color);
+            transition: var(--transition-colors);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+
+            &:hover { color: var(--report-page-arrow-color-hover); }
+
+            &--disabled {
+              color: var(--report-page-arrow-color-disabled);
+              pointer-events: none;
+            }
+          }
+        }
+      }
+    }
+
+    .report-page__headers {
+      display: flex;
+      gap: 29px;
+      padding: var(--space-4) var(--space-5) var(--space-2);
+
+      .report-page__header-col {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        font-size: var(--font-size-base);
+        color: var(--report-page-header-col-color);
+      }
+    }
+  }
+
+  .report-page__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-5);
+
+    .report-page__compare-row {
+      display: flex;
+      gap: 29px;
+
+      .report-page__compare-col {
+        flex: 1;
+      }
+    }
+
+    .report-page__collapsible {
+      position: relative;
+
+      .report-page__collapsible-inner {
+        overflow: hidden;
+        transition: max-height var(--duration-base);
+      }
+
+      .report-page__fade {
+        position: absolute;
+        inset: 0 0 0 0;
+        top: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: linear-gradient(to top, var(--surface-fade-from), var(--surface-fade-via), transparent);
+        padding: var(--space-10) 0 var(--space-2);
+
+        .report-page__show-all {
+          border-radius: var(--radius-full);
+          border: 1px solid var(--report-page-show-all-border);
+          background: var(--report-page-show-all-background);
+          padding: var(--space-2) var(--space-5);
+          font-size: var(--font-size-md);
+          color: var(--report-page-show-all-color);
+          box-shadow: var(--elevation-sm);
+          cursor: pointer;
+          transition:
+            background-color var(--duration-base),
+            box-shadow var(--duration-fast);
+          font-family: inherit;
+
+          &:hover {
+            background: var(--report-page-show-all-background-hover);
+            box-shadow: var(--elevation-sm);
+          }
+        }
+      }
+    }
+
+    .report-page__collapse {
+      margin-top: var(--space-2);
+      font-size: var(--font-size-md);
+      color: var(--report-page-collapse-color);
+      text-decoration: underline;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+
+      &:hover { color: var(--report-page-collapse-color-hover); }
+    }
+  }
+}

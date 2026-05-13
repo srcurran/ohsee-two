@@ -1,0 +1,86 @@
+/* ErrorModal — three-level error dialog inside a .modal scrim.
+ *
+ * The "error-y" treatment is intentionally subtle: a single red eyebrow
+ * line plus a thin red separator rule beneath it. Anything more (red
+ * panel, alert icon, full red title) read as too loud when the modal is
+ * shown for benign-but-blocking issues like a typo'd URL.
+ *
+ * Structure mirrors the JSX tree (ErrorModal.tsx):
+ *   <div .error-modal>
+ *     <div .error-modal__head>
+ *       <p   .error-modal__eyebrow>
+ *       <svg .error-modal__icon>
+ *     <h2  .error-modal__title>
+ *     <div .error-modal__copy>
+ *       <p .error-modal__body>
+ *       <p .error-modal__hint>     ← optional, may contain <a>
+ *     <div .error-modal__actions>
+ */
+.error-modal {
+  width: 100%;
+  max-width: 520px;
+  background: var(--error-modal-background);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+
+  .error-modal__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    .error-modal__eyebrow {
+      margin: 0;
+      font-size: var(--font-size-sm);
+      font-weight: var(--weight-semibold);
+      color: var(--error-modal-eyebrow-color);
+    }
+
+    .error-modal__icon {
+      color: var(--error-modal-icon-color);
+      flex-shrink: 0;
+    }
+  }
+
+  .error-modal__title {
+    margin: var(--space-3) 0 var(--space-5);
+    font-size: var(--font-size-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--error-modal-title-color);
+    line-height: var(--line-tight);
+  }
+
+  .error-modal__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    .error-modal__body {
+      margin: 0;
+      font-size: var(--font-size-base);
+      line-height: var(--line-base);
+      color: var(--error-modal-body-color);
+    }
+
+    .error-modal__hint {
+      margin: 0;
+      font-size: var(--font-size-base);
+      line-height: var(--line-base);
+      color: var(--error-modal-hint-color);
+
+      a {
+        color: var(--error-modal-hint-color);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+    }
+  }
+
+  .error-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--space-7);
+  }
+}

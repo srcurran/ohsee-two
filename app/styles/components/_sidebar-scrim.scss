@@ -1,0 +1,24 @@
+/* Sidebar scrim — click-to-close backdrop behind the expanded mobile sidebar. */
+
+/* Backdrop shown when the sidebar is expanded over content at narrow
+   viewports. Click to collapse. Hidden on desktop where the sidebar
+   shares the layout. */
+.sidebar-scrim {
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-overlay) - 1);
+    background: var(--overlay-backdrop-light);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s var(--ease-standard);
+
+    &--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}

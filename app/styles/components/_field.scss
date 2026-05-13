@@ -1,46 +1,54 @@
-/* .field — label + input + hint wrapper.
-   .input / .textarea — bare form controls, used standalone or inside .field. */
+/* Form primitives used across settings/auth pages.
+ * Structure mirrors the typical JSX:
+ *   <div .field [--inline]>
+ *     <label .field__label [--sm]> … </label>
+ *     <input .input  … /> or <textarea .textarea … /> ← own BEM blocks
+ *     <p .field__hint>  or  <p .field__error>
+ *
+ * .input, .textarea, and .checkbox are independent BEM blocks because
+ * they are also used standalone (e.g. inside .flow-step, search bars,
+ * checkbox lists) — see grep results in components/. */
 
 .field {
   display: flex;
   flex-direction: column;
-
-  &__label {
-    display: block;
-    margin-bottom: var(--space-1);
-    font-size: var(--font-size-base);
-    color: var(--foreground);
-  }
-
-  &__label--sm {
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__hint {
-    margin-top: var(--space-1);
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__error {
-    margin-top: var(--space-1);
-    font-size: var(--font-size-sm);
-    color: var(--status-error);
-  }
 
   &--inline {
     flex-direction: row;
     align-items: center;
     gap: var(--space-2);
   }
+
+  .field__label {
+    display: block;
+    margin-bottom: var(--space-1);
+    font-size: var(--font-size-base);
+    color: var(--field-label-color);
+
+    &--sm {
+      font-size: var(--font-size-sm);
+      color: var(--field-label-sm-color);
+    }
+  }
+
+  .field__hint {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--field-hint-color);
+  }
+
+  .field__error {
+    margin-top: var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--field-error-color);
+  }
 }
 
 .input {
   width: 100%;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--input-border);
   background: transparent;
-  color: var(--foreground);
+  color: var(--input-color);
   border-radius: var(--radius-md);
   padding: var(--space-2-5) var(--space-3);
   font-size: var(--font-size-base);
@@ -49,11 +57,11 @@
   transition: var(--transition-colors);
 
   &::placeholder {
-    color: var(--text-muted);
+    color: var(--input-placeholder-color);
   }
 
   &:focus {
-    border-color: var(--foreground);
+    border-color: var(--input-border-focus);
   }
 
   &--sm {
@@ -71,7 +79,7 @@
   }
 
   &--solid-bg {
-    background: var(--surface-content);
+    background: var(--input-background-solid);
   }
 
   &--code {
@@ -92,21 +100,21 @@
     border-radius: 0;
     padding-inline: 0;
     &:focus {
-      border-bottom-color: var(--foreground);
+      border-bottom-color: var(--input-border-focus);
     }
   }
 
   &--error {
-    border-color: var(--status-error);
-    &:focus { border-color: var(--status-error); }
+    border-color: var(--input-border-error);
+    &:focus { border-color: var(--input-border-error); }
   }
 }
 
 .textarea {
   width: 100%;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--textarea-border);
   background: transparent;
-  color: var(--foreground);
+  color: var(--textarea-color);
   border-radius: var(--radius-md);
   padding: var(--space-2-5) var(--space-3);
   font-size: var(--font-size-base);
@@ -116,11 +124,11 @@
   transition: var(--transition-colors);
 
   &::placeholder {
-    color: var(--text-muted);
+    color: var(--textarea-placeholder-color);
   }
 
   &:focus {
-    border-color: var(--foreground);
+    border-color: var(--textarea-border-focus);
   }
 
   &--mono {
@@ -133,7 +141,7 @@
   }
 
   &--tinted {
-    background: var(--surface-tertiary);
+    background: var(--textarea-background-tinted);
   }
 }
 

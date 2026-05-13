@@ -1,4 +1,4 @@
-/* Pills + badges for counts, status, labels, filters */
+/* Badge — small count/label indicator. */
 
 .badge {
   display: inline-flex;
@@ -7,22 +7,25 @@
   border-radius: var(--radius-full);
   padding: var(--space-0-5) var(--space-1-5);
   min-width: 22px;
+  aspect-ratio: 1/1;
   font-size: var(--font-size-xs);
   font-weight: var(--weight-bold);
   line-height: var(--line-none);
-  color: var(--foreground);
+  color: var(--badge-color);
 
   &--success {
-    background: var(--accent-green);
+    background: var(--badge-success-background);
+    color: var(--badge-success-color);
   }
 
   &--warning {
-    background: var(--accent-yellow);
+    background: var(--badge-warning-background);
+    color: var(--badge-warning-color);
   }
 
   &--neutral {
-    background: color-mix(in srgb, var(--text-disabled) 20%, transparent);
-    color: var(--text-disabled);
+    background: color-mix(in srgb, var(--badge-neutral-color) 20%, transparent);
+    color: var(--badge-neutral-color);
   }
 
   &--lg {
@@ -42,81 +45,18 @@
   }
 
   &--success-tint {
-    background: var(--accent-green-tint);
+    background: var(--badge-success-tint-background);
   }
 
   &--warning-tint {
-    background: var(--accent-yellow-tint);
+    background: var(--badge-warning-tint-background);
   }
 
   &--flow {
-    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
-    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--badge-flow-color) 10%, transparent);
+    color: var(--badge-flow-color);
     border-radius: var(--radius-xs);
     padding: var(--space-0-5) var(--space-2);
     font-size: var(--font-size-sm);
   }
-}
-
-/* Small flex pill for filters + category tabs */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  border-radius: var(--radius-full);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-md);
-  font-weight: var(--weight-regular);
-  cursor: pointer;
-  transition: var(--transition-colors);
-  background: var(--surface-tertiary);
-  color: var(--text-secondary);
-  border: none;
-  white-space: nowrap;
-
-  &:hover {
-    background: var(--surface-hover);
-  }
-
-  &--active {
-    background: var(--foreground);
-    color: var(--surface-content);
-
-    &:hover {
-      background: var(--foreground);
-    }
-  }
-
-  &--disabled {
-    background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent);
-    color: color-mix(in srgb, var(--text-subtle) 60%, transparent);
-    cursor: not-allowed;
-
-    &:hover { background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent); }
-  }
-
-  &__icon {
-    margin-right: var(--space-1);
-  }
-
-  &--flex-shrink {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-}
-
-/* Status dot — small colored circle */
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-
-  &--success { background: var(--accent-green); }
-  &--warning { background: var(--accent-yellow); }
-  &--disabled { background: var(--text-disabled); }
-  &--inactive { background: var(--status-inactive); }
-  &--error    { background: var(--status-error); }
-  &--running  { background: var(--status-running); }
 }

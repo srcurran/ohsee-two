@@ -1,0 +1,76 @@
+/* PageDetailHeader — page title with prod/dev URL dropdown.
+ * Structure mirrors the JSX tree (PageDetailHeader.tsx):
+ *   <div .page-title-menu>
+ *     <button .page-title-menu__trigger>
+ *     <div .page-title-menu__panel>
+ *       <a .page-title-menu__item>             ← per URL (prod / dev)
+ *         <span .page-title-menu__kind>
+ *         <span .page-title-menu__url>
+ *       <span .page-title-menu__url>           ← fallback "unavailable" copy
+ */
+
+.page-title-menu {
+  position: relative;
+  min-width: 0;
+
+  .page-title-menu__trigger {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
+    padding-inline: var(--space-1);
+    font-size: var(--font-size-5xl);
+    color: var(--page-title-menu-trigger-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--duration-base) var(--ease-standard);
+    font-family: inherit;
+
+    &:hover { background: var(--page-title-menu-trigger-background-hover); }
+  }
+
+  .page-title-menu__panel {
+    position: absolute;
+    left: 0;
+    top: 52px;
+    z-index: var(--z-modal);
+    display: flex;
+    min-width: 320px;
+    flex-direction: column;
+    gap: var(--space-0-5);
+    border-radius: var(--radius-lg);
+    background: var(--page-title-menu-panel-background);
+    padding: var(--space-2);
+    box-shadow: var(--elevation-lg);
+
+    .page-title-menu__item {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-0-5);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      transition: background-color var(--duration-base) var(--ease-standard);
+
+      &:hover { background: var(--page-title-menu-item-background-hover); }
+
+      .page-title-menu__kind {
+        font-size: var(--font-size-sm);
+        font-weight: var(--weight-bold);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--page-title-menu-kind-color);
+      }
+    }
+
+    /* Rendered both inside __item and as the lone "URL unavailable" fallback. */
+    .page-title-menu__url {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--font-size-base);
+      color: var(--page-title-menu-url-color);
+    }
+  }
+}

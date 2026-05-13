@@ -1,0 +1,73 @@
+/* Generic dropdown panel, items, and click-catcher backdrop.
+ * Used by PageDetailHeader, PageRouteHeader, ReportHeader.
+ * Structure (panel + items together):
+ *   <div .dropdown-backdrop>                ← invisible click-catcher
+ *   <div .dropdown-panel>
+ *     <button .dropdown-item [--active|--muted]>
+ *       <span .dropdown-item__label | .dropdown-item__truncate>
+ */
+
+/* Generic dropdown panel — used inline (not through .modal). */
+.dropdown-panel {
+  background: var(--dropdown-panel-background);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-lg);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--dropdown-item-color);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-colors);
+  font-weight: var(--weight-regular);
+
+  &:hover {
+    background: var(--dropdown-item-background-hover);
+  }
+
+  &--active {
+    background: var(--dropdown-item-background-active);
+    font-weight: var(--weight-bold);
+
+    &:hover {
+      background: var(--dropdown-item-background-active);
+    }
+  }
+
+  &--muted {
+    color: var(--dropdown-item-color-muted);
+  }
+
+  .dropdown-item__label {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dropdown-item__truncate {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Invisible click-catcher behind dropdowns */
+.dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+}

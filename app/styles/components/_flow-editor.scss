@@ -1,66 +1,92 @@
-/* FlowEditor + TestCompositionEditor — step lists inside settings forms */
+/* FlowEditor + TestCompositionEditor — step lists inside settings forms.
+ * Structure mirrors the JSX tree:
+ *   <div .flow-editor>
+ *     <div .flow-editor__header>
+ *       <button .flow-editor__toggle>
+ *         <span .flow-editor__chevron> … </span>
+ *       <button .flow-step__remove>            ← styled with the per-step remove button
+ *     <div .flow-editor__meta> … inputs … </div>
+ *     <div .flow-editor__steps>
+ *       <div .flow-step>                       ← own BEM block, see below
+ *       <p .flow-editor__empty>
+ *     <div .flow-editor__add-row>
+ *       <button .flow-chip>                    ← own BEM block, see below
+ *       <span .flow-editor__separator> "or" </span>
+ *       <button .flow-chip flow-chip--accent>
+ *
+ *   <div .flow-step>                           ← rendered inside __steps
+ *     <div .flow-step__reorder>
+ *       <button .flow-step__reorder-btn /> × 2
+ *     <span .flow-step__index>
+ *     <span .flow-step__kind>
+ *     <div .flow-step__fields> … </div>
+ *     <button .flow-step__camera>
+ *     <button .flow-step__remove>
+ *
+ *   <button .flow-chip [--accent | --warning | --danger]>   ← also used in CredentialsSettings
+ */
 
 .flow-editor {
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--flow-editor-border);
   padding: var(--space-4);
 
-  &__header {
+  .flow-editor__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-3);
+
+    .flow-editor__toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-lg);
+      font-weight: var(--weight-bold);
+      color: var(--flow-editor-toggle-color);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+
+      .flow-editor__chevron {
+        font-size: var(--font-size-sm);
+        color: var(--flow-editor-chevron-color);
+      }
+    }
   }
 
-  &__toggle {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--font-size-lg);
-    font-weight: var(--weight-bold);
-    color: var(--foreground);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  &__chevron {
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__meta {
+  .flow-editor__meta {
     display: flex;
     gap: var(--space-2);
     margin-bottom: var(--space-3);
   }
 
-  &__steps {
+  .flow-editor__steps {
     margin-bottom: var(--space-3);
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
+
+    .flow-editor__empty {
+      padding-block: var(--space-2);
+      text-align: center;
+      font-size: var(--font-size-md);
+      color: var(--flow-editor-empty-color);
+    }
   }
 
-  &__add-row {
+  .flow-editor__add-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-1);
-  }
 
-  &__separator {
-    margin-inline: var(--space-1);
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__empty {
-    padding-block: var(--space-2);
-    text-align: center;
-    font-size: var(--font-size-md);
-    color: var(--text-muted);
+    .flow-editor__separator {
+      margin-inline: var(--space-1);
+      font-size: var(--font-size-sm);
+      color: var(--flow-editor-separator-color);
+    }
   }
 }
 
@@ -69,53 +95,53 @@
   align-items: center;
   gap: var(--space-2);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-  background: var(--surface-secondary);
+  border: 1px solid var(--flow-step-border);
+  background: var(--flow-step-background);
   padding: var(--space-2);
 
-  &__reorder {
+  .flow-step__reorder {
     display: flex;
     flex-direction: column;
     font-size: 10px;
-    color: var(--text-muted);
-  }
+    color: var(--flow-step-reorder-color);
 
-  &__reorder-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: inherit;
-    padding: 0;
-    line-height: 1;
+    .flow-step__reorder-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+      padding: 0;
+      line-height: 1;
 
-    &:hover {
-      color: var(--foreground);
+      &:hover {
+        color: var(--flow-step-reorder-color-hover);
+      }
     }
   }
 
-  &__index {
+  .flow-step__index {
     width: 24px;
     text-align: center;
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--flow-step-index-color);
   }
 
-  &__kind {
+  .flow-step__kind {
     border-radius: var(--radius-xs);
-    background: var(--surface-tertiary);
+    background: var(--flow-step-kind-background);
     padding: var(--space-0-5) var(--space-1-5);
     font-size: var(--font-size-xs);
     font-weight: var(--weight-bold);
-    color: var(--text-muted);
+    color: var(--flow-step-kind-color);
   }
 
-  &__fields {
+  .flow-step__fields {
     display: flex;
     flex: 1;
     gap: var(--space-2);
   }
 
-  &__camera {
+  .flow-step__camera {
     flex-shrink: 0;
     background: transparent;
     border: none;
@@ -127,282 +153,60 @@
     }
   }
 
-  &__remove {
+  .flow-step__remove {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--flow-step-remove-color);
     background: transparent;
     border: none;
     cursor: pointer;
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--foreground);
+      color: var(--flow-step-remove-color-hover);
     }
   }
 }
 
 .flow-chip {
   border-radius: var(--radius-sm);
-  background: var(--surface-tertiary);
+  background: var(--flow-chip-background);
   padding: var(--space-1) var(--space-2-5);
   font-size: var(--font-size-sm);
-  color: var(--text-muted);
+  color: var(--flow-chip-color);
   border: none;
   cursor: pointer;
   transition: var(--transition-colors);
   font-family: inherit;
 
   &:hover {
-    background: var(--surface-hover);
-    color: var(--foreground);
+    background: var(--flow-chip-background-hover);
+    color: var(--flow-chip-color-hover);
   }
 
   &--accent {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
+    background: color-mix(in srgb, var(--flow-chip-accent-tint) 10%, transparent);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--flow-chip-accent-color);
 
     &:hover {
-      background: color-mix(in srgb, var(--foreground) 20%, transparent);
-      color: var(--foreground);
+      background: color-mix(in srgb, var(--flow-chip-accent-tint) 20%, transparent);
+      color: var(--flow-chip-accent-color);
     }
   }
 
   &--warning {
-    background: color-mix(in srgb, var(--accent-yellow) 20%, transparent);
+    background: color-mix(in srgb, var(--flow-chip-warning-tint) 20%, transparent);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--flow-chip-warning-color);
 
-    &:hover { background: color-mix(in srgb, var(--accent-yellow) 30%, transparent); }
+    &:hover { background: color-mix(in srgb, var(--flow-chip-warning-tint) 30%, transparent); }
   }
 
   &--danger {
-    color: var(--status-error);
+    color: var(--flow-chip-danger-color);
     &:hover {
-      background: color-mix(in srgb, var(--status-error) 10%, transparent);
-      color: var(--status-error);
-    }
-  }
-}
-
-/* TestCompositionEditor step row */
-.comp-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-xs);
-  background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent);
-  padding: var(--space-2) var(--space-3);
-  transition: background-color var(--duration-base) var(--ease-standard);
-
-  /* Highlighted while another row hovers over it during drag-to-reorder. */
-  &--drag-over {
-    background: color-mix(in srgb, var(--foreground) 5%, transparent);
-  }
-
-  /* Grab handle — same affordance as .path-row__grab. The whole row is
-     `draggable`, but the explicit handle advertises that fact and gives the
-     row a clear "pickup" target. */
-  &__grab {
-    flex-shrink: 0;
-    cursor: grab;
-    color: var(--text-muted);
-
-    &:active {
-      cursor: grabbing;
-    }
-  }
-
-  &__index {
-    flex-shrink: 0;
-    width: 20px;
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__name {
-    flex: 1;
-    text-align: left;
-    font-size: var(--font-size-base);
-    color: var(--foreground);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    transition: var(--transition-colors);
-    font-family: inherit;
-
-    &:hover {
-      color: var(--accent-primary);
-    }
-  }
-
-  &__camera {
-    flex-shrink: 0;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--foreground);
-    transition: var(--transition-colors);
-
-    &--disabled {
-      color: color-mix(in srgb, var(--text-muted) 40%, transparent);
-    }
-  }
-
-  &__reorder {
-    display: flex;
-    flex-shrink: 0;
-    gap: var(--space-0-5);
-  }
-
-  &__reorder-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: var(--transition-colors);
-    padding: 0;
-    display: inline-flex;
-
-    &:hover {
-      color: var(--foreground);
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-  }
-
-  &__remove {
-    flex-shrink: 0;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0;
-    display: inline-flex;
-    transition: var(--transition-colors);
-
-    &:hover {
-      color: var(--status-error);
-    }
-  }
-}
-
-.composition-editor {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-3);
-  }
-
-  &__toggle {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    text-align: left;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  &__title {
-    font-size: var(--font-size-base);
-    font-weight: var(--weight-bold);
-    color: var(--foreground);
-  }
-
-  &__chevron {
-    transition: transform var(--duration-base) var(--ease-standard);
-
-    &--open {
-      transform: rotate(90deg);
-    }
-  }
-
-  &__remove {
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: var(--transition-colors);
-
-    &:hover {
-      color: var(--status-error);
-    }
-  }
-
-  &__body {
-    border-top: 1px solid var(--border-primary);
-    padding: var(--space-3);
-  }
-
-  &__meta {
-    margin-bottom: var(--space-4);
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  &__steps {
-    margin-bottom: var(--space-3);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  &__empty {
-    margin-bottom: var(--space-3);
-    text-align: center;
-    font-size: var(--font-size-md);
-    color: var(--text-muted);
-    padding-block: var(--space-3);
-  }
-
-  &__add-panel {
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-primary);
-    padding: var(--space-3);
-  }
-
-  &__add-hint {
-    margin-bottom: var(--space-2);
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__add-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1);
-    margin-bottom: var(--space-2);
-  }
-
-  &__add-actions {
-    display: flex;
-    gap: var(--space-2);
-  }
-
-  &__add-btn {
-    font-size: var(--font-size-md);
-    color: var(--text-muted);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    transition: var(--transition-colors);
-
-    &:hover {
-      color: var(--foreground);
+      background: color-mix(in srgb, var(--flow-chip-danger-tint) 10%, transparent);
+      color: var(--flow-chip-danger-color);
     }
   }
 }

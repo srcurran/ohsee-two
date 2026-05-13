@@ -1,6 +1,10 @@
 /* ============================================================
    Root stylesheet — imports the full design system.
    Tokens first, then base, then components, then utilities.
+
+   Component partials are 1:1 with the React component (or pure
+   styling primitive) that owns the class. Order roughly mirrors
+   build-up: form primitives → containers → page-specific surfaces.
    ============================================================ */
 
 @use "styles/tokens/primitives";
@@ -10,26 +14,86 @@
 @use "styles/base/typography";
 @use "styles/base/animations";
 
+/* ── Form / input primitives ─────────────────────────────────── */
 @use "styles/components/button";
 @use "styles/components/field";
 @use "styles/components/material-field";
-@use "styles/components/modal";
-@use "styles/components/wizard";
-@use "styles/components/card";
+@use "styles/components/toggle";
+@use "styles/components/snippet-btn";
+
+/* ── Badges, pills, dots ─────────────────────────────────────── */
 @use "styles/components/badge";
-@use "styles/components/tab";
-@use "styles/components/sidebar";
-@use "styles/components/change-list";
-@use "styles/components/diff-viewer";
-@use "styles/components/slider";
+@use "styles/components/pill";
+@use "styles/components/status-dot";
+@use "styles/components/status-pill";
+
+/* ── Containers + tiles ──────────────────────────────────────── */
+@use "styles/components/card";
+@use "styles/components/page-tile";
+@use "styles/components/page-grid";
+@use "styles/components/info-box";
+
+/* ── Tabs + segmented controls ───────────────────────────────── */
+@use "styles/components/breakpoint-tabs";
+@use "styles/components/variant-tabs";
+@use "styles/components/segmented";
+
+/* ── App shell + layout chrome ───────────────────────────────── */
+@use "styles/components/app-shell";
+@use "styles/components/page-shell";
 @use "styles/components/page-header";
-@use "styles/components/favicon";
+@use "styles/components/page-title-bar";
+@use "styles/components/titlebar";
+@use "styles/components/sidebar";
+@use "styles/components/sidebar-scrim";
+@use "styles/components/sidebar-favicon";
+@use "styles/components/sidenav";
+@use "styles/components/settings-shell";
+@use "styles/components/breadcrumb";
+@use "styles/components/divider";
+
+/* ── Overlays + modals + dropdowns ───────────────────────────── */
+@use "styles/components/modal";
+@use "styles/components/error-modal";
+@use "styles/components/project-settings-overlay";
+@use "styles/components/test-settings";
+@use "styles/components/credentials-section";
+@use "styles/components/credential-row";
+@use "styles/components/dropdown";
+@use "styles/components/wizard";
+@use "styles/components/accordion";
+
+/* ── Editors + tooling ───────────────────────────────────────── */
 @use "styles/components/breakpoint-editor";
 @use "styles/components/flow-editor";
-@use "styles/components/page-detail";
+@use "styles/components/recorder-instructions";
+@use "styles/components/code";
+
+/* ── Report overview ─────────────────────────────────────────── */
 @use "styles/components/report";
-@use "styles/components/misc";
-@use "styles/components/shell";
+@use "styles/components/run-pill";
+@use "styles/components/progress";
+@use "styles/components/loader";
+@use "styles/components/save-button";
+
+/* ── Page-detail route + panel ───────────────────────────────── */
+@use "styles/components/page-detail-panel";
+@use "styles/components/page-detail-view-toggle";
+@use "styles/components/page-title-menu";
+@use "styles/components/page-route";
+@use "styles/components/scroll-to-top";
+@use "styles/components/diff-viewer";
+@use "styles/components/slider-comparison";
+@use "styles/components/change-list";
+@use "styles/components/test-result";
+
+/* ── Misc surfaces ───────────────────────────────────────────── */
+@use "styles/components/favicon";
+@use "styles/components/empty-state";
+@use "styles/components/sign-in";
+@use "styles/components/error-text";
+@use "styles/components/section";
+@use "styles/components/variant-list";
 
 @use "styles/utilities/a11y";
 @use "styles/utilities/layout";

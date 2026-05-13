@@ -1,4 +1,4 @@
-import LegacySettingsRedirect from "@/components/LegacySettingsRedirect";
+import LegacySettingsRedirect from "@/components/settings/LegacySettingsRedirect";
 
 /** Retired settings route — kept as a redirect stub so bookmarked URLs
  *  still land somewhere useful. See components/LegacySettingsRedirect. */

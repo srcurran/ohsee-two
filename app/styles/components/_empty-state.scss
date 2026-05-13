@@ -1,0 +1,66 @@
+/* Empty state / centered callout.
+ * Used by several routes (home, project detail, test detail). The unstyled
+ * wrapper <div>s these consumers add around the title/body are transparent
+ * to CSS, so the children are listed here as direct descendants:
+ *   <div .empty-state [--flush]>
+ *     <div .empty-state__badge>      ← icon chip (home only)
+ *     <h1  .empty-state__title>
+ *     <p   .empty-state__body>
+ *     <p   .empty-state__footnote>   ← home only
+ *     <div .empty-state__actions>    ← buttons (project/test detail)
+ */
+
+.empty-state {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  text-align: center;
+  padding-inline: var(--space-6);
+
+  &--flush {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .empty-state__badge {
+    display: flex;
+    width: 64px;
+    height: 64px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: var(--empty-state-badge-background);
+    color: var(--empty-state-badge-color);
+  }
+
+  .empty-state__title {
+    margin: 0;
+    font-size: var(--font-size-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--empty-state-title-color);
+  }
+
+  .empty-state__body {
+    margin: var(--space-3) 0 0 0;
+    font-size: var(--font-size-base);
+    color: var(--empty-state-body-color);
+    max-width: 400px;
+  }
+
+  .empty-state__footnote {
+    margin: 0;
+    font-size: var(--font-size-md);
+    color: var(--empty-state-footnote-color);
+    max-width: 400px;
+  }
+
+  .empty-state__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+}

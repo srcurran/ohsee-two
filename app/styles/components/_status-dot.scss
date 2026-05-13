@@ -1,0 +1,16 @@
+/* StatusDot — small colored circle indicator. */
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+
+  &--success { background: var(--status-dot-success-background); }
+  &--warning { background: var(--status-dot-warning-background); }
+  &--disabled { background: var(--status-dot-disabled-background); }
+  &--inactive { background: var(--status-dot-inactive-background); }
+  &--error    { background: var(--status-dot-error-background); }
+  &--running  { background: var(--status-dot-running-background); }
+}

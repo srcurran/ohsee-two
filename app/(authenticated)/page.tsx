@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Project, Report } from "@/lib/types";
-import { useSidebar } from "@/components/SidebarProvider";
+import { useSidebar } from "@/components/utility/SidebarProvider";
 
 export default function Home() {
   const router = useRouter();

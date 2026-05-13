@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
+import { useSidebar, usePageTitle } from "@/components/utility/SidebarProvider";
 import type { Project, Report } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
-import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
-import { buildRunErrorDetails } from "@/components/run-error-details";
+import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
+import { buildRunErrorDetails } from "@/components/settings/run-error-details";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();

@@ -1,0 +1,17 @@
+/* SidebarFavicon — bare favicon img (non-badged sidebar variant). */
+
+/* Bare favicon img (sidebar/sidebar variants only — not the badged one) */
+.sidebar-favicon {
+  flex-shrink: 0;
+  object-fit: contain;
+
+  &__fallback {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-weight: var(--weight-bold);
+    color: #fff;
+  }
+}

@@ -1,105 +1,259 @@
 # AI Agent Working Memory
 
-## User Preferences
+The conventions an agent should follow when working on this codebase.
+Updated 2026-05-13 after the design-system / component-organization
+refactor (commits `2469454` → `84ea74c`).
 
-### Git / Workflow
-- Commit on discrete, logical pieces of work (not after every tiny edit)
-- Push after ~10 minutes of accumulated work
-- User will review visually in their browser and give feedback
+---
 
-### Code Style
-- All colors must flow through the two-level token system (Primitives → Semantic) in `globals.css`
-- Never use hardcoded `text-black`, `bg-white`, `focus:border-black` etc. in components — always use semantic tokens like `text-foreground`, `bg-surface-content`
-- Intentional exceptions: CTA buttons (`bg-black text-white`), modal backdrops (`bg-black/40`), tooltips (`bg-black/90 text-white`), scroll-to-top (`bg-black/70 text-white`), slider overlays
-- Pixel values in brackets: `px-[12px]`, `text-[14px]`, `rounded-[8px]` — the project uses explicit pixel values, not Tailwind's spacing scale
-- Font: Poppins (400 normal, 700 bold only)
+## Workflow
 
-### UI Feedback
-- Elevation: User prefers `shadow-elevation-md` + `hover:-translate-y-[1px]` for interactive cards. `shadow-elevation-lg` felt too heavy.
-- Keep UI clean — don't over-elevate
+- Commit on discrete, logical pieces of work — not every edit, but every
+  cohesive change ("update palette", "split SCSS file", "extract hook").
+- Push to `main` after ~10–30 minutes of accumulated work. The user
+  reviews visually in the running app + the Figma swatch sheet.
+- Before pushing: `gh auth switch --user srcurran`. After pushing:
+  switch back to `srcurran-foyer`.
+- The dev stack runs from this worktree on port 4000 via
+  `npm run electron:dev` (electronmon + Next dev + Electron). HMR
+  handles renderer changes; the main process auto-restarts on tsc
+  output changes via electronmon.
 
-## Gotchas & Pitfalls
+---
 
-### Turbopack CSS Cache (Critical)
-**Problem**: When adding NEW tokens to `@theme inline` in `globals.css`, Turbopack's dev server caches the old `@theme` registration. New tokens (e.g., `bg-surface-content`, `from-surface-fade-from`) will silently resolve to `transparent` / empty values. Existing tokens continue to work, making it look like a code bug when it's a cache bug.
+## Tech Stack
 
-**Fix**: After adding new tokens to `@theme inline`, always run:
-```bash
-rm -rf .next && npm run dev
+- Next.js 16 (App Router, Turbopack) + React 19 + TypeScript
+- **SCSS** (not Tailwind) — design system in `app/styles/`
+- Playwright for screenshots, sharp + pixelmatch + pngjs for diffing
+- JSON files + filesystem for data storage
+- Font: Poppins (400, 700)
+
+---
+
+## Design Tokens
+
+### Two-tier system
+
 ```
-Tell the user to hard-refresh (Cmd+Shift+R) their browser.
-
-**Detection**: Test new token classes by checking `getComputedStyle` on a temp element. If the value is `rgba(0,0,0,0)` (transparent) for what should be a solid color, it's the cache.
-
-### Circular CSS Variable References in @theme inline
-**Problem**: In Tailwind v4, `@theme inline` uses the `--shadow-*` namespace for shadows. If your `:root` primitive is ALSO named `--shadow-elevation-sm`, the `@theme inline` entry `--shadow-elevation-sm: var(--shadow-elevation-sm)` creates a circular self-reference — the shadow silently disappears.
-
-**Fix**: Name `:root` primitives differently from the `@theme inline` entries:
-```css
-:root {
-  --elevation-sm: 0px 1px 2px rgba(0,0,0,0.06); /* primitive */
-}
-@theme inline {
-  --shadow-elevation-sm: var(--elevation-sm); /* Tailwind token */
-}
+Level 1 — Primitives           app/styles/tokens/_primitives.scss
+Level 2 — Component tokens     app/styles/tokens/_semantic.scss
 ```
 
-### Tailwind v4 @theme inline Behavior
-- `@theme inline` does NOT output `--color-*` CSS custom properties. It registers tokens internally and generates utilities that reference the underlying `var(--your-var)` directly.
-- This means `getComputedStyle(el).getPropertyValue('--color-foreground')` will always be empty — that's expected.
-- The utilities themselves (e.g., `text-foreground`) DO work because they output `color: var(--foreground)`.
-- Opacity modifiers (`bg-foreground/10`) use `color-mix(in oklab, ...)` under the hood — works in modern browsers.
+**Component SCSS reads only from Level 2 component tokens.** Never
+reference raw `--neutral-*` or `--action-*` primitives from a component
+SCSS — go through a component token that aliases the primitive.
 
-### Dark Mode Token Strategy
-- Override Level 1 primitives in `.dark {}` class — all Level 2 semantic tokens auto-switch because they reference primitives via `var()`.
-- New semantic tokens that need DIFFERENT values in dark mode (not just primitive swaps) must be explicitly overridden in `.dark {}` — e.g., `--surface-content`, `--surface-fade-from`, `--elevation-content`.
-- `next-themes` handles the `.dark` class on `<html>`, localStorage persistence, and system preference detection.
+Naming: `--{component}-{element}-{property}[-state]`
+e.g. `--sidebar-item-background-hover`, `--btn-primary-color`.
 
-## Visual Regression Self-Testing Workflow
+### Final palette (consolidated)
 
-### Before/After Screenshot Process
-When making UI changes, follow this workflow to catch regressions:
+| Token | Light | Dark | Notes |
+|---|---|---|---|
+| `--neutral-dark-{900,800,700,500,400,200,150,100}` | black at 100/90/70/50/40/20/15/10% | white at 100/92/82/65/55/28/22/16% | Greyscale. Only neutral content tokens. |
+| `--neutral-light-100` | `#ffffff` | `#1e1e1e` | Pure surface (cards, modals, panels) |
+| `--neutral-light-200` | `#f5f4f0` | `#2a2a2a` | Single tint (page bg, hovers, accents) — slight beige in light |
+| `--action-500` | `#ffe030` | same | Brand accent + primary CTA |
+| `--status-success-500` | `#09c667` | `#2dd97d` | Pass/success |
+| `--status-error-500` | `#ef4444` | `#e06060` | Error / warning / cancel / severity / danger borders (one red) |
+| `--status-error-800` | `#b91c1c` | `#e88a8a` | Darker red — hover and high-contrast text |
+| `--status-running-400` | `#4095fe` | `#5aa6ff` | In-flight run blue |
+| `--on-action / -success` | `#1a1a1a` | same | Black text on yellow / green |
+| `--on-error / -running` | `#ffffff` | same | White text on red / blue |
 
-1. **Before changes**: Take screenshots of key routes via preview tools
-2. **Make changes**
-3. **After changes**: Take screenshots again, compare visually
-4. **If adding new @theme inline tokens**: ALWAYS `rm -rf .next` before testing (see Turbopack cache gotcha)
+**Text-on-color rule:** yellow + green get black text, red + blue get
+white. Captured by the `--on-*` tokens — component tokens for
+foregrounds should reference these, not literal hex.
 
-### Key Routes to Check
-- `/sign-in` — public, no auth needed (good baseline test)
-- `/` — home/empty state (authenticated)
+### Computed primitives (live in `_semantic.scss` :root)
+
+Stay as `color-mix(in srgb, var(--foreground) X%, transparent)`:
+- `--text-faint` (40%), `--text-dim` (60%), `--text-subdued` (70%)
+- `--surface-hover` (10%), `--surface-hover-soft` (5%), `--surface-hover-bare` (3%)
+
+These flip automatically in dark mode because `--foreground` flips.
+The fade-gradient pair (`--surface-fade-from/-via`) is overridden
+explicitly in `.dark` for the dark bg color.
+
+### Dark mode
+
+The `.dark { … }` block in `_semantic.scss` overrides primitives.
+Component tokens that point at primitives flip for free — no need to
+declare component tokens twice.
+
+---
+
+## SCSS Organization
+
+### 1:1 file-to-class parity
+
+Every partial in `app/styles/components/` owns a single component or
+styling primitive. There are ~60 partials; finding "where is the CSS
+for `.foo`" is `_foo.scss` (with rare exceptions for tightly-paired
+classes like `.page-detail-panel + .page-detail-scrim`).
+
+Imports are listed in `app/globals.scss` grouped by role (form
+primitives → containers → tabs → shell → overlays → editors →
+report → page-detail → misc).
+
+### Structure mirrors the JSX DOM
+
+Selectors nest as descendants, matching the rendered hierarchy:
+
+```scss
+.sidebar {
+  /* <aside> base + modifiers */
+  &--collapsed { … }
+
+  .sidebar__nav {           /* the <nav> inside */
+    .sidebar__group {       /* groups inside nav */
+      .sidebar__tests {
+        .sidebar__test {
+          &:hover { … }
+          .sidebar__test-label { … }
+        }
+      }
+    }
+  }
+}
+```
+
+NOT flat BEM:
+
+```scss
+.sidebar { … }
+.sidebar__nav { … }
+.sidebar__group { … }
+.sidebar__test { … }
+```
+
+Modifiers (`&--x`), pseudo (`&:hover`), attribute selectors
+(`&[data-foo]`) stay ampersand-prefixed inside the owning block.
+Cross-element pseudo like `.foo__row:hover .foo__icon` becomes
+`&:hover .foo__icon` inside `.foo__row { … }`.
+
+### `@mixin interactive`
+
+Defined in `app/styles/mixins/_interactive.scss`. Applied to every
+clickable surface (`.btn`, `.icon-btn`, `.run-pill`, etc.).
+
+- hover → `filter: brightness(0.94)`
+- active → `brightness(0.85)` + `transform: translateY(1px)`
+- disabled → 50% opacity, no pointer events
+
+Filled variants (primary, cancel, danger) don't need explicit hover
+backgrounds — brightness scales proportionally. Transparent variants
+(outline, ghost, secondary, danger-outline) still set their own
+hover bg since brightness has nothing to dim on transparent.
+
+---
+
+## Component Organization
+
+### Bucketed by page
+
+```
+components/
+├── index/      project + report overview surfaces
+├── detail/     single-page deep-dive + diff
+├── settings/   overlays + wizards + recorders (incl. existing settings/* subdir)
+└── utility/    shell, rail, shared primitives
+```
+
+Each bucket has its own `use/` and `utils/` subfolders. Cross-bucket
+imports use `@/components/{bucket}/X` (absolute aliases) — that way
+files can be moved between buckets without rewriting their internal
+imports.
+
+Within a bucket, imports also use `@/components/{bucket}/X` rather
+than relative `./X` for the same reason.
+
+### Logic / presentation split
+
+Every non-trivial component splits like the sidebar:
+
+- `Foo.tsx` — thin presentational shell (composes hooks + child views)
+- `FooHelper.tsx` — sub-presentation components, also at bucket root
+- `{bucket}/use/fooData.ts` — data-fetching hook (`useFooData`)
+- `{bucket}/use/fooDrag.ts` — interaction state hook
+- `{bucket}/utils/foo.ts` — pure helpers, no React
+
+Hook filenames are the export name minus the `use` prefix
+(`useFooData` → `fooData.ts`). Inline SVGs go in
+`components/utility/icons.tsx` (shared across all buckets).
+
+---
+
+## Things to Avoid
+
+- **Literal hex colors in component SCSS.** Always go through a
+  component token. The four exceptions live in `_primitives.scss` as
+  pinned `--on-*` foreground tokens (`#1a1a1a`, `#ffffff`).
+- **Hardcoded class strings that don't appear in any JSX.** The audit
+  in commit `296adb2` (and follow-ups) pruned ~25 dead BEM children
+  — keep the file lean. If you add a `&__newthing` block, make sure
+  some JSX renders `className="foo__newthing"`.
+- **New role-aliases** like `--surface-tertiary`. Add a component
+  token that points at a primitive directly.
+- **Re-mixing component concerns into a single SCSS file** (e.g.,
+  putting `.foo` and `.bar` in the same partial because they're "kind
+  of related"). The 1:1 rule is the readability win.
+- **Reaching across buckets via relative imports.** Always use
+  `@/components/{bucket}/X`.
+
+---
+
+## Visual Regression Workflow
+
+When making UI changes:
+
+1. **Before**: take screenshots via `mcp__Claude_Preview__preview_screenshot`
+   on key routes.
+2. **Make changes**.
+3. **After**: re-screenshot and compare visually.
+4. **Auth**: app needs sign-in. `/sign-in` works unauthenticated and
+   is a good baseline. Use the running Electron app (which is already
+   signed in) for authenticated routes.
+
+### Key routes to check
+
+- `/sign-in` — public, no auth needed
+- `/` — home/empty state
 - `/projects/[id]` — project with no reports
 - `/reports/[reportId]` — report overview with page grid
-- `/reports/[reportId]/pages/[pageId]` — page detail with diff viewer + comparison
+- `/reports/[reportId]/pages/[pageId]` — page detail with diff +
+  comparison
 
-### Dark Mode Verification Checklist
-- [ ] Toggle light → dark → system in sidebar menu
-- [ ] Hard refresh in dark mode — no FOUC
-- [ ] CTA buttons (Sign In, Create Project) stay dark in both modes
-- [ ] Tooltips, overlays, scroll-to-top stay dark in both modes
-- [ ] Form inputs have correct bg/text in dark mode
-- [ ] Gradient fade on collapsible issues works in both modes
+### Dark mode checklist
 
-### Auth Limitation
-The app requires Google OAuth — can't screenshot authenticated routes via unauthenticated scripts. Options:
-- Use preview tools (Playwright-based, can reuse browser session)
-- Screenshot sign-in page for light/dark baseline (no auth needed)
-- For authenticated pages, user tests manually and provides screenshots
+- Toggle light → dark → system in sidebar menu
+- Hard refresh in dark mode — no FOUC
+- Cancel buttons + .badge--warning chiclets stay white-on-red
+- Action CTAs (primary/run-pill) stay black-on-yellow
+- Gradient fade on collapsible issues works in both modes
 
-## Token Reference
+---
 
-### New Tokens Added (Dark Mode)
-| Token | Light | Dark | Purpose |
-|-------|-------|------|---------|
-| `surface-content` | `#ffffff` | `#1e1e1e` | Content panels, modals, dropdowns, sticky navs |
-| `surface-fade-from` | `#ffffff` | `#1e1e1e` | Gradient fade on collapsible sections |
-| `surface-fade-via` | `rgba(255,255,255,0.9)` | `rgba(30,30,30,0.9)` | Gradient mid-stop |
-| `elevation-content` | soft light shadow | subtle dark shadow | Content panel shadow |
+## Figma — Design Tokens Sheet
 
-### Elevation Tiers
-| Token | Values | Used For |
-|-------|--------|----------|
-| `shadow-elevation-sm` | subtle | Sidebar icons, secondary buttons on hover |
-| `shadow-elevation-md` | medium | Primary CTAs, interactive cards on hover |
-| `shadow-elevation-lg` | heavy | Dropdown menus |
-| `shadow-elevation-content` | ambient | Main content panel |
+The live swatch sheet lives at:
+<https://www.figma.com/design/QAvOKTZcTnhELgD8rU4GIG/Ohsee>
+node `3:2` ("Page 2"). The frame name is `Design Tokens`. Rebuild it
+via the Figma MCP `use_figma` tool when the palette changes — script
+template is in the repo history under the "Design Tokens" Figma
+commits.
+
+When connecting, the write MCP must be authenticated as
+`srcurran@gmail.com` (the file owner). If it shows "could not be
+accessed", re-auth via `/mcp` and pick the right account.
+
+---
+
+## Pre-existing Quirks
+
+- `--radius-pill` is referenced in `_change-list.scss:178` but never
+  defined. Pre-dates this work; flagged for future fix.
+- The two API route errors (`prod`/`dev` on a `{ok:false}` type) in
+  `app/api/projects/[id]/reports/route.ts` and similar are pre-existing
+  — typecheck noise, not blocking.

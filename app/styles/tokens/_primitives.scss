@@ -17,39 +17,42 @@
   --neutral-dark-150: rgba(0, 0, 0, 0.15);
   --neutral-dark-100: rgba(0, 0, 0, 0.1);
 
-  /* Neutral / Light (surfaces) */
+  /* Neutral / Light (surfaces). Just two values:
+   *   -100 = pure white (cards, modals, panels)
+   *   -200 = single neutral tint (page bg, hovers, accents)
+   * Everything else neutral comes from the --neutral-dark-* alpha
+   * scale above. */
   --neutral-light-100: #ffffff;
-  --neutral-light-200: #f5f4f3;
-  --neutral-light-300: #f2eee9;
+  --neutral-light-200: #f5f4f0;  /* slight beige tint */
 
-  /* Neutral / Taupe (comparison UI) */
-  --neutral-taupe-500: #9d9297;
-  --neutral-taupe-700: rgba(75, 75, 75, 0.5);
+  /* Action / brand — single accent for primary CTAs and the rest of
+   * the brand-coloured chrome (progress bar, loader head, .badge-flow). */
+  --action-500: #ffe030;
 
-  /* Brand */
-  --brand-primary-100: #fef3e7;
-  --brand-primary-200: #fdd9b0;
-  --brand-primary-300: #f4b76b;
-  --brand-primary-500: #e88f2f;
-  --brand-primary-700: #c67320;
-  --brand-primary-900: #8b4f13;
+  /* Status — consolidated palette.
+   *
+   * Text-on-color convention: yellow + green take black text (action,
+   * success), red + blue take white text (error, running). The
+   * --on-* tokens in _semantic.scss capture this so component tokens
+   * don't have to remember.
+   */
+  --status-success-500: #09c667;
+  --status-error-500:   #ef4444;
+  --status-error-800:   #b91c1c;
+  --status-running-400: #4095fe;
 
-  /* Status — success */
-  --status-success-100: #c8ffc7;
-  --status-success-500: #34e1a4;
+  /* Foreground colors paired with each accent — pinned, not theme-aware. */
+  --on-action:          #1a1a1a;  /* black on yellow  */
+  --on-success:         #1a1a1a;  /* black on green   */
+  --on-error:           #ffffff;  /* white on red     */
+  --on-running:         #ffffff;  /* white on blue    */
 
-  /* Status — warning */
-  --status-warning-100: #faf5d4;
-  --status-warning-500: #e1d034;
-
-  /* Status — error */
-  --status-error-100: #fef2f2;
-  --status-error-200: #fecaca;
-  --status-error-500: #ef4444;
-  --status-error-800: #b91c1c;
-
-  /* Status — running */
-  --status-running-400: #60a5fa;
+  /* tints */
+  --tint-1: #fcfcfa;
+  --tint-2: #faf9f5;
+  --tint-3: #f5f4f0;
+  --tint-4: #f0efe9;
+  --tint-5: #ebe9e1;
 
   /* ── Spacing (4px base) ────────────────────────────────────────── */
   --space-0:    0;
@@ -120,9 +123,33 @@
   --ease-decel:    cubic-bezier(0.2, 0, 0, 1);
 
   /* ── Elevation ─────────────────────────────────────────────────── */
-  --elevation-sm: 0px 1px 2px rgba(0, 0, 0, 0.06), 0px 2px 4px rgba(0, 0, 0, 0.08);
-  --elevation-md: 0px 2px 4px rgba(0, 0, 0, 0.08), 0px 4px 8px rgba(0, 0, 0, 0.10);
-  --elevation-lg: 0px 3px 7px rgba(0, 0, 0, 0.12), 0px 12px 12px rgba(0, 0, 0, 0.10), 0px 28px 17px rgba(0, 0, 0, 0.06);
-  --elevation-content: 0px 0px 2px rgba(0, 0, 0, 0.10), 0px 0px 6px rgba(0, 0, 0, 0.05), 0px 0px 18px rgba(0, 0, 0, 0.03);
-  --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  /* Light-mode values match the Figma spec (node 22:129). Dark-mode
+   * overrides in _semantic.scss .dark mirror the same offsets/blur
+   * with heavier alphas so the shadow stays visible against #1e1e1e. */
+  --elevation-sm:
+    0px 3px 16px rgba(0, 0, 0, 0.05);
+  --elevation-md:
+    0px 4px 20px rgba(0, 0, 0, 0.05),
+    0px 3px 16px rgba(0, 0, 0, 0.05);
+  --elevation-lg:
+    0px 8px 32px rgba(0, 0, 0, 0.05),
+    0px 6px 24px rgba(0, 0, 0, 0.05),
+    0px 4px 20px rgba(0, 0, 0, 0.05);
+
+  /* ── State shadows ─────────────────────────────────────────────── */
+  /* Outer glows for interactive states. Hover and focus share the
+   * same stack per Figma; active is a subset. */
+  --state-hover:
+    0px 0px 16px rgba(17, 9, 6, 0.10),
+    0px 0px 8px  rgba(17, 9, 6, 0.06),
+    0px 0px 4px  rgba(0, 0, 0, 0.08),
+    0px 0px 2px  rgba(0, 0, 0, 0.20);
+  --state-focus:
+    0px 0px 16px rgba(17, 9, 6, 0.10),
+    0px 0px 8px  rgba(17, 9, 6, 0.06),
+    0px 0px 4px  rgba(0, 0, 0, 0.08),
+    0px 0px 2px  rgba(0, 0, 0, 0.20);
+  --state-active:
+    0px 0px 8px rgba(17, 9, 6, 0.06),
+    0px 0px 4px rgba(0, 0, 0, 0.08);
 }

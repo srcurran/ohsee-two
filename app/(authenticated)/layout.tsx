@@ -1,15 +1,15 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import SidebarProvider, { useSidebar } from "@/components/SidebarProvider";
-import Sidebar from "@/components/Sidebar";
-import SettingsOverlay from "@/components/SettingsOverlay";
-import ProjectSettingsOverlay from "@/components/ProjectSettingsOverlay";
-import TestSettingsOverlay from "@/components/TestSettingsOverlay";
-import NewProjectWizard from "@/components/NewProjectWizard";
-import NewTestWizard from "@/components/NewTestWizard";
-import TitlebarCollapseButton from "@/components/TitlebarCollapseButton";
-import PageTitleBar from "@/components/PageTitleBar";
+import SidebarProvider, { useSidebar } from "@/components/utility/SidebarProvider";
+import Sidebar from "@/components/utility/Sidebar";
+import SettingsOverlay from "@/components/settings/SettingsOverlay";
+import ProjectSettingsOverlay from "@/components/settings/ProjectSettingsOverlay";
+import TestSettingsOverlay from "@/components/settings/TestSettingsOverlay";
+import NewProjectWizard from "@/components/settings/NewProjectWizard";
+import NewTestWizard from "@/components/settings/NewTestWizard";
+import TitlebarCollapseButton from "@/components/utility/TitlebarCollapseButton";
+import PageTitleBar from "@/components/utility/PageTitleBar";
 
 export default function AuthenticatedLayout({
   children,

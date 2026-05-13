@@ -1,0 +1,17 @@
+/* Page shell wrapper for scrollable route content */
+
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-6);
+  }
+
+  &__body--wide {
+    padding-inline: var(--space-6);
+  }
+}

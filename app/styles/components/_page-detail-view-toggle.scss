@@ -1,0 +1,25 @@
+/* PageDetailViewToggle — grid-stack label so bold/regular swap doesn't shimmy */
+
+/* Grid-stack trick so active/bold weight doesn't shimmy the pill group */
+.view-toggle-label {
+  display: grid;
+
+  &__bold {
+    grid-column-start: 1;
+    grid-row-start: 1;
+    font-weight: var(--weight-bold);
+  }
+
+  &__regular {
+    grid-column-start: 1;
+    grid-row-start: 1;
+    font-weight: var(--weight-regular);
+  }
+
+  &__ghost {
+    grid-column-start: 1;
+    grid-row-start: 1;
+    visibility: hidden;
+    font-weight: var(--weight-bold);
+  }
+}

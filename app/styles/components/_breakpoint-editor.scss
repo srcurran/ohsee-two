@@ -1,48 +1,59 @@
-/* BreakpointEditor — label header + removable chips + add input */
+/* BreakpointEditor — label header + removable chips + add input.
+ * Structure mirrors the JSX tree:
+ *   <div .breakpoint-editor>
+ *     <div .breakpoint-editor__header>
+ *       <span .breakpoint-editor__label>
+ *       <span .breakpoint-editor__count>
+ *     <div .breakpoint-editor__chips>
+ *       <div .bp-chip>              ← per breakpoint (separate top-level class)
+ *         <button .bp-chip__remove>
+ *     <div .breakpoint-editor__add>  ← input + add button
+ */
 
 .breakpoint-editor {
-  &__header {
+  .breakpoint-editor__header {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     margin-bottom: var(--space-2);
+
+    .breakpoint-editor__label {
+      font-size: var(--font-size-base);
+      color: var(--breakpoint-editor-label-color);
+    }
+
+    .breakpoint-editor__count {
+      font-size: var(--font-size-sm);
+      color: var(--breakpoint-editor-count-color);
+    }
   }
 
-  &__label {
-    font-size: var(--font-size-base);
-    color: var(--foreground);
-  }
-
-  &__count {
-    font-size: var(--font-size-sm);
-    color: var(--text-muted);
-  }
-
-  &__chips {
+  .breakpoint-editor__chips {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
     margin-bottom: var(--space-3);
   }
 
-  &__add {
+  .breakpoint-editor__add {
     display: flex;
     align-items: center;
     gap: var(--space-2);
   }
 }
 
+/* Chip lives inside .breakpoint-editor__chips but is its own top-level class. */
 .bp-chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1-5);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--bp-chip-border);
   padding: var(--space-1-5) var(--space-3);
   font-size: var(--font-size-md);
-  color: var(--foreground);
+  color: var(--bp-chip-color);
 
-  &__remove {
+  .bp-chip__remove {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -50,11 +61,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-muted);
+    color: var(--bp-chip-remove-color);
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--foreground);
+      color: var(--bp-chip-remove-color-hover);
     }
   }
 }
