@@ -100,9 +100,9 @@
 
   /* ── Buttons (.btn variants) ───────────────────────────────────── */
   --btn-primary-background:             var(--action-500);
-  --btn-primary-color:                  #1a1a1a;
+  --btn-primary-color:                  var(--on-action);
   --btn-cancel-background:              var(--status-error-500);
-  --btn-cancel-color:                   #1a1a1a;
+  --btn-cancel-color:                   var(--on-error);
   --btn-secondary-background:           var(--neutral-light-300);
   --btn-secondary-background-hover:     var(--surface-hover);       /* computed tint */
   --btn-secondary-color:                var(--neutral-dark-900);
@@ -114,7 +114,7 @@
   --btn-ghost-color:                    var(--neutral-dark-500);
   --btn-ghost-background-hover:         var(--neutral-light-300);
   --btn-danger-background:              var(--status-error-500);
-  --btn-danger-color:                   #fff;
+  --btn-danger-color:                   var(--on-error);
   --btn-danger-outline-border:          var(--status-error-500);
   --btn-danger-outline-color:           var(--status-error-500);
   --btn-danger-outline-background-hover: var(--neutral-light-300);
@@ -128,8 +128,9 @@
 
   /* ── Run pill (the "play" CTA on test / report pages) ──────────── */
   --run-pill-background:                var(--action-500);
-  --run-pill-color:                     #1a1a1a;
+  --run-pill-color:                     var(--on-action);
   --run-pill-cancel-background:         var(--status-error-500);
+  --run-pill-cancel-color:              var(--on-error);
 
   /* ── Report route + progress + loader (.report, .progress, etc.) ─ */
   --report-sticky-background:                  var(--neutral-light-100);
@@ -492,9 +493,10 @@
   --neutral-taupe-700: rgba(200, 200, 200, 0.4);
 
   /* Status — accents tuned to contrast against #1e1e1e */
-  --status-success-500: #3aaa80;
+  --status-success-500: #2dd97d;   /* lighter take on #09c667 for dark bg */
   --status-error-500:   #e06060;
   --status-error-800:   #e88a8a;
+  --status-running-400: #5aa6ff;   /* lighter take on #4095fe for dark bg */
 
   /* Elevation — stronger for dark bg visibility */
   --elevation-sm: 0px 1px 3px rgba(0, 0, 0, 0.40), 0px 1px 2px rgba(0, 0, 0, 0.30);

@@ -200,9 +200,11 @@
     padding: var(--space-3) var(--space-6);
   }
 
-  /* Cancel state — same footprint, swaps to the error red. */
+  /* Cancel state — same footprint, swaps to the error red and the
+   * paired white-on-red foreground. */
   &--cancel {
     background: var(--run-pill-cancel-background);
+    color: var(--run-pill-cancel-color);
   }
 
   &__icon {
