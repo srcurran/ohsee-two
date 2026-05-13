@@ -342,11 +342,13 @@
   /* ── Badge / Pill / Tab / Status dot ───────────────────────────── */
   --badge-color:                        var(--neutral-dark-900);
   --badge-success-background:           var(--status-success-500);
+  --badge-success-color:                var(--on-success);   /* black on green */
   --badge-warning-background:           var(--status-error-500);
+  --badge-warning-color:                var(--on-error);     /* white on red   */
   --badge-success-tint-background:      var(--neutral-light-300);
   --badge-warning-tint-background:      var(--neutral-light-300);
   --badge-neutral-color:                var(--neutral-dark-100);
-  --badge-flow-color:                   var(--action-500);
+  --badge-flow-color:                   var(--neutral-dark-500);  /* neutral gray label */
   --pill-background:                    var(--neutral-light-300);
   --pill-background-hover:              var(--surface-hover);
   --pill-color:                         var(--neutral-dark-700);

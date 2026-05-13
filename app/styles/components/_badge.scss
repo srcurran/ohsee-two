@@ -14,10 +14,12 @@
 
   &--success {
     background: var(--badge-success-background);
+    color: var(--badge-success-color);
   }
 
   &--warning {
     background: var(--badge-warning-background);
+    color: var(--badge-warning-color);
   }
 
   &--neutral {
