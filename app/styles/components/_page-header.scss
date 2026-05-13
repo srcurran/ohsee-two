@@ -37,30 +37,6 @@
   }
 }
 
-/* Settings header (settings/layout.tsx) — flat sticky header with close icon */
-.settings-header {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-dropdown);
-  background: var(--settings-header-background);
-  border-top-left-radius: var(--radius-lg);
-  border-top-right-radius: var(--radius-lg);
-
-  &__top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-5) var(--space-6);
-  }
-
-  &__title {
-    margin: 0;
-    font-size: var(--font-size-3xl);
-    color: var(--settings-header-title-color);
-    white-space: nowrap;
-  }
-}
-
 .page-shell {
   display: flex;
   flex-direction: column;

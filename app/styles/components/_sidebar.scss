@@ -12,14 +12,10 @@
   height: 100vh;
   overflow: hidden;
   background: var(--sidebar-background);
-  padding: var(--space-8) var(--space-4);
-
-  &--flat {
-    /* `--flat` is the variant actually used in app shell. Background
-     * comes from the same component token so themes flip together. */
-    background: var(--sidebar-background);
-    padding-block: 44px var(--space-5);
-  }
+  /* 44px top puts the rail's content below the 36px titlebar drag strip
+   * with a small breathing gap. Right/left padding flows from the
+   * `--expanded` width modifier below. */
+  padding: 44px var(--space-4) var(--space-5);
 
   &--expanded { width: 240px; padding-inline: var(--space-4); }
   &--collapsed {
@@ -209,7 +205,7 @@
 
   &__divider {
     /* Visual line removed; element preserved so spacing/structure stays
-     * the same. Re-add `background: var(--border-primary)` to bring it back. */
+     * the same. Re-add a background color to bring the line back. */
     height: 1px;
     background: transparent;
 

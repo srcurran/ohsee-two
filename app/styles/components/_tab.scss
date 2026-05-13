@@ -138,31 +138,3 @@
     }
   }
 }
-
-/* Compact tab pill (for ProjectSettingsPanel tab bar) */
-.tab-pill {
-  padding: var(--space-1-5) var(--space-3-5);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  color: var(--tab-pill-color);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition-colors);
-  font-family: inherit;
-
-  &:hover {
-    background: var(--tab-pill-background-hover);
-    color: var(--tab-pill-color-hover);
-  }
-
-  &--active {
-    background: var(--tab-pill-background-active);
-    font-weight: var(--weight-bold);
-    color: var(--tab-pill-color-active);
-
-    &:hover {
-      background: var(--tab-pill-background-active);
-    }
-  }
-}

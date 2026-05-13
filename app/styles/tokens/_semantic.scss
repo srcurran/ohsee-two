@@ -1,82 +1,28 @@
 /* ================================================================
-   Level 2 — Semantic tokens
-   Theme-aware aliases that reference primitives. Dark mode swaps
-   the color primitives; scale primitives (spacing/type/z/duration)
-   are mode-agnostic.
+   Level 1.5 — Computed primitives + global semantic
+   Derived tints (color-mix wrappers) and the small set of global
+   semantics that body/typography read directly. Most styling lives
+   in the Level 2 component tokens below.
    ================================================================ */
 
 :root {
-  /* ── Surfaces ──────────────────────────────────────────────────── */
-  --surface-primary:     var(--neutral-light-200);
-  --surface-secondary:   var(--neutral-light-100);
-  --surface-tertiary:    var(--neutral-light-300);
-  --surface-comparison:  var(--neutral-taupe-500);
-  --surface-content:     var(--neutral-light-100);
+  /* ── Global text/surface (used by typography + focus outline) ──── */
+  --foreground:        var(--neutral-dark-900);
+  --surface-primary:   var(--neutral-light-200);
 
-  /* Gradient fade */
-  --surface-fade-from: var(--neutral-light-100);
-  --surface-fade-via:  rgba(255, 255, 255, 0.9);
-
-  /* Foreground-tinted hover washes (auto-adapt to dark via --foreground flip) */
+  /* ── Computed surface tints ────────────────────────────────────── */
+  --surface-fade-from:  var(--neutral-light-100);
+  --surface-fade-via:   rgba(255, 255, 255, 0.9);
   --surface-hover:      color-mix(in srgb, var(--foreground) 10%, transparent);
   --surface-hover-soft: color-mix(in srgb, var(--foreground) 5%,  transparent);
   --surface-hover-bare: color-mix(in srgb, var(--foreground) 3%,  transparent);
 
-  /* Foreground-tinted text — re-pinned per theme below.
-   * Why: a flat percentage that "looks subtle" on white reads as nearly
-   * invisible on dark, so the dark block overrides these to taste. */
+  /* ── Computed text tints — overridden in `.dark` below ─────────── */
   --text-faint:      color-mix(in srgb, var(--foreground) 40%, transparent);
   --text-subdued:    color-mix(in srgb, var(--foreground) 70%, transparent);
   --text-dim:        color-mix(in srgb, var(--foreground) 60%, transparent);
 
-  /* ── Text ──────────────────────────────────────────────────────── */
-  --foreground:      var(--neutral-dark-900);
-  --text-secondary:  var(--neutral-dark-700);
-  --text-muted:      var(--neutral-dark-500);
-  --text-subtle:     var(--neutral-dark-400);
-  --text-disabled:   var(--neutral-dark-100);
-
-  /* (Foreground-tinted text aliases are declared above so the dark-mode
-     block can override them without losing the light-mode definition.) */
-
-  /* ── Borders ───────────────────────────────────────────────────── */
-  --border-primary:   var(--neutral-dark-100);
-  --border-secondary: var(--neutral-dark-150);
-  --border-strong:    var(--neutral-dark-400);
-
-  /* ── Brand ─────────────────────────────────────────────────────── */
-  --accent-primary:      var(--brand-primary-500);
-  --accent-primary-tint: var(--brand-primary-100);
-
-  /* ── Status ────────────────────────────────────────────────────── */
-  --accent-green:      var(--status-success-500);
-  --accent-green-tint: var(--status-success-100);
-
-  --accent-yellow:      var(--status-warning-500);
-  --accent-yellow-tint: var(--status-warning-100);
-
-  /* ── Action (primary CTA) ──────────────────────────────────────── */
-  --accent-action:        var(--action-500);
-  --accent-action-hover:  var(--action-600);
-  --accent-action-cancel:        var(--action-cancel-500);
-  --accent-action-cancel-hover:  var(--action-cancel-600);
-  /* Dark text on the yellow/orange chips reads better than white in
-   * either theme — pinned, not theme-aware. */
-  --accent-action-content: #1a1a1a;
-
-  --status-error:        var(--status-error-500);
-  --status-error-strong: var(--status-error-800);
-  --status-error-muted:  var(--status-error-100);
-  --status-error-border: var(--status-error-200);
-  --status-error-text:   var(--status-error-800);
-
-  --status-running:  var(--status-running-400);
-  --status-inactive: var(--neutral-dark-200);
-
-  /* ── Slider ────────────────────────────────────────────────────── */
-  --slider-handle: var(--neutral-taupe-700);
-
-  /* ── Severity (DiffViewer markers) ─────────────────────────────── */
+  /* ── Severity (DiffViewer markers — pinned, not theme-aware) ───── */
   --severity-error: #cc4444;
   --severity-info:  #aaaaaa;
 
@@ -234,15 +180,6 @@
   --accordion-label-color:                     var(--neutral-dark-900);
   --accordion-count-color:                     var(--neutral-dark-500);
   --accordion-chevron-color:                   var(--neutral-dark-500);
-  --settings-overlay-scrim:                    var(--overlay-backdrop-light);
-  --settings-overlay-panel-background:         var(--neutral-light-100);
-  --settings-overlay-nav-background:           var(--neutral-light-100);
-  --settings-overlay-nav-border:               var(--neutral-dark-100);
-  --settings-overlay-nav-item-color:           var(--neutral-dark-700);
-  --settings-overlay-nav-item-background-hover: var(--surface-hover-bare);
-  --settings-overlay-nav-item-color-hover:     var(--neutral-dark-900);
-  --settings-overlay-nav-item-background-active: color-mix(in srgb, var(--neutral-dark-900) 6%, transparent);
-  --settings-overlay-nav-item-color-active:    var(--neutral-dark-900);
   --toggle-background-on:                      var(--neutral-dark-900);
   --toggle-background-off:                     color-mix(in srgb, var(--neutral-dark-900) 20%, transparent);
   --toggle-knob-background:                    var(--neutral-light-100);
@@ -329,8 +266,6 @@
   --settings-section-hint-color:               var(--neutral-dark-500);
   --page-header-title-color:                   var(--neutral-dark-900);
   --page-header-eyebrow-color:                 var(--neutral-dark-500);
-  --settings-header-background:                var(--neutral-light-100);
-  --settings-header-title-color:               var(--neutral-dark-900);
   --empty-state-badge-background:              var(--surface-hover-soft);
   --empty-state-badge-color:                   var(--text-dim);
   --empty-state-title-color:                   var(--neutral-dark-900);
@@ -446,11 +381,6 @@
   --segmented-item-background-active:   var(--neutral-light-100);
   --segmented-item-background-active-alt: var(--neutral-light-300);
   --segmented-item-color-active:        var(--neutral-dark-900);
-  --tab-pill-color:                     var(--neutral-dark-500);
-  --tab-pill-background-hover:          var(--surface-hover-bare);
-  --tab-pill-color-hover:               var(--neutral-dark-900);
-  --tab-pill-background-active:         var(--neutral-light-300);
-  --tab-pill-color-active:              var(--neutral-dark-900);
 
   /* ── Breakpoint editor + change-list + diff + flow + slider ────── */
   --breakpoint-editor-label-color:       var(--neutral-dark-900);
@@ -503,28 +433,6 @@
   --flow-chip-warning-color:             var(--neutral-dark-900);
   --flow-chip-danger-tint:               var(--status-error-500);
   --flow-chip-danger-color:              var(--status-error-500);
-  --comp-step-background-tint:           var(--neutral-light-300);
-  --comp-step-drag-over-tint:            var(--neutral-dark-900);
-  --comp-step-grab-color:                var(--neutral-dark-500);
-  --comp-step-index-color:               var(--neutral-dark-500);
-  --comp-step-name-color:                var(--neutral-dark-900);
-  --comp-step-name-color-hover:          var(--brand-primary-500);
-  --comp-step-camera-color:              var(--neutral-dark-900);
-  --comp-step-camera-disabled-tint:      var(--neutral-dark-500);
-  --comp-step-reorder-color:             var(--neutral-dark-500);
-  --comp-step-reorder-color-hover:       var(--neutral-dark-900);
-  --comp-step-remove-color:              var(--neutral-dark-500);
-  --comp-step-remove-color-hover:        var(--status-error-500);
-  --composition-editor-border:           var(--neutral-dark-100);
-  --composition-editor-title-color:      var(--neutral-dark-900);
-  --composition-editor-remove-color:     var(--neutral-dark-500);
-  --composition-editor-remove-color-hover: var(--status-error-500);
-  --composition-editor-divider:          var(--neutral-dark-100);
-  --composition-editor-empty-color:      var(--neutral-dark-500);
-  --composition-editor-add-panel-border: var(--neutral-dark-100);
-  --composition-editor-add-hint-color:   var(--neutral-dark-500);
-  --composition-editor-add-btn-color:    var(--neutral-dark-500);
-  --composition-editor-add-btn-color-hover: var(--neutral-dark-900);
   --comparison-background:               var(--neutral-taupe-500);
   --comparison-handle-background:        var(--neutral-taupe-700);
   --comparison-header-label-color:       var(--neutral-dark-500);
@@ -535,17 +443,6 @@
 
   /* ── Misc (_misc.scss — small one-offs across the app) ─────────── */
   --breadcrumb-color:                    var(--neutral-dark-900);
-  --settings-row-border:                 var(--neutral-dark-100);
-  --settings-row-name-color:             var(--neutral-dark-900);
-  --settings-row-meta-color:             var(--neutral-dark-500);
-  --path-row-border:                     var(--neutral-dark-100);
-  --path-row-color:                      var(--neutral-dark-900);
-  --path-row-drag-over-tint:             var(--neutral-dark-900);
-  --path-row-grab-color:                 var(--neutral-dark-500);
-  --test-name-edit-input-border:         var(--neutral-dark-100);
-  --test-name-edit-input-border-focus:   var(--neutral-dark-900);
-  --test-name-edit-input-color:          var(--neutral-dark-900);
-  --test-name-edit-title-color:          var(--neutral-dark-900);
   --code-inline-background:              var(--neutral-light-300);
   --code-editor-border:                  var(--neutral-dark-100);
   --test-result-border:                  var(--neutral-dark-100);
@@ -568,31 +465,12 @@
   --recorder-instructions-list-color:    var(--neutral-dark-700);
   --recorder-instructions-marker-background: var(--neutral-light-300);
   --recorder-instructions-marker-color:  var(--neutral-dark-500);
-  --step-preview-tint:                   var(--status-success-500);
-  --step-preview-title-color:            var(--neutral-dark-900);
-  --step-preview-index-color:            var(--neutral-dark-500);
-  --step-preview-label-color:            var(--neutral-dark-900);
-  --step-preview-meta-color:             var(--neutral-dark-500);
   --error-text-color:                    var(--status-error-500);
-  --project-settings-panel-background:   var(--neutral-light-100);
-  --project-settings-panel-title-color:  var(--neutral-dark-900);
-  --project-settings-panel-save-hint-color: var(--neutral-dark-500);
-  --project-settings-panel-save-hint-color-success: var(--status-success-500);
-  --test-list-sidebar-border:            var(--neutral-dark-150);
-  --test-list-sidebar-heading-color:     var(--neutral-dark-900);
-  --test-list-sidebar-item-color:        var(--neutral-dark-500);
-  --test-list-sidebar-item-color-hover:  var(--neutral-dark-900);
-  --test-list-sidebar-item-color-active: var(--neutral-dark-900);
-  --test-list-sidebar-create-color:      var(--text-faint);
-  --test-list-sidebar-create-color-hover: var(--neutral-dark-900);
   --section-heading-color:               var(--neutral-dark-900);
   --section-body-color:                  var(--neutral-dark-500);
-  --section-note-color:                  var(--neutral-dark-500);
   --variant-option-color:                var(--neutral-dark-900);
   --status-pill-color:                   var(--status-error-500);
   --status-pill-color-hover:             var(--status-error-800);
-  --cancel-link-color:                   var(--neutral-dark-500);
-  --cancel-link-color-hover:             var(--neutral-dark-900);
 }
 
 /* ── Dark Mode ──────────────────────────────────────────────────── */
@@ -642,8 +520,7 @@
   --elevation-content: 0px 0px 2px rgba(255, 255, 255, 0.05), 0px 0px 6px rgba(0, 0, 0, 0.30);
   --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.30);
 
-  /* Surface overrides — fade gradient needs the dark bg color */
-  --surface-content:   #1e1e1e;
+  /* Fade gradient needs the dark bg color */
   --surface-fade-from: #1e1e1e;
   --surface-fade-via:  rgba(30, 30, 30, 0.9);
 
