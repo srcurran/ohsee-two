@@ -4,7 +4,7 @@
   position: relative;
   user-select: none;
   overflow: hidden;
-  background: var(--surface-comparison);
+  background: var(--comparison-background);
 
   &--tap { cursor: pointer; }
   &--slider { cursor: col-resize; }
@@ -48,7 +48,7 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-full);
-    background: var(--slider-handle);
+    background: var(--comparison-handle-background);
     font-size: var(--font-size-base);
     color: #fff;
     backdrop-filter: blur(8.6px);
@@ -63,11 +63,11 @@
 
   &__label {
     transition: color var(--duration-fast) var(--ease-standard);
-    color: var(--text-muted);
+    color: var(--comparison-header-label-color);
 
     &--active {
       font-weight: var(--weight-bold);
-      color: var(--foreground);
+      color: var(--comparison-header-label-color-active);
     }
   }
 }

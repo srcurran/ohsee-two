@@ -5,19 +5,19 @@
   padding: var(--space-5);
 
   &--bordered {
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--card-border);
   }
 
   &--danger {
-    border: 1px solid var(--status-error-border);
+    border: 1px solid var(--card-danger-border);
   }
 
   &--tinted {
-    background: var(--surface-tertiary);
+    background: var(--card-tinted-background);
   }
 
   &--content {
-    background: var(--surface-content);
+    background: var(--card-content-background);
   }
 
   &--sm {
@@ -33,13 +33,13 @@
     margin: 0 0 var(--space-1) 0;
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--card-title-color);
   }
 
   &__body {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--card-body-color);
   }
 }
 
@@ -49,7 +49,7 @@
   flex-direction: column;
   gap: var(--space-2);
   border-radius: var(--radius-md);
-  background: var(--surface-primary);
+  background: var(--page-tile-background);
   padding: var(--space-2);
   text-align: left;
   box-shadow: var(--elevation-card);
@@ -75,7 +75,7 @@
     width: 100%;
     overflow: hidden;
     border-radius: var(--radius-xs);
-    background: var(--surface-tertiary);
+    background: var(--page-tile-thumb-background);
     display: flex;
 
     &--center {
@@ -90,6 +90,8 @@
     margin-inline: auto;
     object-fit: contain;
     object-position: top;
+    border:1px solid var(--page-tile-thumb-border);
+    border-radius: var(--radius-xs);
 
     &--clamped {
       object-fit: cover;
@@ -103,7 +105,7 @@
     align-items: center;
     justify-content: center;
     font-size: var(--font-size-sm);
-    color: var(--text-subtle);
+    color: var(--page-tile-thumb-empty-color);
   }
 
   &__footer {
@@ -118,7 +120,7 @@
     flex: 1;
     min-width: 0;
     font-size: var(--font-size-md);
-    color: var(--text-secondary);
+    color: var(--page-tile-label-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

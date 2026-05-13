@@ -55,6 +55,15 @@
   --accent-yellow:      var(--status-warning-500);
   --accent-yellow-tint: var(--status-warning-100);
 
+  /* ── Action (primary CTA) ──────────────────────────────────────── */
+  --accent-action:        var(--action-500);
+  --accent-action-hover:  var(--action-600);
+  --accent-action-cancel:        var(--action-cancel-500);
+  --accent-action-cancel-hover:  var(--action-cancel-600);
+  /* Dark text on the yellow/orange chips reads better than white in
+   * either theme — pinned, not theme-aware. */
+  --accent-action-content: #1a1a1a;
+
   --status-error:        var(--status-error-500);
   --status-error-strong: var(--status-error-800);
   --status-error-muted:  var(--status-error-100);
@@ -100,6 +109,490 @@
 
   /* ── Legacy alias (kept for Next.js defaults) ──────────────────── */
   --background: var(--neutral-light-100);
+
+  /* ================================================================
+     Level 2 — Component tokens
+     Per-component aliases over the primitive palette. Read these in
+     component SCSS instead of raw `--neutral-*` / `--brand-*` so a
+     component can be re-themed without touching global primitives.
+     Two-tier system: primitives → component tokens (no intermediate
+     semantic layer). The role-aliases above (`--surface-*`, `--text-*`)
+     are kept transitionally for components not yet migrated.
+
+     Dark-mode flip works automatically: primitives like
+     `--neutral-light-100` are overridden in the .dark block, so any
+     component token pointing at them flips for free. For derived
+     values (color-mix tints), the computed `--text-*` / `--surface-*`
+     tokens above act as "computed primitives" and are still consumed.
+
+     Naming: --{component}-{element}-{property}[-state]
+     ================================================================ */
+
+  /* ── Sidebar (Sidebar.tsx) ─────────────────────────────────────── */
+  --sidebar-background:                 var(--neutral-light-100);
+  --sidebar-group-background-active:    var(--surface-hover);       /* computed tint */
+  --sidebar-item-background-hover:      var(--surface-hover-soft);  /* computed tint */
+  --sidebar-item-background-active:     var(--neutral-light-100);
+  --sidebar-action-background-hover:    var(--surface-hover);       /* computed tint */
+  --sidebar-title-color:                var(--neutral-dark-900);
+  --sidebar-item-color:                 var(--neutral-dark-900);
+  --sidebar-meta-color:                 var(--text-faint);          /* computed tint */
+  --sidebar-action-color:               var(--text-dim);            /* computed tint */
+  --sidebar-cta-color:                  var(--text-faint);          /* computed tint */
+  --sidebar-cta-color-hover:            var(--text-dim);            /* computed tint */
+  --sidebar-footer-color:               var(--text-subdued);        /* computed tint */
+  --sidebar-footer-color-hover:         var(--neutral-dark-900);
+  --sidebar-avatar-background:          var(--status-warning-500);
+  --sidebar-avatar-color:               var(--neutral-dark-900);
+  --sidebar-plus-background:            var(--neutral-light-100);
+
+  /* Settings sub-nav (SettingsSideNav.tsx) — shares the rail concept */
+  --sidenav-back-color:                 var(--neutral-dark-500);
+  --sidenav-back-color-hover:           var(--neutral-dark-900);
+  --sidenav-title-color:                var(--neutral-dark-900);
+  --sidenav-item-color:                 var(--neutral-dark-500);
+  --sidenav-item-background-hover:      var(--neutral-light-300);
+  --sidenav-item-color-hover:           var(--neutral-dark-900);
+  --sidenav-item-background-active:     var(--neutral-light-300);
+  --sidenav-item-color-active:          var(--neutral-dark-900);
+
+  /* ── Buttons (.btn variants) ───────────────────────────────────── */
+  --btn-primary-background:             var(--action-500);
+  --btn-primary-background-hover:       var(--action-600);
+  --btn-primary-color:                  #1a1a1a;
+  --btn-cancel-background:              var(--action-cancel-500);
+  --btn-cancel-background-hover:        var(--action-cancel-600);
+  --btn-cancel-color:                   #1a1a1a;
+  --btn-secondary-background:           var(--neutral-light-300);
+  --btn-secondary-background-hover:     var(--surface-hover);       /* computed tint */
+  --btn-secondary-color:                var(--neutral-dark-900);
+  --btn-outline-background-hover:       var(--neutral-light-300);
+  --btn-outline-color:                  var(--neutral-dark-900);
+  --btn-outline-border:                 var(--neutral-dark-400);
+  --btn-outline-soft-border:            var(--neutral-dark-100);
+  --btn-outline-soft-color:             var(--neutral-dark-500);
+  --btn-ghost-color:                    var(--neutral-dark-500);
+  --btn-ghost-background-hover:         var(--neutral-light-300);
+  --btn-danger-background:              var(--status-error-500);
+  --btn-danger-color:                   #fff;
+  --btn-danger-outline-border:          var(--status-error-200);
+  --btn-danger-outline-color:           var(--status-error-500);
+  --btn-danger-outline-background-hover: var(--status-error-100);
+  --btn-text-color:                     var(--neutral-dark-500);
+  --btn-text-color-hover:               var(--neutral-dark-900);
+  --btn-link-color:                     var(--neutral-dark-500);
+  --btn-link-color-hover:               var(--neutral-dark-900);
+  --icon-btn-color:                     var(--text-dim);            /* computed tint */
+  --icon-btn-background-hover:          var(--surface-hover-soft);  /* computed tint */
+  --icon-btn-color-hover:               var(--neutral-dark-900);
+
+  /* ── Run pill (the "play" CTA on test / report pages) ──────────── */
+  --run-pill-background:                var(--action-500);
+  --run-pill-background-hover:          var(--action-600);
+  --run-pill-color:                     #1a1a1a;
+  --run-pill-cancel-background:         var(--action-cancel-500);
+  --run-pill-cancel-background-hover:   var(--action-cancel-600);
+
+  /* ── Report route + progress + loader (.report, .progress, etc.) ─ */
+  --report-sticky-background:                  var(--neutral-light-100);
+  --report-project-label-color:                var(--neutral-dark-500);
+  --report-title-color:                        var(--neutral-dark-900);
+  --report-date-btn-background-hover:          var(--surface-hover-bare); /* computed tint */
+  --report-date-color:                         var(--neutral-dark-900);
+  --report-status-banner-border:               var(--neutral-dark-100);
+  --report-status-banner-background:           var(--neutral-light-300);
+  --report-status-banner-border-error:         var(--status-error-200);
+  --report-status-banner-background-error:     var(--status-error-100);
+  --report-status-banner-title-color:          var(--neutral-dark-500);
+  --report-status-banner-title-color-error:    var(--status-error-800);
+  --report-status-banner-detail-color:         var(--status-error-800);
+  --report-flow-title-color:                   var(--neutral-dark-900);
+  --progress-bar-background:                   var(--neutral-light-300);
+  --progress-fill-background:                  var(--brand-primary-500);
+  --progress-text-color:                       var(--neutral-dark-500);
+  --loader-spinner-track-color:                var(--neutral-light-300);
+  --loader-spinner-head-color:                 var(--brand-primary-500);
+  --loader-text-color:                         var(--neutral-dark-500);
+  --save-feedback-color:                       var(--status-success-500);
+
+  /* ── App shell + sign-in + page-detail (layout/structural) ─────── */
+  --app-shell-background:                      var(--neutral-light-300);
+  --app-shell-background-flat:                 var(--neutral-light-100);
+  --app-main-content-background:               var(--neutral-light-100);
+  --app-main-background-flat:                  var(--neutral-light-100);
+  --sign-in-background:                        var(--neutral-light-200);
+  --sign-in-logo-color:                        var(--neutral-dark-900);
+  --sign-in-tagline-color:                     var(--neutral-dark-500);
+  --sign-in-cta-background:                    var(--neutral-dark-900);
+  --sign-in-cta-color:                         var(--neutral-light-100);
+  --sign-in-divider-line-background:           var(--neutral-dark-100);
+  --sign-in-divider-label-color:               var(--neutral-dark-500);
+  --titlebar-collapse-background-hover:        var(--surface-hover);     /* computed tint */
+  --page-title-bar-label-color:                color-mix(in srgb, var(--neutral-dark-900) 80%, transparent);
+  --accordion-background:                      var(--neutral-light-200);
+  --accordion-border:                          var(--neutral-dark-100);
+  --accordion-label-color:                     var(--neutral-dark-900);
+  --accordion-count-color:                     var(--neutral-dark-500);
+  --accordion-chevron-color:                   var(--neutral-dark-500);
+  --settings-overlay-scrim:                    var(--overlay-backdrop-light);
+  --settings-overlay-panel-background:         var(--neutral-light-100);
+  --settings-overlay-nav-background:           var(--neutral-light-100);
+  --settings-overlay-nav-border:               var(--neutral-dark-100);
+  --settings-overlay-nav-item-color:           var(--neutral-dark-700);
+  --settings-overlay-nav-item-background-hover: var(--surface-hover-bare);
+  --settings-overlay-nav-item-color-hover:     var(--neutral-dark-900);
+  --settings-overlay-nav-item-background-active: color-mix(in srgb, var(--neutral-dark-900) 6%, transparent);
+  --settings-overlay-nav-item-color-active:    var(--neutral-dark-900);
+  --toggle-background-on:                      var(--neutral-dark-900);
+  --toggle-background-off:                     color-mix(in srgb, var(--neutral-dark-900) 20%, transparent);
+  --toggle-knob-background:                    var(--neutral-light-100);
+  --credential-row-border:                     var(--neutral-dark-100);
+  --credential-row-background:                 var(--neutral-light-300);
+  --credential-row-label-color:                var(--neutral-dark-900);
+  --credential-row-key-color:                  var(--neutral-dark-500);
+  --card-border:                               var(--neutral-dark-100);
+  --card-danger-border:                        var(--status-error-200);
+  --card-tinted-background:                    var(--neutral-light-300);
+  --card-content-background:                   var(--neutral-light-100);
+  --card-title-color:                          var(--neutral-dark-900);
+  --card-body-color:                           var(--neutral-dark-500);
+  --page-tile-background:                      var(--neutral-light-200);
+  --page-tile-thumb-background:                var(--neutral-light-300);
+  --page-tile-thumb-border:                    var(--neutral-dark-100);
+  --page-tile-thumb-empty-color:               var(--neutral-dark-400);
+  --page-tile-label-color:                     var(--neutral-dark-700);
+  --modal-scrim:                               var(--overlay-backdrop);
+  --modal-scrim-light:                         var(--overlay-backdrop-light);
+  --modal-panel-background:                    var(--neutral-light-100);
+  --modal-title-color:                         var(--neutral-dark-900);
+  --error-modal-background:                    var(--neutral-light-100);
+  --error-modal-eyebrow-color:                 var(--severity-error);
+  --error-modal-icon-color:                    var(--severity-error);
+  --error-modal-title-color:                   var(--neutral-dark-900);
+  --error-modal-body-color:                    var(--neutral-dark-900);
+  --error-modal-hint-color:                    var(--neutral-dark-900);
+  --dropdown-panel-background:                 var(--neutral-light-100);
+  --dropdown-item-color:                       var(--neutral-dark-900);
+  --dropdown-item-background-hover:            var(--neutral-light-300);
+  --dropdown-item-background-active:           var(--neutral-light-300);
+  --dropdown-item-color-muted:                 var(--neutral-dark-700);
+  --project-settings-overlay-scrim:                       var(--overlay-backdrop-light);
+  --project-settings-overlay-panel-background:            var(--neutral-light-100);
+  --project-settings-overlay-title-color:                 var(--neutral-dark-900);
+  --project-settings-overlay-title-icon-color:            var(--neutral-dark-500);
+  --project-settings-overlay-title-input-color:           var(--neutral-dark-900);
+  --project-settings-overlay-title-input-border:          var(--neutral-dark-900);
+  --project-settings-overlay-divider-color:               var(--neutral-dark-100);
+  --project-settings-overlay-danger-toggle-color:         var(--neutral-dark-500);
+  --project-settings-overlay-danger-toggle-color-hover:   var(--neutral-dark-900);
+  --project-settings-overlay-section-title-color:         var(--neutral-dark-500);
+  --project-settings-overlay-danger-glyph-color:          var(--neutral-dark-500);
+  --project-settings-overlay-danger-heading-color:        var(--neutral-dark-900);
+  --project-settings-overlay-danger-copy-color:           var(--neutral-dark-500);
+  --project-settings-overlay-empty-color:                 var(--neutral-dark-500);
+  --project-settings-overlay-archived-row-border:         var(--neutral-dark-100);
+  --project-settings-overlay-archived-name-color:         var(--neutral-dark-900);
+  --project-settings-overlay-link-action-color:           var(--neutral-dark-900);
+  --project-settings-overlay-link-action-color-danger:    var(--severity-error);
+  --test-steps-heading-color:                  var(--neutral-dark-500);
+  --step-row-border:                           var(--neutral-dark-100);
+  --step-row-deleted-background:               color-mix(in srgb, var(--severity-error) 8%, transparent);
+  --step-row-deleted-label-color:              var(--neutral-dark-500);
+  --step-row-undo-color:                       var(--neutral-dark-900);
+  --step-row-grip-color:                       var(--neutral-dark-500);
+  --step-row-type-icon-color:                  var(--neutral-dark-500);
+  --step-row-type-icon-color-microtest:        var(--text-subdued);
+  --step-row-label-color:                      var(--neutral-dark-900);
+  --step-row-camera-color:                     var(--neutral-dark-500);
+  --step-row-camera-color-on:                  var(--neutral-dark-900);
+  --step-row-trash-color:                      var(--neutral-dark-500);
+  --step-row-trash-color-hover:                var(--severity-error);
+  --empty-steps-heading-color:                 var(--neutral-dark-900);
+  --empty-steps-copy-color:                    var(--neutral-dark-500);
+  --ts-accordion-border:                       var(--neutral-dark-100);
+  --ts-accordion-glyph-color:                  var(--neutral-dark-500);
+  --test-settings-section-label-color:         var(--neutral-dark-500);
+  --credentials-section-row-color:             var(--neutral-dark-900);
+  --credentials-section-label-color:           var(--neutral-dark-500);
+  --credentials-section-hint-color:            var(--neutral-dark-500);
+  --add-step-fork-copy-color:                  var(--neutral-dark-500);
+  --add-step-fork-card-border:                 var(--neutral-dark-100);
+  --add-step-fork-card-color:                  var(--neutral-dark-900);
+  --add-step-fork-card-border-hover:           var(--neutral-dark-900);
+  --add-step-fork-card-background-hover:       var(--surface-hover-soft);
+  --add-step-fork-card-icon-color:             var(--neutral-dark-500);
+  --add-step-fork-card-copy-color:             var(--neutral-dark-500);
+  --step-editor-hint-color:                    var(--neutral-dark-500);
+  --step-editor-label-color:                   var(--neutral-dark-500);
+  --settings-section-title-color:              var(--neutral-dark-500);
+  --settings-section-label-color:              var(--neutral-dark-900);
+  --settings-section-hint-color:               var(--neutral-dark-500);
+  --page-header-title-color:                   var(--neutral-dark-900);
+  --page-header-eyebrow-color:                 var(--neutral-dark-500);
+  --settings-header-background:                var(--neutral-light-100);
+  --settings-header-title-color:               var(--neutral-dark-900);
+  --empty-state-badge-background:              var(--surface-hover-soft);
+  --empty-state-badge-color:                   var(--text-dim);
+  --empty-state-title-color:                   var(--neutral-dark-900);
+  --empty-state-body-color:                    var(--neutral-dark-500);
+  --empty-state-footnote-color:                color-mix(in srgb, var(--neutral-dark-500) 70%, transparent);
+  --divider-background:                        var(--neutral-dark-100);
+  --divider-background-black-10:               var(--neutral-dark-100);
+  --divider-background-secondary:              var(--neutral-dark-150);
+  --page-detail-scrim-background:              var(--overlay-backdrop-light);
+  --page-detail-panel-background:              var(--neutral-light-100);
+  --page-detail-panel-title-color:             var(--neutral-dark-900);
+  --page-detail-panel-date-color:              var(--neutral-dark-900);
+  --page-detail-panel-divider-background:      var(--neutral-dark-100);
+  --page-detail-panel-main-background:         var(--neutral-light-300);
+  --page-detail-panel-view-toggle-sticky-background: var(--neutral-light-300);
+  --page-detail-panel-view-label-color:        var(--neutral-dark-500);
+  --page-detail-panel-view-label-color-active: var(--neutral-dark-900);
+  --page-detail-panel-view-label-color-hover:  var(--neutral-dark-900);
+  --page-detail-panel-empty-background:        var(--neutral-light-100);
+  --page-detail-panel-empty-text-color:        var(--neutral-dark-500);
+  --page-detail-panel-changes-border:          var(--neutral-dark-100);
+  --page-detail-panel-changes-background:      var(--neutral-light-100);
+  --report-page-sticky-background:             var(--neutral-light-100);
+  --report-page-domain-color:                  var(--neutral-dark-900);
+  --report-page-slash-color:                   var(--neutral-dark-400);
+  --report-page-page-btn-background-hover:     var(--surface-hover-bare);
+  --report-page-page-name-color:               var(--neutral-dark-900);
+  --report-page-date-btn-color:                var(--neutral-dark-900);
+  --report-page-arrow-color:                   var(--neutral-dark-400);
+  --report-page-arrow-color-hover:             var(--neutral-dark-900);
+  --report-page-arrow-color-disabled:          var(--neutral-dark-100);
+  --report-page-header-col-color:              var(--neutral-dark-900);
+  --report-page-loading-color:                 var(--neutral-dark-500);
+  --report-page-show-all-border:               var(--neutral-dark-100);
+  --report-page-show-all-background:           var(--neutral-light-100);
+  --report-page-show-all-color:                var(--neutral-dark-900);
+  --report-page-show-all-background-hover:    var(--neutral-light-300);
+  --report-page-collapse-color:                var(--neutral-dark-500);
+  --report-page-collapse-color-hover:          var(--neutral-dark-900);
+  --page-title-menu-trigger-color:             var(--neutral-dark-900);
+  --page-title-menu-trigger-background-hover:  var(--surface-hover-bare);
+  --page-title-menu-panel-background:          var(--neutral-light-100);
+  --page-title-menu-item-background-hover:     var(--neutral-light-300);
+  --page-title-menu-kind-color:                var(--neutral-dark-400);
+  --page-title-menu-url-color:                 var(--neutral-dark-900);
+
+  /* ── Forms (field, material-field, wizard) ─────────────────────── */
+  --field-label-color:                  var(--neutral-dark-900);
+  --field-label-sm-color:               var(--neutral-dark-500);
+  --field-hint-color:                   var(--neutral-dark-500);
+  --field-error-color:                  var(--status-error-500);
+  --input-color:                        var(--neutral-dark-900);
+  --input-border:                       var(--neutral-dark-100);
+  --input-border-focus:                 var(--neutral-dark-900);
+  --input-border-error:                 var(--status-error-500);
+  --input-placeholder-color:            var(--neutral-dark-500);
+  --input-background-solid:             var(--neutral-light-100);
+  --textarea-color:                     var(--neutral-dark-900);
+  --textarea-border:                    var(--neutral-dark-100);
+  --textarea-border-focus:              var(--neutral-dark-900);
+  --textarea-placeholder-color:         var(--neutral-dark-500);
+  --textarea-background-tinted:         var(--neutral-light-300);
+  --material-field-shell-border:        var(--neutral-dark-100);
+  --material-field-shell-border-focus:  var(--neutral-dark-900);
+  --material-field-shell-border-invalid: var(--severity-error);
+  --material-field-label-color:         var(--neutral-dark-500);
+  --material-field-input-color:         var(--neutral-dark-900);
+  --material-field-input-placeholder-color: var(--neutral-dark-500);
+  --material-field-trailing-color:      var(--neutral-dark-500);
+  --material-field-icon-color-success:  var(--status-success-500);
+  --material-field-icon-color-error:    var(--severity-error);
+  --material-field-caption-color:       var(--neutral-dark-500);
+  --material-field-caption-color-error: var(--severity-error);
+  --wizard-title-color:                 var(--neutral-dark-500);
+  --wizard-section-title-color:         var(--neutral-dark-500);
+  --wizard-hint-color:                  var(--neutral-dark-500);
+  --wizard-step-count-color:            var(--neutral-dark-500);
+  --wizard-step-item-border:            var(--neutral-dark-100);
+  --wizard-step-label-color:            var(--neutral-dark-900);
+
+  /* ── Badge / Pill / Tab / Status dot ───────────────────────────── */
+  --badge-color:                        var(--neutral-dark-900);
+  --badge-success-background:           var(--status-success-500);
+  --badge-warning-background:           var(--status-warning-500);
+  --badge-success-tint-background:      var(--status-success-100);
+  --badge-warning-tint-background:      var(--status-warning-100);
+  --badge-neutral-color:                var(--neutral-dark-100);
+  --badge-flow-color:                   var(--brand-primary-500);
+  --pill-background:                    var(--neutral-light-300);
+  --pill-background-hover:              var(--surface-hover);
+  --pill-color:                         var(--neutral-dark-700);
+  --pill-background-active:             var(--neutral-dark-900);
+  --pill-color-active:                  var(--neutral-light-100);
+  --pill-disabled-color:                var(--neutral-dark-400);
+  --status-dot-success-background:      var(--status-success-500);
+  --status-dot-warning-background:      var(--status-warning-500);
+  --status-dot-disabled-background:     var(--neutral-dark-100);
+  --status-dot-inactive-background:     var(--neutral-dark-200);
+  --status-dot-error-background:        var(--status-error-500);
+  --status-dot-running-background:      var(--status-running-400);
+  --tab-bar-border:                     var(--neutral-dark-150);
+  --tab-color:                          var(--neutral-dark-900);
+  --tab-indicator-background:           var(--neutral-dark-900);
+  --variant-tabs-border:                var(--neutral-dark-100);
+  --variant-tabs-label-color:           var(--neutral-dark-400);
+  --variant-tab-color:                  var(--neutral-dark-500);
+  --variant-tab-color-hover:            var(--neutral-dark-900);
+  --variant-tab-color-active:           var(--neutral-dark-900);
+  --segmented-background:               var(--neutral-light-300);
+  --segmented-background-content:       var(--neutral-light-100);
+  --segmented-item-color:               var(--neutral-dark-500);
+  --segmented-item-color-hover:         var(--neutral-dark-900);
+  --segmented-item-background-active:   var(--neutral-light-100);
+  --segmented-item-background-active-alt: var(--neutral-light-300);
+  --segmented-item-color-active:        var(--neutral-dark-900);
+  --tab-pill-color:                     var(--neutral-dark-500);
+  --tab-pill-background-hover:          var(--surface-hover-bare);
+  --tab-pill-color-hover:               var(--neutral-dark-900);
+  --tab-pill-background-active:         var(--neutral-light-300);
+  --tab-pill-color-active:              var(--neutral-dark-900);
+
+  /* ── Breakpoint editor + change-list + diff + flow + slider ────── */
+  --breakpoint-editor-label-color:       var(--neutral-dark-900);
+  --breakpoint-editor-count-color:       var(--neutral-dark-500);
+  --bp-chip-border:                      var(--neutral-dark-100);
+  --bp-chip-color:                       var(--neutral-dark-900);
+  --bp-chip-remove-color:                var(--neutral-dark-500);
+  --bp-chip-remove-color-hover:          var(--neutral-dark-900);
+  --change-list-title-color:             var(--neutral-dark-900);
+  --change-entry-background:             var(--neutral-light-300);
+  --change-entry-border-info:            var(--severity-info);
+  --change-entry-border-error:           var(--severity-error);
+  --change-entry-border-ok:              var(--status-success-500);
+  --change-entry-divider:                var(--neutral-dark-100);
+  --change-entry-hover-tint:             var(--neutral-dark-900);
+  --change-entry-description-color:      var(--neutral-dark-900);
+  --change-entry-selector-color:         var(--neutral-dark-400);
+  --change-group-background:             var(--neutral-light-300);
+  --change-group-border-info:            var(--severity-info);
+  --change-group-border-error:           var(--severity-error);
+  --change-group-divider:                var(--neutral-dark-100);
+  --change-group-selector-color:         var(--neutral-dark-400);
+  --change-group-count-tint:             var(--neutral-dark-900);
+  --change-group-count-color:            var(--neutral-dark-700);
+  --change-notice-background-accent:     var(--status-success-500);
+  --change-notice-background-tinted:     var(--neutral-light-300);
+  --change-notice-color:                 var(--neutral-dark-700);
+  --diff-viewer-border:                  var(--neutral-dark-100);
+  --flow-editor-border:                  var(--neutral-dark-100);
+  --flow-editor-toggle-color:            var(--neutral-dark-900);
+  --flow-editor-chevron-color:           var(--neutral-dark-500);
+  --flow-editor-separator-color:         var(--neutral-dark-500);
+  --flow-editor-empty-color:             var(--neutral-dark-500);
+  --flow-step-border:                    var(--neutral-dark-100);
+  --flow-step-background:                var(--neutral-light-100);
+  --flow-step-reorder-color:             var(--neutral-dark-500);
+  --flow-step-reorder-color-hover:       var(--neutral-dark-900);
+  --flow-step-index-color:               var(--neutral-dark-500);
+  --flow-step-kind-background:           var(--neutral-light-300);
+  --flow-step-kind-color:                var(--neutral-dark-500);
+  --flow-step-remove-color:              var(--neutral-dark-500);
+  --flow-step-remove-color-hover:        var(--neutral-dark-900);
+  --flow-chip-background:                var(--neutral-light-300);
+  --flow-chip-background-hover:          var(--surface-hover);
+  --flow-chip-color:                     var(--neutral-dark-500);
+  --flow-chip-color-hover:               var(--neutral-dark-900);
+  --flow-chip-accent-tint:               var(--neutral-dark-900);
+  --flow-chip-accent-color:              var(--neutral-dark-900);
+  --flow-chip-warning-tint:              var(--status-warning-500);
+  --flow-chip-warning-color:             var(--neutral-dark-900);
+  --flow-chip-danger-tint:               var(--status-error-500);
+  --flow-chip-danger-color:              var(--status-error-500);
+  --comp-step-background-tint:           var(--neutral-light-300);
+  --comp-step-drag-over-tint:            var(--neutral-dark-900);
+  --comp-step-grab-color:                var(--neutral-dark-500);
+  --comp-step-index-color:               var(--neutral-dark-500);
+  --comp-step-name-color:                var(--neutral-dark-900);
+  --comp-step-name-color-hover:          var(--brand-primary-500);
+  --comp-step-camera-color:              var(--neutral-dark-900);
+  --comp-step-camera-disabled-tint:      var(--neutral-dark-500);
+  --comp-step-reorder-color:             var(--neutral-dark-500);
+  --comp-step-reorder-color-hover:       var(--neutral-dark-900);
+  --comp-step-remove-color:              var(--neutral-dark-500);
+  --comp-step-remove-color-hover:        var(--status-error-500);
+  --composition-editor-border:           var(--neutral-dark-100);
+  --composition-editor-title-color:      var(--neutral-dark-900);
+  --composition-editor-remove-color:     var(--neutral-dark-500);
+  --composition-editor-remove-color-hover: var(--status-error-500);
+  --composition-editor-divider:          var(--neutral-dark-100);
+  --composition-editor-empty-color:      var(--neutral-dark-500);
+  --composition-editor-add-panel-border: var(--neutral-dark-100);
+  --composition-editor-add-hint-color:   var(--neutral-dark-500);
+  --composition-editor-add-btn-color:    var(--neutral-dark-500);
+  --composition-editor-add-btn-color-hover: var(--neutral-dark-900);
+  --comparison-background:               var(--neutral-taupe-500);
+  --comparison-handle-background:        var(--neutral-taupe-700);
+  --comparison-header-label-color:       var(--neutral-dark-500);
+  --comparison-header-label-color-active: var(--neutral-dark-900);
+  --favicon-background:                  var(--neutral-light-100);
+  --favicon-border:                      var(--neutral-dark-100);
+  --favicon-fallback-color:              var(--neutral-dark-500);
+
+  /* ── Misc (_misc.scss — small one-offs across the app) ─────────── */
+  --breadcrumb-color:                    var(--neutral-dark-900);
+  --settings-row-border:                 var(--neutral-dark-100);
+  --settings-row-name-color:             var(--neutral-dark-900);
+  --settings-row-meta-color:             var(--neutral-dark-500);
+  --path-row-border:                     var(--neutral-dark-100);
+  --path-row-color:                      var(--neutral-dark-900);
+  --path-row-drag-over-tint:             var(--neutral-dark-900);
+  --path-row-grab-color:                 var(--neutral-dark-500);
+  --test-name-edit-input-border:         var(--neutral-dark-100);
+  --test-name-edit-input-border-focus:   var(--neutral-dark-900);
+  --test-name-edit-input-color:          var(--neutral-dark-900);
+  --test-name-edit-title-color:          var(--neutral-dark-900);
+  --code-inline-background:              var(--neutral-light-300);
+  --code-editor-border:                  var(--neutral-dark-100);
+  --test-result-border:                  var(--neutral-dark-100);
+  --test-result-pass-tint:               var(--status-success-500);
+  --test-result-pass-color:              var(--status-success-500);
+  --test-result-fail-border:             var(--status-error-200);
+  --test-result-fail-background:         var(--status-error-100);
+  --test-result-fail-color:              var(--status-error-500);
+  --test-result-duration-color:          var(--neutral-dark-500);
+  --info-box-border:                     var(--neutral-dark-100);
+  --info-box-background-tint:            var(--neutral-light-300);
+  --info-box-accent-tint:                var(--status-success-500);
+  --info-box-title-color:                var(--neutral-dark-500);
+  --info-box-list-color:                 var(--neutral-dark-500);
+  --snippet-btn-border:                  var(--neutral-dark-100);
+  --snippet-btn-background:              var(--neutral-light-100);
+  --snippet-btn-border-hover:            var(--neutral-dark-900);
+  --recorder-instructions-background:    var(--neutral-light-100);
+  --recorder-instructions-title-color:   var(--neutral-dark-900);
+  --recorder-instructions-list-color:    var(--neutral-dark-700);
+  --recorder-instructions-marker-background: var(--neutral-light-300);
+  --recorder-instructions-marker-color:  var(--neutral-dark-500);
+  --step-preview-tint:                   var(--status-success-500);
+  --step-preview-title-color:            var(--neutral-dark-900);
+  --step-preview-index-color:            var(--neutral-dark-500);
+  --step-preview-label-color:            var(--neutral-dark-900);
+  --step-preview-meta-color:             var(--neutral-dark-500);
+  --error-text-color:                    var(--status-error-500);
+  --project-settings-panel-background:   var(--neutral-light-100);
+  --project-settings-panel-title-color:  var(--neutral-dark-900);
+  --project-settings-panel-save-hint-color: var(--neutral-dark-500);
+  --project-settings-panel-save-hint-color-success: var(--status-success-500);
+  --test-list-sidebar-border:            var(--neutral-dark-150);
+  --test-list-sidebar-heading-color:     var(--neutral-dark-900);
+  --test-list-sidebar-item-color:        var(--neutral-dark-500);
+  --test-list-sidebar-item-color-hover:  var(--neutral-dark-900);
+  --test-list-sidebar-item-color-active: var(--neutral-dark-900);
+  --test-list-sidebar-create-color:      var(--text-faint);
+  --test-list-sidebar-create-color-hover: var(--neutral-dark-900);
+  --section-heading-color:               var(--neutral-dark-900);
+  --section-body-color:                  var(--neutral-dark-500);
+  --section-note-color:                  var(--neutral-dark-500);
+  --variant-option-color:                var(--neutral-dark-900);
+  --status-pill-color:                   var(--status-error-500);
+  --status-pill-color-hover:             var(--status-error-800);
+  --cancel-link-color:                   var(--neutral-dark-500);
+  --cancel-link-color-hover:             var(--neutral-dark-900);
 }
 
 /* ── Dark Mode ──────────────────────────────────────────────────── */

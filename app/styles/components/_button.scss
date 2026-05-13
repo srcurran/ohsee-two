@@ -27,70 +27,104 @@
   /* ── Variants ────────────────────────────────────────────────── */
 
   &--primary {
-    background: var(--foreground);
-    color: var(--surface-content);
+    background: var(--btn-primary-background);
+    color: var(--btn-primary-color);
     border-radius: var(--radius-lg);
     padding-inline: var(--space-8);
     font-size: var(--font-size-lg);
     @include hover-lift;
+
+    &:hover:not(:disabled) {
+      background: var(--btn-primary-background-hover);
+    }
   }
 
   &--primary-sm {
-    background: var(--foreground);
-    color: var(--surface-content);
+    background: var(--btn-primary-background);
+    color: var(--btn-primary-color);
     padding-inline: var(--space-5);
     @include hover-lift;
+
+    &:hover:not(:disabled) {
+      background: var(--btn-primary-background-hover);
+    }
+  }
+
+  /* Cancel — same footprint as --primary so a CTA can swap in-place
+   * (e.g. "Run" → "Cancel" while a job is running). */
+  &--cancel {
+    background: var(--btn-cancel-background);
+    color: var(--btn-cancel-color);
+    border-radius: var(--radius-lg);
+    padding-inline: var(--space-8);
+    font-size: var(--font-size-lg);
+    @include hover-lift;
+
+    &:hover:not(:disabled) {
+      background: var(--btn-cancel-background-hover);
+    }
+  }
+
+  &--cancel-sm {
+    background: var(--btn-cancel-background);
+    color: var(--btn-cancel-color);
+    padding-inline: var(--space-5);
+    @include hover-lift;
+
+    &:hover:not(:disabled) {
+      background: var(--btn-cancel-background-hover);
+    }
   }
 
   &--secondary {
-    background: var(--surface-tertiary);
-    color: var(--foreground);
+    background: var(--btn-secondary-background);
+    color: var(--btn-secondary-color);
     font-weight: var(--weight-regular);
 
     &:hover:not(:disabled) {
-      background: var(--surface-hover);
+      background: var(--btn-secondary-background-hover);
     }
   }
 
   &--outline {
     background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--foreground);
+    border: 1px solid var(--btn-outline-border);
+    color: var(--btn-outline-color);
     padding-inline: var(--space-6);
     font-weight: var(--weight-regular);
     @include hover-lift;
 
     &:hover:not(:disabled) {
-      background: var(--surface-tertiary);
+      background: var(--btn-outline-background-hover);
     }
   }
 
   &--outline-soft {
     background: transparent;
-    border: 1px solid var(--border-primary);
-    color: var(--text-muted);
+    border: 1px solid var(--btn-outline-soft-border);
+    color: var(--btn-outline-soft-color);
     font-weight: var(--weight-regular);
     transition: var(--transition-colors);
 
     &:hover:not(:disabled) {
-      background: var(--surface-tertiary);
-      color: var(--foreground);
+      background: var(--btn-outline-background-hover);
+      color: var(--btn-outline-color);
     }
   }
 
   &--ghost {
     background: transparent;
-    color: var(--text-muted);
+    color: var(--btn-ghost-color);
     font-weight: var(--weight-regular);
 
     &:hover:not(:disabled) {
-      background: var(--surface-tertiary);
+      background: var(--btn-ghost-background-hover);
     }
   }
 
   &--danger {
-    background: var(--status-error);
-    color: #fff;
+    background: var(--btn-danger-background);
+    color: var(--btn-danger-color);
     padding-block: var(--space-1-5);
 
     &:hover:not(:disabled) {
@@ -100,13 +134,13 @@
 
   &--danger-outline {
     background: transparent;
-    border: 1px solid var(--status-error-border);
-    color: var(--status-error);
+    border: 1px solid var(--btn-danger-outline-border);
+    color: var(--btn-danger-outline-color);
     padding-block: var(--space-1-5);
     font-weight: var(--weight-regular);
 
     &:hover:not(:disabled) {
-      background: var(--status-error-muted);
+      background: var(--btn-danger-outline-background-hover);
     }
   }
 
@@ -115,11 +149,11 @@
     padding: 0;
     border-radius: 0;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--btn-text-color);
     font-weight: var(--weight-regular);
 
     &:hover:not(:disabled) {
-      color: var(--foreground);
+      color: var(--btn-text-color-hover);
     }
   }
 
@@ -128,11 +162,11 @@
     padding: 0;
     border-radius: 0;
     font-size: var(--font-size-base);
-    color: var(--text-muted);
+    color: var(--btn-link-color);
     font-weight: var(--weight-regular);
 
     &:hover:not(:disabled) {
-      color: var(--foreground);
+      color: var(--btn-link-color-hover);
     }
   }
 }
@@ -152,13 +186,13 @@
    * primary content. --text-subtle (40% in light, 55% in dark) reads as
    * grey-on-white but blends into dark backgrounds — the dim alias is
    * deliberately tuned per theme. */
-  color: var(--text-dim);
+  color: var(--icon-btn-color);
   cursor: pointer;
   transition: var(--transition-colors);
 
   &:hover:not(:disabled) {
-    background: var(--surface-hover-soft);
-    color: var(--foreground);
+    background: var(--icon-btn-background-hover);
+    color: var(--icon-btn-color-hover);
   }
 
   &:disabled {
@@ -180,7 +214,7 @@
   &--ghost-hover {
     &:hover:not(:disabled) {
       background: transparent;
-      color: var(--foreground);
+      color: var(--icon-btn-color-hover);
     }
   }
 }

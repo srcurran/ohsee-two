@@ -10,19 +10,19 @@
   font-size: var(--font-size-xs);
   font-weight: var(--weight-bold);
   line-height: var(--line-none);
-  color: var(--foreground);
+  color: var(--badge-color);
 
   &--success {
-    background: var(--accent-green);
+    background: var(--badge-success-background);
   }
 
   &--warning {
-    background: var(--accent-yellow);
+    background: var(--badge-warning-background);
   }
 
   &--neutral {
-    background: color-mix(in srgb, var(--text-disabled) 20%, transparent);
-    color: var(--text-disabled);
+    background: color-mix(in srgb, var(--badge-neutral-color) 20%, transparent);
+    color: var(--badge-neutral-color);
   }
 
   &--lg {
@@ -42,16 +42,16 @@
   }
 
   &--success-tint {
-    background: var(--accent-green-tint);
+    background: var(--badge-success-tint-background);
   }
 
   &--warning-tint {
-    background: var(--accent-yellow-tint);
+    background: var(--badge-warning-tint-background);
   }
 
   &--flow {
-    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
-    color: var(--accent-primary);
+    background: color-mix(in srgb, var(--badge-flow-color) 10%, transparent);
+    color: var(--badge-flow-color);
     border-radius: var(--radius-xs);
     padding: var(--space-0-5) var(--space-2);
     font-size: var(--font-size-sm);
@@ -69,30 +69,30 @@
   font-weight: var(--weight-regular);
   cursor: pointer;
   transition: var(--transition-colors);
-  background: var(--surface-tertiary);
-  color: var(--text-secondary);
+  background: var(--pill-background);
+  color: var(--pill-color);
   border: none;
   white-space: nowrap;
 
   &:hover {
-    background: var(--surface-hover);
+    background: var(--pill-background-hover);
   }
 
   &--active {
-    background: var(--foreground);
-    color: var(--surface-content);
+    background: var(--pill-background-active);
+    color: var(--pill-color-active);
 
     &:hover {
-      background: var(--foreground);
+      background: var(--pill-background-active);
     }
   }
 
   &--disabled {
-    background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent);
-    color: color-mix(in srgb, var(--text-subtle) 60%, transparent);
+    background: color-mix(in srgb, var(--pill-background) 50%, transparent);
+    color: color-mix(in srgb, var(--pill-disabled-color) 60%, transparent);
     cursor: not-allowed;
 
-    &:hover { background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent); }
+    &:hover { background: color-mix(in srgb, var(--pill-background) 50%, transparent); }
   }
 
   &__icon {
@@ -113,10 +113,10 @@
   flex-shrink: 0;
   border-radius: var(--radius-full);
 
-  &--success { background: var(--accent-green); }
-  &--warning { background: var(--accent-yellow); }
-  &--disabled { background: var(--text-disabled); }
-  &--inactive { background: var(--status-inactive); }
-  &--error    { background: var(--status-error); }
-  &--running  { background: var(--status-running); }
+  &--success { background: var(--status-dot-success-background); }
+  &--warning { background: var(--status-dot-warning-background); }
+  &--disabled { background: var(--status-dot-disabled-background); }
+  &--inactive { background: var(--status-dot-inactive-background); }
+  &--error    { background: var(--status-dot-error-background); }
+  &--running  { background: var(--status-dot-running-background); }
 }

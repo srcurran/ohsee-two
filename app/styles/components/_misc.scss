@@ -2,7 +2,7 @@
 
 .breadcrumb {
   font-size: var(--font-size-base);
-  color: var(--foreground);
+  color: var(--breadcrumb-color);
 
   &__link {
     text-decoration: underline;
@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: space-between;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--settings-row-border);
   padding: var(--space-4);
 
   &__info {
@@ -43,18 +43,18 @@
   &__name {
     font-size: var(--space-3-5);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--settings-row-name-color);
   }
 
   &__name-base {
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--settings-row-name-color);
   }
 
   &__meta {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--settings-row-meta-color);
   }
 
   &__actions {
@@ -68,14 +68,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--path-row-border);
   padding-block: var(--space-2);
   font-size: var(--font-size-base);
-  color: var(--foreground);
+  color: var(--path-row-color);
   transition: background-color var(--duration-base) var(--ease-standard);
 
   &--drag-over {
-    background: color-mix(in srgb, var(--foreground) 3%, transparent);
+    background: color-mix(in srgb, var(--path-row-drag-over-tint) 3%, transparent);
   }
 
   &--compact {
@@ -92,7 +92,7 @@
   &__grab {
     flex-shrink: 0;
     cursor: grab;
-    color: var(--text-muted);
+    color: var(--path-row-grab-color);
 
     &:active {
       cursor: grabbing;
@@ -106,17 +106,17 @@
   &__input {
     width: 100%;
     border: none;
-    border-bottom: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--test-name-edit-input-border);
     background: transparent;
     padding-bottom: var(--space-1);
     font-size: var(--font-size-4xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--test-name-edit-input-color);
     outline: none;
     transition: border-color var(--duration-base) var(--ease-standard);
     font-family: inherit;
 
-    &:focus { border-bottom-color: var(--foreground); }
+    &:focus { border-bottom-color: var(--test-name-edit-input-border-focus); }
   }
 
   &__display {
@@ -135,7 +135,7 @@
     margin: 0;
     font-size: var(--font-size-4xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--test-name-edit-title-color);
   }
 
   &__pencil {
@@ -150,7 +150,7 @@
 
 .code-inline {
   border-radius: 4px;
-  background: var(--surface-tertiary);
+  background: var(--code-inline-background);
   padding: var(--space-px) var(--space-1);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: var(--font-size-sm);
@@ -170,7 +170,7 @@
   max-height: 400px;
   overflow: auto;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--code-editor-border);
 
   .cm-editor { outline: none !important; }
   .cm-scroller { min-height: 200px; }
@@ -178,20 +178,20 @@
 
 .test-result {
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--test-result-border);
   padding: var(--space-3);
   font-size: var(--font-size-md);
 
   &--pass {
-    border-color: color-mix(in srgb, var(--accent-green) 30%, transparent);
-    background: color-mix(in srgb, var(--accent-green) 5%, transparent);
-    color: var(--accent-green);
+    border-color: color-mix(in srgb, var(--test-result-pass-tint) 30%, transparent);
+    background: color-mix(in srgb, var(--test-result-pass-tint) 5%, transparent);
+    color: var(--test-result-pass-color);
   }
 
   &--fail {
-    border-color: var(--status-error-border);
-    background: var(--status-error-muted);
-    color: var(--status-error);
+    border-color: var(--test-result-fail-border);
+    background: var(--test-result-fail-background);
+    color: var(--test-result-fail-color);
   }
 
   &__header {
@@ -205,7 +205,7 @@
   }
 
   &__duration {
-    color: var(--text-muted);
+    color: var(--test-result-duration-color);
   }
 
   &__error {
@@ -219,20 +219,20 @@
 
 .info-box {
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--info-box-border);
   padding: var(--space-3);
-  background: color-mix(in srgb, var(--surface-tertiary) 30%, transparent);
+  background: color-mix(in srgb, var(--info-box-background-tint) 30%, transparent);
 
   &--accent {
-    border-color: color-mix(in srgb, var(--accent-green) 30%, transparent);
-    background: color-mix(in srgb, var(--accent-green) 5%, transparent);
+    border-color: color-mix(in srgb, var(--info-box-accent-tint) 30%, transparent);
+    background: color-mix(in srgb, var(--info-box-accent-tint) 5%, transparent);
   }
 
   &__title {
     margin: 0 0 var(--space-1-5) 0;
     font-size: var(--font-size-sm);
     font-weight: var(--weight-bold);
-    color: var(--text-muted);
+    color: var(--info-box-title-color);
   }
 
   &__list {
@@ -243,15 +243,15 @@
     flex-direction: column;
     gap: var(--space-1);
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--info-box-list-color);
   }
 }
 
 .snippet-btn {
   width: 100%;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-  background: var(--surface-secondary);
+  border: 1px solid var(--snippet-btn-border);
+  background: var(--snippet-btn-background);
   padding: var(--space-2-5) var(--space-4);
   text-align: left;
   font-size: var(--font-size-md);
@@ -260,20 +260,20 @@
   font-family: inherit;
 
   &:hover {
-    border-color: var(--foreground);
+    border-color: var(--snippet-btn-border-hover);
   }
 }
 
 .recorder-instructions {
   border-radius: var(--radius-md);
-  background: var(--surface-secondary);
+  background: var(--recorder-instructions-background);
   padding: var(--space-4);
 
   &__title {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--recorder-instructions-title-color);
   }
 
   &__list {
@@ -284,7 +284,7 @@
     flex-direction: column;
     gap: var(--space-2);
     font-size: var(--font-size-md);
-    color: var(--text-secondary);
+    color: var(--recorder-instructions-list-color);
   }
 
   &__item {
@@ -300,10 +300,10 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-full);
-    background: var(--surface-tertiary);
+    background: var(--recorder-instructions-marker-background);
     font-size: var(--font-size-xs);
     font-weight: var(--weight-bold);
-    color: var(--text-muted);
+    color: var(--recorder-instructions-marker-color);
   }
 }
 
@@ -315,15 +315,15 @@
 
 .step-preview {
   border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--accent-green) 30%, transparent);
-  background: color-mix(in srgb, var(--accent-green) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--step-preview-tint) 30%, transparent);
+  background: color-mix(in srgb, var(--step-preview-tint) 5%, transparent);
   padding: var(--space-3);
 
   &__title {
     margin: 0 0 var(--space-2) 0;
     font-size: var(--font-size-md);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--step-preview-title-color);
   }
 
   &__list {
@@ -343,22 +343,22 @@
     flex-shrink: 0;
     width: 20px;
     text-align: right;
-    color: var(--text-muted);
+    color: var(--step-preview-index-color);
   }
 
   &__label {
-    color: var(--foreground);
+    color: var(--step-preview-label-color);
   }
 
   &__meta {
-    color: var(--text-muted);
+    color: var(--step-preview-meta-color);
   }
 }
 
 .error-text {
   margin: 0;
   font-size: var(--font-size-md);
-  color: var(--status-error);
+  color: var(--error-text-color);
 
   &--xs {
     font-size: var(--font-size-sm);
@@ -376,7 +376,7 @@
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-lg);
-  background: var(--surface-content);
+  background: var(--project-settings-panel-background);
   box-shadow: var(--elevation-lg);
   transition: transform var(--duration-base) var(--ease-standard);
 
@@ -400,7 +400,7 @@
     margin: 0;
     font-size: var(--font-size-4xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--project-settings-panel-title-color);
   }
 
   &__close {
@@ -411,10 +411,10 @@
 
   &__save-hint {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--project-settings-panel-save-hint-color);
 
     &--success {
-      color: var(--accent-green);
+      color: var(--project-settings-panel-save-hint-color-success);
     }
   }
 
@@ -439,7 +439,7 @@
   width: 180px;
   flex-shrink: 0;
   padding-right: var(--space-6);
-  border-right: 1px solid var(--border-secondary);
+  border-right: 1px solid var(--test-list-sidebar-border);
 
   &__heading {
     /* Match the horizontal padding of __item / __create below so the heading
@@ -448,7 +448,7 @@
     padding: 0 var(--space-2);
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--test-list-sidebar-heading-color);
   }
 
   &__list {
@@ -466,16 +466,16 @@
     border: none;
     cursor: pointer;
     transition: var(--transition-colors);
-    color: var(--text-muted);
+    color: var(--test-list-sidebar-item-color);
     font-family: inherit;
 
     &:hover {
-      color: var(--foreground);
+      color: var(--test-list-sidebar-item-color-hover);
     }
 
     &--active {
       font-weight: var(--weight-semibold);
-      color: var(--foreground);
+      color: var(--test-list-sidebar-item-color-active);
     }
   }
 
@@ -495,12 +495,12 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-faint);
+    color: var(--test-list-sidebar-create-color);
     transition: var(--transition-colors);
     font-family: inherit;
 
     &:hover {
-      color: var(--foreground);
+      color: var(--test-list-sidebar-create-color-hover);
     }
   }
 }
@@ -528,19 +528,19 @@
   margin: 0 0 var(--space-2) 0;
   font-size: var(--font-size-base);
   font-weight: var(--weight-bold);
-  color: var(--foreground);
+  color: var(--section-heading-color);
 }
 
 .section-body {
   margin: 0 0 var(--space-4) 0;
   font-size: var(--font-size-base);
-  color: var(--text-muted);
+  color: var(--section-body-color);
 }
 
 .section-note {
   margin: 0 0 var(--space-3) 0;
   font-size: var(--font-size-md);
-  color: var(--text-muted);
+  color: var(--section-note-color);
 }
 
 .variant-list {
@@ -554,13 +554,13 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--font-size-base);
-  color: var(--foreground);
+  color: var(--variant-option-color);
   cursor: pointer;
 }
 
 .status-pill {
   font-size: var(--font-size-md);
-  color: var(--status-error);
+  color: var(--status-pill-color);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -569,13 +569,13 @@
   font-family: inherit;
 
   &:hover {
-    color: var(--status-error-text);
+    color: var(--status-pill-color-hover);
   }
 }
 
 .cancel-link {
   font-size: var(--font-size-md);
-  color: var(--text-muted);
+  color: var(--cancel-link-color);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -583,6 +583,6 @@
   font-family: inherit;
 
   &:hover {
-    color: var(--foreground);
+    color: var(--cancel-link-color-hover);
   }
 }

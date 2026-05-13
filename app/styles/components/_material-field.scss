@@ -12,19 +12,19 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-2) var(--space-4);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--material-field-shell-border);
     border-radius: var(--radius-md);
     background: transparent;
     transition: var(--transition-colors);
 
     &:focus-within {
-      border-color: var(--foreground);
+      border-color: var(--material-field-shell-border-focus);
     }
 
     /* `valid` is silent — format passing isn't worth visual chrome. Only
        `verified` (proven-reachable) and `invalid` color the border. */
     &--invalid {
-      border-color: var(--severity-error);
+      border-color: var(--material-field-shell-border-invalid);
     }
   }
 
@@ -38,7 +38,7 @@
   &__label {
     margin: 0;
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--material-field-label-color);
     line-height: 1.2;
     user-select: none;
     pointer-events: none;
@@ -51,13 +51,13 @@
     border: none;
     outline: none;
     background: transparent;
-    color: var(--foreground);
+    color: var(--material-field-input-color);
     font-family: inherit;
     font-size: var(--font-size-lg);
     line-height: 1.4;
 
     &::placeholder {
-      color: var(--text-muted);
+      color: var(--material-field-input-placeholder-color);
     }
   }
 
@@ -65,18 +65,18 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    color: var(--text-muted);
+    color: var(--material-field-trailing-color);
   }
 
   &__icon {
     display: block;
 
     &--success {
-      color: var(--accent-green);
+      color: var(--material-field-icon-color-success);
     }
 
     &--error {
-      color: var(--severity-error);
+      color: var(--material-field-icon-color-error);
     }
   }
 
@@ -84,10 +84,10 @@
     margin: 0;
     padding-inline: var(--space-1);
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--material-field-caption-color);
 
     &--error {
-      color: var(--severity-error);
+      color: var(--material-field-caption-color-error);
     }
   }
 }

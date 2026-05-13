@@ -3,7 +3,7 @@
 .diff-viewer {
   position: relative;
   overflow: auto;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--diff-viewer-border);
   /* Isolate the stacking context so the overlay's mix-blend-mode only blends
      against the prod image inside this container, not the page background. */
   isolation: isolate;

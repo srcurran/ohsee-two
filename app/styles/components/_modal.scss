@@ -13,16 +13,16 @@
      viewport — important on narrow widths where max-width could equal
      viewport width. */
   padding: var(--space-4);
-  background: var(--overlay-backdrop);
+  background: var(--modal-scrim);
 
   &--light-scrim {
-    background: var(--overlay-backdrop-light);
+    background: var(--modal-scrim-light);
   }
 
   &__panel {
     width: 100%;
     max-width: 520px;
-    background: var(--surface-content);
+    background: var(--modal-panel-background);
     border-radius: var(--radius-lg);
     padding: var(--space-8);
 
@@ -44,7 +44,7 @@
     margin: 0 0 var(--space-4) 0;
     font-size: var(--font-size-3xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--modal-title-color);
   }
 
   &__title--lg {
@@ -73,7 +73,7 @@
 .error-modal {
   width: 100%;
   max-width: 520px;
-  background: var(--surface-content);
+  background: var(--error-modal-background);
   border-radius: var(--radius-lg);
   padding: var(--space-7);
   display: flex;
@@ -90,11 +90,11 @@
     margin: 0;
     font-size: var(--font-size-sm);
     font-weight: var(--weight-semibold);
-    color: var(--severity-error);
+    color: var(--error-modal-eyebrow-color);
   }
 
   &__icon {
-    color: var(--severity-error);
+    color: var(--error-modal-icon-color);
     flex-shrink: 0;
   }
 
@@ -102,7 +102,7 @@
     margin: var(--space-3) 0 var(--space-5);
     font-size: var(--font-size-4xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--error-modal-title-color);
     line-height: var(--line-tight);
   }
 
@@ -116,17 +116,17 @@
     margin: 0;
     font-size: var(--font-size-base);
     line-height: var(--line-base);
-    color: var(--foreground);
+    color: var(--error-modal-body-color);
   }
 
   &__hint {
     margin: 0;
     font-size: var(--font-size-base);
     line-height: var(--line-base);
-    color: var(--foreground);
+    color: var(--error-modal-hint-color);
 
     a {
-      color: var(--foreground);
+      color: var(--error-modal-hint-color);
       text-decoration: underline;
       text-underline-offset: 2px;
     }
@@ -141,7 +141,7 @@
 
 /* Generic dropdown panel — used inline (not through .modal). */
 .dropdown-panel {
-  background: var(--surface-content);
+  background: var(--dropdown-panel-background);
   border-radius: var(--radius-lg);
   box-shadow: var(--elevation-lg);
   padding: var(--space-3);
@@ -165,27 +165,27 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
-  color: var(--foreground);
+  color: var(--dropdown-item-color);
   text-align: left;
   cursor: pointer;
   transition: var(--transition-colors);
   font-weight: var(--weight-regular);
 
   &:hover {
-    background: var(--surface-tertiary);
+    background: var(--dropdown-item-background-hover);
   }
 
   &--active {
-    background: var(--surface-tertiary);
+    background: var(--dropdown-item-background-active);
     font-weight: var(--weight-bold);
 
     &:hover {
-      background: var(--surface-tertiary);
+      background: var(--dropdown-item-background-active);
     }
   }
 
   &--muted {
-    color: var(--text-secondary);
+    color: var(--dropdown-item-color-muted);
   }
 
   &__label {
@@ -228,7 +228,7 @@
   align-items: flex-start;
   justify-content: center;
   padding: 8vh var(--space-4) var(--space-8);
-  background: var(--overlay-backdrop-light);
+  background: var(--project-settings-overlay-scrim);
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-standard);
 
@@ -252,7 +252,7 @@
     max-width: 640px;
     max-height: 90vh;
     overflow: auto;
-    background: var(--surface-content);
+    background: var(--project-settings-overlay-panel-background);
     border-radius: var(--radius-lg);
     box-shadow: var(--elevation-lg);
     display: flex;
@@ -276,7 +276,7 @@
     padding: 0;
     margin: 0;
     cursor: text;
-    color: var(--foreground);
+    color: var(--project-settings-overlay-title-color);
     border-radius: var(--radius-sm);
 
     &:hover .project-settings-overlay__title-icon {
@@ -291,7 +291,7 @@
   }
 
   &__title-icon {
-    color: var(--text-muted);
+    color: var(--project-settings-overlay-title-icon-color);
     opacity: 0.5;
     transition: opacity var(--duration-base) var(--ease-standard);
   }
@@ -303,12 +303,12 @@
     border: none;
     outline: none;
     background: transparent;
-    color: var(--foreground);
+    color: var(--project-settings-overlay-title-input-color);
     font-family: inherit;
     font-size: var(--font-size-3xl);
     font-weight: var(--weight-bold);
     line-height: var(--line-tight);
-    border-bottom: 1px solid var(--foreground);
+    border-bottom: 1px solid var(--project-settings-overlay-title-input-border);
   }
 
   &__close {
@@ -333,7 +333,7 @@
 
   &__divider {
     border: none;
-    border-top: 1px solid var(--border-primary);
+    border-top: 1px solid var(--project-settings-overlay-divider-color);
     margin: 0;
   }
 
@@ -348,23 +348,23 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-muted);
+    color: var(--project-settings-overlay-danger-toggle-color);
 
     &:hover {
-      color: var(--foreground);
+      color: var(--project-settings-overlay-danger-toggle-color-hover);
     }
   }
 
   &__section-title {
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-regular);
-    color: var(--text-muted);
+    color: var(--project-settings-overlay-section-title-color);
   }
 
   &__danger-glyph {
     font-size: var(--font-size-xl);
     line-height: 1;
-    color: var(--text-muted);
+    color: var(--project-settings-overlay-danger-glyph-color);
   }
 
   &__danger-body {
@@ -385,19 +385,19 @@
     margin: 0 0 var(--space-1) 0;
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--project-settings-overlay-danger-heading-color);
   }
 
   &__danger-copy {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--project-settings-overlay-danger-copy-color);
   }
 
   &__empty {
     margin: 0;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--project-settings-overlay-empty-color);
     font-style: italic;
   }
 
@@ -415,16 +415,16 @@
     justify-content: space-between;
     gap: var(--space-3);
     padding: var(--space-3) 0;
-    border-top: 1px solid var(--border-primary);
+    border-top: 1px solid var(--project-settings-overlay-archived-row-border);
 
     &:last-child {
-      border-bottom: 1px solid var(--border-primary);
+      border-bottom: 1px solid var(--project-settings-overlay-archived-row-border);
     }
   }
 
   &__archived-name {
     font-size: var(--font-size-md);
-    color: var(--foreground);
+    color: var(--project-settings-overlay-archived-name-color);
   }
 
   &__archived-actions {
@@ -438,7 +438,7 @@
     border: none;
     padding: 0;
     cursor: pointer;
-    color: var(--foreground);
+    color: var(--project-settings-overlay-link-action-color);
     font-size: var(--font-size-md);
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -448,7 +448,7 @@
     }
 
     &--danger {
-      color: var(--severity-error);
+      color: var(--project-settings-overlay-link-action-color-danger);
     }
   }
 }
@@ -465,7 +465,7 @@
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-regular);
-    color: var(--text-muted);
+    color: var(--test-steps-heading-color);
   }
 
   &__list {
@@ -487,7 +487,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--step-row-border);
 
   &:last-child {
     border-bottom: none;
@@ -499,7 +499,7 @@
   &--deleted {
     justify-content: space-between;
     padding: var(--space-2) var(--space-3);
-    background: color-mix(in srgb, var(--severity-error) 8%, transparent);
+    background: var(--step-row-deleted-background);
     border-radius: var(--radius-sm);
     border-bottom: none;
   }
@@ -511,19 +511,19 @@
   }
 
   &__deleted-label {
-    color: var(--text-muted);
+    color: var(--step-row-deleted-label-color);
     font-size: var(--font-size-md);
   }
 
   &__undo {
-    color: var(--foreground);
+    color: var(--step-row-undo-color);
   }
 
   &__grip {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    color: var(--text-muted);
+    color: var(--step-row-grip-color);
     line-height: 1;
     cursor: grab;
 
@@ -533,12 +533,12 @@
   }
 
   &__type-icon {
-    color: var(--text-muted);
+    color: var(--step-row-type-icon-color);
     flex-shrink: 0;
     display: inline-flex;
 
     &--microtest {
-      color: var(--text-subdued);
+      color: var(--step-row-type-icon-color-microtest);
     }
   }
 
@@ -549,7 +549,7 @@
     background: transparent;
     border: none;
     padding: 0;
-    color: var(--foreground);
+    color: var(--step-row-label-color);
     font-family: inherit;
     font-size: var(--font-size-base);
     cursor: pointer;
@@ -570,22 +570,22 @@
   }
 
   &__camera {
-    color: var(--text-muted);
+    color: var(--step-row-camera-color);
 
     &--off {
       opacity: 0.4;
     }
 
     &--on {
-      color: var(--foreground);
+      color: var(--step-row-camera-color-on);
     }
   }
 
   &__trash {
-    color: var(--text-muted);
+    color: var(--step-row-trash-color);
 
     &:hover {
-      color: var(--severity-error);
+      color: var(--step-row-trash-color-hover);
     }
   }
 }
@@ -599,14 +599,14 @@
 
   &__heading {
     margin: 0;
-    color: var(--foreground);
+    color: var(--empty-steps-heading-color);
     font-size: var(--font-size-lg);
     font-weight: var(--weight-bold);
   }
 
   &__copy {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--empty-steps-copy-color);
     font-size: var(--font-size-md);
     line-height: var(--line-base);
     max-width: 48ch;
@@ -622,10 +622,10 @@
 .ts-accordion {
   /* Border on the wrapper instead of <hr> siblings — adjacent accordions
      share a single rule via :first-of-type / :last-of-type below. */
-  border-top: 1px solid var(--border-primary);
+  border-top: 1px solid var(--ts-accordion-border);
 
   &:last-of-type {
-    border-bottom: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--ts-accordion-border);
   }
 
   /* CSS-grid height animation: the collapse wrapper goes from 0fr → 1fr
@@ -659,7 +659,7 @@
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-    color: var(--text-muted);
+    color: var(--ts-accordion-glyph-color);
 
     &::before,
     &::after {
@@ -703,7 +703,7 @@
   &__label {
     margin: 0;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--test-settings-section-label-color);
   }
 }
 
@@ -716,19 +716,19 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--foreground);
+    color: var(--credentials-section-row-color);
     font-size: var(--font-size-base);
   }
 
   &__label {
-    color: var(--text-muted);
+    color: var(--credentials-section-label-color);
     font-size: var(--font-size-md);
     min-width: 150px;
   }
 
   &__hint {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--credentials-section-hint-color);
     font-size: var(--font-size-sm);
   }
 }
@@ -740,7 +740,7 @@
 
   &__copy {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--add-step-fork-copy-color);
     font-size: var(--font-size-md);
   }
 
@@ -756,21 +756,21 @@
     gap: var(--space-2);
     padding: var(--space-5);
     background: transparent;
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--add-step-fork-card-border);
     border-radius: var(--radius-md);
     text-align: left;
     cursor: pointer;
-    color: var(--foreground);
+    color: var(--add-step-fork-card-color);
     transition: var(--transition-colors);
 
     &:hover {
-      border-color: var(--foreground);
-      background: var(--surface-hover-soft);
+      border-color: var(--add-step-fork-card-border-hover);
+      background: var(--add-step-fork-card-background-hover);
     }
   }
 
   &__card-icon {
-    color: var(--text-muted);
+    color: var(--add-step-fork-card-icon-color);
   }
 
   &__card-title {
@@ -780,7 +780,7 @@
 
   &__card-copy {
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--add-step-fork-card-copy-color);
     line-height: var(--line-base);
   }
 }
@@ -792,7 +792,7 @@
 
   &__hint {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--step-editor-hint-color);
     font-size: var(--font-size-md);
   }
 
@@ -804,7 +804,7 @@
 
   &__label {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--step-editor-label-color);
   }
 
   &__actions {
@@ -826,7 +826,7 @@
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-regular);
-    color: var(--text-muted);
+    color: var(--settings-section-title-color);
   }
 
   &__row {
@@ -844,13 +844,13 @@
 
   &__label {
     margin: 0;
-    color: var(--foreground);
+    color: var(--settings-section-label-color);
     font-size: var(--font-size-base);
   }
 
   &__hint {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--settings-section-hint-color);
     font-size: var(--font-size-md);
   }
 

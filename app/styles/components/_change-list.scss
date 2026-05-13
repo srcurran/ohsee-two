@@ -15,7 +15,7 @@
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--change-list-title-color);
   }
 
   &__filters {
@@ -62,20 +62,20 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  border-left: 3px solid var(--severity-info);
-  background: var(--surface-tertiary);
+  border-left: 3px solid var(--change-entry-border-info);
+  background: var(--change-entry-background);
   padding: var(--space-2-5) var(--space-4) var(--space-2-5) var(--space-3);
 
   &--error {
-    border-left-color: var(--severity-error);
+    border-left-color: var(--change-entry-border-error);
   }
 
   &--info {
-    border-left-color: var(--severity-info);
+    border-left-color: var(--change-entry-border-info);
   }
 
   &--ok {
-    border-left-color: var(--accent-green);
+    border-left-color: var(--change-entry-border-ok);
   }
 
   &--interactive {
@@ -83,7 +83,7 @@
     transition: var(--transition-colors);
 
     &:hover {
-      background: color-mix(in srgb, var(--surface-tertiary) 80%, transparent);
+      background: color-mix(in srgb, var(--change-entry-background) 80%, transparent);
     }
   }
 
@@ -95,14 +95,14 @@
     border-left: none;
     background: transparent;
     padding-left: var(--space-3);
-    border-bottom: 1px solid color-mix(in srgb, var(--border-primary) 60%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--change-entry-divider) 60%, transparent);
 
     &:last-child {
       border-bottom: none;
     }
 
     &.change-entry--interactive:hover {
-      background: color-mix(in srgb, var(--foreground) 4%, transparent);
+      background: color-mix(in srgb, var(--change-entry-hover-tint) 4%, transparent);
     }
   }
 
@@ -126,12 +126,12 @@
 
   &__description {
     font-size: var(--font-size-base);
-    color: var(--foreground);
+    color: var(--change-entry-description-color);
   }
 
   &__selector {
     font-size: var(--font-size-sm);
-    color: var(--text-subtle);
+    color: var(--change-entry-selector-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -144,13 +144,13 @@
 .change-group {
   display: flex;
   flex-direction: column;
-  border-left: 3px solid var(--severity-info);
-  background: var(--surface-tertiary);
+  border-left: 3px solid var(--change-group-border-info);
+  background: var(--change-group-background);
   border-radius: var(--radius-sm);
   overflow: hidden;
 
-  &--error { border-left-color: var(--severity-error); }
-  &--info  { border-left-color: var(--severity-info); }
+  &--error { border-left-color: var(--change-group-border-error); }
+  &--info  { border-left-color: var(--change-group-border-info); }
 
   &__header {
     display: flex;
@@ -158,7 +158,7 @@
     justify-content: space-between;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3) var(--space-2) var(--space-3);
-    border-bottom: 1px solid color-mix(in srgb, var(--border-primary) 60%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--change-group-divider) 60%, transparent);
   }
 
   &__selector {
@@ -168,7 +168,7 @@
     white-space: nowrap;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: var(--font-size-sm);
-    color: var(--text-subtle);
+    color: var(--change-group-selector-color);
   }
 
   &__count {
@@ -176,11 +176,11 @@
     min-width: 22px;
     padding: 0 var(--space-1-5);
     border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    background: color-mix(in srgb, var(--change-group-count-tint) 8%, transparent);
     text-align: center;
     font-size: var(--font-size-xs);
     font-weight: var(--weight-semibold);
-    color: var(--text-secondary);
+    color: var(--change-group-count-color);
   }
 
   &__items {
@@ -196,12 +196,12 @@
   gap: var(--space-2);
   border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-5);
-  background: color-mix(in srgb, var(--accent-green) 20%, transparent);
+  background: color-mix(in srgb, var(--change-notice-background-accent) 20%, transparent);
   font-size: var(--font-size-lg);
-  color: var(--text-secondary);
+  color: var(--change-notice-color);
 
   &--tinted {
-    background: var(--surface-tertiary);
+    background: var(--change-notice-background-tinted);
     font-size: var(--font-size-base);
   }
 

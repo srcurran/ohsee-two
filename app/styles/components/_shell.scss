@@ -44,7 +44,7 @@
   transition: var(--transition-colors);
 
   &:hover {
-    background: var(--surface-hover);
+    background: var(--titlebar-collapse-background-hover);
   }
 
   /* Sidebar open — pinned to the same x as the footer gear (right side of
@@ -90,7 +90,7 @@
     white-space: nowrap;
     font-size: var(--font-size-md);
     font-weight: var(--weight-semibold);
-    color: color-mix(in srgb, var(--foreground) 80%, transparent);
+    color: var(--page-title-bar-label-color);
   }
 
   /* Custom header content (per-page React node, e.g. report eyebrow row).
@@ -129,8 +129,8 @@
   margin-bottom: var(--space-3);
   overflow: hidden;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-primary);
-  background: var(--surface-primary);
+  border: 1px solid var(--accordion-border);
+  background: var(--accordion-background);
 
   &__toggle {
     display: flex;
@@ -148,18 +148,18 @@
   &__label {
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--accordion-label-color);
   }
 
   &__count {
     font-size: var(--font-size-md);
     font-weight: var(--weight-regular);
-    color: var(--text-muted);
+    color: var(--accordion-count-color);
   }
 
   &__chevron-wrap {
     margin-left: auto;
-    color: var(--text-muted);
+    color: var(--accordion-chevron-color);
   }
 
   &__chevron {
@@ -184,7 +184,7 @@
   transition-property: background-color;
   transition-timing-function: var(--ease-standard);
 
-  &--visible { background: var(--overlay-backdrop-light); }
+  &--visible { background: var(--settings-overlay-scrim); }
   &--hidden {
     background: transparent;
     pointer-events: none;
@@ -193,7 +193,7 @@
   &__panel {
     display: flex;
     overflow: hidden;
-    background: var(--surface-content);
+    background: var(--settings-overlay-panel-background);
     box-shadow: var(--elevation-lg);
   }
 
@@ -203,8 +203,8 @@
     flex-shrink: 0;
     flex-direction: column;
     gap: var(--space-1);
-    border-right: 1px solid var(--border-primary);
-    background: var(--surface-secondary);
+    border-right: 1px solid var(--settings-overlay-nav-border);
+    background: var(--settings-overlay-nav-background);
     padding: var(--space-4);
   }
 
@@ -216,21 +216,21 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-secondary);
+    color: var(--settings-overlay-nav-item-color);
     transition: var(--transition-colors);
     font-family: inherit;
 
     &:hover {
-      background: var(--surface-hover-bare);
-      color: var(--foreground);
+      background: var(--settings-overlay-nav-item-background-hover);
+      color: var(--settings-overlay-nav-item-color-hover);
     }
 
     &--active {
-      background: color-mix(in srgb, var(--foreground) 6%, transparent);
+      background: var(--settings-overlay-nav-item-background-active);
       font-weight: var(--weight-semibold);
-      color: var(--foreground);
+      color: var(--settings-overlay-nav-item-color-active);
 
-      &:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
+      &:hover { background: var(--settings-overlay-nav-item-background-active); }
     }
   }
 
@@ -272,15 +272,15 @@
 
   &:disabled { opacity: 0.4; }
 
-  &--on  { background: var(--foreground); }
-  &--off { background: color-mix(in srgb, var(--foreground) 20%, transparent); }
+  &--on  { background: var(--toggle-background-on); }
+  &--off { background: var(--toggle-background-off); }
 
   &__knob {
     display: inline-block;
     width: 18px;
     height: 18px;
     border-radius: var(--radius-full);
-    background: var(--surface-content);
+    background: var(--toggle-knob-background);
     transition: transform var(--duration-base) var(--ease-standard);
 
     &--on  { transform: translateX(19px); }
@@ -295,8 +295,8 @@
   justify-content: space-between;
   gap: var(--space-4);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-  background: var(--surface-tertiary);
+  border: 1px solid var(--credential-row-border);
+  background: var(--credential-row-background);
   padding: var(--space-3);
 
   &__info {
@@ -311,7 +311,7 @@
     white-space: nowrap;
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--credential-row-label-color);
   }
 
   &__key {
@@ -321,7 +321,7 @@
     white-space: nowrap;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--credential-row-key-color);
   }
 
   &__actions {

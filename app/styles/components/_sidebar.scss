@@ -11,15 +11,13 @@
   width: 240px;
   height: 100vh;
   overflow: hidden;
-  background: var(--surface-tertiary);
+  background: var(--sidebar-background);
   padding: var(--space-8) var(--space-4);
 
   &--flat {
-    /* Use the off-white surface token so the sidebar flips with the
-     * theme — the previous hardcoded #fafafa stayed near-white in dark
-     * mode and made the white sidebar text unreadable. */
-    background: var(--surface-secondary);
-    border-right: 1px solid var(--border-primary);
+    /* `--flat` is the variant actually used in app shell. Background
+     * comes from the same component token so themes flip together. */
+    background: var(--sidebar-background);
     padding-block: 44px var(--space-5);
   }
 
@@ -71,7 +69,7 @@
      tests, or one of its reports). Soft surface highlight to mirror the
      selected-row pattern used elsewhere. */
   &__group--active {
-    background: var(--surface-hover);
+    background: var(--sidebar-group-background-active);
   }
 
   &__header {
@@ -93,7 +91,7 @@
   &__title {
     font-size: var(--font-size-lg);
     font-weight: var(--weight-semibold);
-    color: var(--foreground);
+    color: var(--sidebar-title-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -117,14 +115,14 @@
     background: transparent;
 
     &:hover {
-      background: var(--surface-hover-soft);
+      background: var(--sidebar-item-background-hover);
     }
 
     &--active {
-      background: var(--surface-content);
+      background: var(--sidebar-item-background-active);
 
       &:hover {
-        background: var(--surface-content);
+        background: var(--sidebar-item-background-active);
       }
     }
   }
@@ -133,7 +131,7 @@
     flex: 1;
     min-width: 0;
     font-size: var(--font-size-lg);
-    color: var(--foreground);
+    color: var(--sidebar-item-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -142,7 +140,7 @@
   &__test-time {
     flex-shrink: 0;
     font-size: var(--font-size-sm);
-    color: var(--text-faint);
+    color: var(--sidebar-meta-color);
     white-space: nowrap;
 
     .sidebar__test:hover & {
@@ -162,21 +160,21 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-dim);
+    color: var(--sidebar-action-color);
 
     .sidebar__test:hover & {
       display: inline-flex;
     }
 
     &:hover {
-      background: var(--surface-hover);
+      background: var(--sidebar-action-background-hover);
     }
   }
 
   &__show-more {
     padding: var(--space-1) var(--space-2);
     font-size: var(--font-size-base);
-    color: var(--text-faint);
+    color: var(--sidebar-cta-color);
     text-align: left;
     background: transparent;
     border: none;
@@ -186,7 +184,7 @@
     border-radius: var(--radius-xs);
 
     &:hover {
-      color: var(--text-dim);
+      color: var(--sidebar-cta-color-hover);
     }
   }
 
@@ -197,7 +195,7 @@
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-xs);
     font-size: var(--font-size-base);
-    color: var(--text-faint);
+    color: var(--sidebar-cta-color);
     cursor: pointer;
     background: transparent;
     border: none;
@@ -205,13 +203,15 @@
     font-family: inherit;
 
     &:hover {
-      color: var(--text-dim);
+      color: var(--sidebar-cta-color-hover);
     }
   }
 
   &__divider {
+    /* Visual line removed; element preserved so spacing/structure stays
+     * the same. Re-add `background: var(--border-primary)` to bring it back. */
     height: 1px;
-    background: var(--border-primary);
+    background: transparent;
 
     &--top {
       margin-top: var(--space-6);
@@ -223,7 +223,7 @@
     align-items: center;
     gap: var(--space-2);
     padding-inline: var(--space-1);
-    color: var(--text-subdued);
+    color: var(--sidebar-footer-color);
     cursor: pointer;
     background: transparent;
     border: none;
@@ -231,7 +231,7 @@
     font-family: inherit;
 
     &:hover {
-      color: var(--foreground);
+      color: var(--sidebar-footer-color-hover);
     }
   }
 
@@ -242,14 +242,14 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius-md);
-    background: var(--surface-content);
+    background: var(--sidebar-plus-background);
     font-size: var(--font-size-2xl);
-    color: var(--text-subdued);
+    color: var(--sidebar-footer-color);
   }
 
   &__add-label {
     font-size: var(--font-size-2xl);
-    color: var(--text-subdued);
+    color: var(--sidebar-footer-color);
   }
 
   &__footer {
@@ -291,15 +291,15 @@
     height: 100%;
     align-items: center;
     justify-content: center;
-    background: var(--accent-yellow);
+    background: var(--sidebar-avatar-background);
     font-size: var(--font-size-base);
     font-weight: var(--weight-semibold);
-    color: var(--foreground);
+    color: var(--sidebar-avatar-color);
   }
 
   &__footer-label {
     font-size: var(--font-size-2xl);
-    color: var(--text-subdued);
+    color: var(--sidebar-footer-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -318,12 +318,12 @@
     gap: var(--space-1-5);
     margin-bottom: var(--space-4);
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--sidenav-back-color);
     text-decoration: none;
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--foreground);
+      color: var(--sidenav-back-color-hover);
     }
   }
 
@@ -331,7 +331,7 @@
     margin: 0 0 var(--space-6) 0;
     font-size: var(--font-size-5xl);
     font-weight: var(--weight-regular);
-    color: var(--foreground);
+    color: var(--sidenav-title-color);
   }
 
   &__list {
@@ -344,19 +344,19 @@
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-md);
     font-size: var(--font-size-base);
-    color: var(--text-muted);
+    color: var(--sidenav-item-color);
     text-decoration: none;
     transition: var(--transition-colors);
 
     &:hover {
-      background: var(--surface-tertiary);
-      color: var(--foreground);
+      background: var(--sidenav-item-background-hover);
+      color: var(--sidenav-item-color-hover);
     }
 
     &--active {
-      background: var(--surface-tertiary);
+      background: var(--sidenav-item-background-active);
       font-weight: var(--weight-bold);
-      color: var(--foreground);
+      color: var(--sidenav-item-color-active);
     }
   }
 }

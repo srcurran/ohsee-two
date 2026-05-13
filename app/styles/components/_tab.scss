@@ -2,7 +2,7 @@
    .segmented — pill-style mode selector used for comparison tap/slider. */
 
 .tab-bar {
-  border-bottom: 1px solid var(--border-secondary);
+  border-bottom: 1px solid var(--tab-bar-border);
 
   &--inset {
     padding-inline: var(--space-6);
@@ -26,7 +26,7 @@
   padding-block: var(--space-3);
   font-size: var(--font-size-base);
   font-weight: var(--weight-regular);
-  color: var(--foreground);
+  color: var(--tab-color);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -48,7 +48,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: var(--foreground);
+    background: var(--tab-indicator-background);
   }
 }
 
@@ -57,14 +57,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--variant-tabs-border);
   padding: var(--space-2) var(--space-6);
 
   &__label {
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-subtle);
+    color: var(--variant-tabs-label-color);
   }
 }
 
@@ -72,17 +72,17 @@
   background: transparent;
   border: none;
   font-size: var(--font-size-base);
-  color: var(--text-muted);
+  color: var(--variant-tab-color);
   cursor: pointer;
   transition: var(--transition-colors);
   font-family: inherit;
 
   &:hover {
-    color: var(--foreground);
+    color: var(--variant-tab-color-hover);
   }
 
   &--active {
-    color: var(--foreground);
+    color: var(--variant-tab-color-active);
     font-weight: var(--weight-bold);
   }
 }
@@ -94,17 +94,17 @@
   gap: var(--space-1);
   padding: var(--space-0-75);
   border-radius: var(--radius-md);
-  background: var(--surface-tertiary);
+  background: var(--segmented-background);
 
   &--content-bg {
-    background: var(--surface-content);
+    background: var(--segmented-background-content);
   }
 
   &__item {
     padding: var(--space-0-75) var(--space-2-5);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--segmented-item-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -112,28 +112,28 @@
     font-family: inherit;
 
     &:hover {
-      color: var(--foreground);
+      color: var(--segmented-item-color-hover);
     }
 
     &--active {
-      background: var(--surface-content);
-      color: var(--foreground);
+      background: var(--segmented-item-background-active);
+      color: var(--segmented-item-color-active);
       font-weight: var(--weight-bold);
       box-shadow: var(--elevation-sm);
 
       &:hover {
-        color: var(--foreground);
+        color: var(--segmented-item-color-active);
       }
     }
 
     &--active-alt {
-      background: var(--surface-tertiary);
-      color: var(--foreground);
+      background: var(--segmented-item-background-active-alt);
+      color: var(--segmented-item-color-active);
       font-weight: var(--weight-bold);
       box-shadow: var(--elevation-sm);
 
       &:hover {
-        color: var(--foreground);
+        color: var(--segmented-item-color-active);
       }
     }
   }
@@ -144,7 +144,7 @@
   padding: var(--space-1-5) var(--space-3-5);
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
-  color: var(--text-muted);
+  color: var(--tab-pill-color);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -152,17 +152,17 @@
   font-family: inherit;
 
   &:hover {
-    background: var(--surface-hover-bare);
-    color: var(--foreground);
+    background: var(--tab-pill-background-hover);
+    color: var(--tab-pill-color-hover);
   }
 
   &--active {
-    background: var(--surface-tertiary);
+    background: var(--tab-pill-background-active);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--tab-pill-color-active);
 
     &:hover {
-      background: var(--surface-tertiary);
+      background: var(--tab-pill-background-active);
     }
   }
 }
