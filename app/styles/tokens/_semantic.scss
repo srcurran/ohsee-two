@@ -93,9 +93,9 @@
   --sidenav-back-color-hover:           var(--neutral-dark-900);
   --sidenav-title-color:                var(--neutral-dark-900);
   --sidenav-item-color:                 var(--neutral-dark-500);
-  --sidenav-item-background-hover:      var(--neutral-light-300);
+  --sidenav-item-background-hover:      var(--neutral-light-200);
   --sidenav-item-color-hover:           var(--neutral-dark-900);
-  --sidenav-item-background-active:     var(--neutral-light-300);
+  --sidenav-item-background-active:     var(--neutral-light-200);
   --sidenav-item-color-active:          var(--neutral-dark-900);
 
   /* ── Buttons (.btn variants) ───────────────────────────────────── */
@@ -103,21 +103,21 @@
   --btn-primary-color:                  var(--on-action);
   --btn-cancel-background:              var(--status-error-500);
   --btn-cancel-color:                   var(--on-error);
-  --btn-secondary-background:           var(--neutral-light-300);
+  --btn-secondary-background:           var(--neutral-light-200);
   --btn-secondary-background-hover:     var(--surface-hover);       /* computed tint */
   --btn-secondary-color:                var(--neutral-dark-900);
-  --btn-outline-background-hover:       var(--neutral-light-300);
+  --btn-outline-background-hover:       var(--neutral-light-200);
   --btn-outline-color:                  var(--neutral-dark-900);
   --btn-outline-border:                 var(--neutral-dark-400);
   --btn-outline-soft-border:            var(--neutral-dark-100);
   --btn-outline-soft-color:             var(--neutral-dark-500);
   --btn-ghost-color:                    var(--neutral-dark-500);
-  --btn-ghost-background-hover:         var(--neutral-light-300);
+  --btn-ghost-background-hover:         var(--neutral-light-200);
   --btn-danger-background:              var(--status-error-500);
   --btn-danger-color:                   var(--on-error);
   --btn-danger-outline-border:          var(--status-error-500);
   --btn-danger-outline-color:           var(--status-error-500);
-  --btn-danger-outline-background-hover: var(--neutral-light-300);
+  --btn-danger-outline-background-hover: var(--neutral-light-200);
   --btn-text-color:                     var(--neutral-dark-500);
   --btn-text-color-hover:               var(--neutral-dark-900);
   --btn-link-color:                     var(--neutral-dark-500);
@@ -139,23 +139,23 @@
   --report-date-btn-background-hover:          var(--surface-hover-bare); /* computed tint */
   --report-date-color:                         var(--neutral-dark-900);
   --report-status-banner-border:               var(--neutral-dark-100);
-  --report-status-banner-background:           var(--neutral-light-300);
+  --report-status-banner-background:           var(--neutral-light-200);
   --report-status-banner-border-error:         var(--status-error-500);
-  --report-status-banner-background-error:     var(--neutral-light-300);
+  --report-status-banner-background-error:     var(--neutral-light-200);
   --report-status-banner-title-color:          var(--neutral-dark-500);
   --report-status-banner-title-color-error:    var(--status-error-800);
   --report-status-banner-detail-color:         var(--status-error-800);
   --report-flow-title-color:                   var(--neutral-dark-900);
-  --progress-bar-background:                   var(--neutral-light-300);
+  --progress-bar-background:                   var(--neutral-light-200);
   --progress-fill-background:                  var(--action-500);
   --progress-text-color:                       var(--neutral-dark-500);
-  --loader-spinner-track-color:                var(--neutral-light-300);
+  --loader-spinner-track-color:                var(--neutral-light-200);
   --loader-spinner-head-color:                 var(--action-500);
   --loader-text-color:                         var(--neutral-dark-500);
   --save-feedback-color:                       var(--status-success-500);
 
   /* ── App shell + sign-in + page-detail (layout/structural) ─────── */
-  --app-shell-background:                      var(--neutral-light-300);
+  --app-shell-background:                      var(--neutral-light-200);
   --app-shell-background-flat:                 var(--neutral-light-100);
   --app-main-content-background:               var(--neutral-light-100);
   --app-main-background-flat:                  var(--neutral-light-100);
@@ -177,17 +177,17 @@
   --toggle-background-off:                     color-mix(in srgb, var(--neutral-dark-900) 20%, transparent);
   --toggle-knob-background:                    var(--neutral-light-100);
   --credential-row-border:                     var(--neutral-dark-100);
-  --credential-row-background:                 var(--neutral-light-300);
+  --credential-row-background:                 var(--neutral-light-200);
   --credential-row-label-color:                var(--neutral-dark-900);
   --credential-row-key-color:                  var(--neutral-dark-500);
   --card-border:                               var(--neutral-dark-100);
   --card-danger-border:                        var(--status-error-500);
-  --card-tinted-background:                    var(--neutral-light-300);
+  --card-tinted-background:                    var(--neutral-light-200);
   --card-content-background:                   var(--neutral-light-100);
   --card-title-color:                          var(--neutral-dark-900);
   --card-body-color:                           var(--neutral-dark-500);
   --page-tile-background:                      var(--neutral-light-200);
-  --page-tile-thumb-background:                var(--neutral-light-300);
+  --page-tile-thumb-background:                var(--neutral-light-200);
   --page-tile-thumb-border:                    var(--neutral-dark-100);
   --page-tile-thumb-empty-color:               var(--neutral-dark-400);
   --page-tile-label-color:                     var(--neutral-dark-700);
@@ -203,8 +203,8 @@
   --error-modal-hint-color:                    var(--neutral-dark-900);
   --dropdown-panel-background:                 var(--neutral-light-100);
   --dropdown-item-color:                       var(--neutral-dark-900);
-  --dropdown-item-background-hover:            var(--neutral-light-300);
-  --dropdown-item-background-active:           var(--neutral-light-300);
+  --dropdown-item-background-hover:            var(--neutral-light-200);
+  --dropdown-item-background-active:           var(--neutral-light-200);
   --dropdown-item-color-muted:                 var(--neutral-dark-700);
   --project-settings-overlay-scrim:                       var(--overlay-backdrop-light);
   --project-settings-overlay-panel-background:            var(--neutral-light-100);
@@ -272,8 +272,8 @@
   --page-detail-panel-title-color:             var(--neutral-dark-900);
   --page-detail-panel-date-color:              var(--neutral-dark-900);
   --page-detail-panel-divider-background:      var(--neutral-dark-100);
-  --page-detail-panel-main-background:         var(--neutral-light-300);
-  --page-detail-panel-view-toggle-sticky-background: var(--neutral-light-300);
+  --page-detail-panel-main-background:         var(--neutral-light-200);
+  --page-detail-panel-view-toggle-sticky-background: var(--neutral-light-200);
   --page-detail-panel-view-label-color:        var(--neutral-dark-500);
   --page-detail-panel-view-label-color-active: var(--neutral-dark-900);
   --page-detail-panel-view-label-color-hover:  var(--neutral-dark-900);
@@ -295,13 +295,13 @@
   --report-page-show-all-border:               var(--neutral-dark-100);
   --report-page-show-all-background:           var(--neutral-light-100);
   --report-page-show-all-color:                var(--neutral-dark-900);
-  --report-page-show-all-background-hover:    var(--neutral-light-300);
+  --report-page-show-all-background-hover:    var(--neutral-light-200);
   --report-page-collapse-color:                var(--neutral-dark-500);
   --report-page-collapse-color-hover:          var(--neutral-dark-900);
   --page-title-menu-trigger-color:             var(--neutral-dark-900);
   --page-title-menu-trigger-background-hover:  var(--surface-hover-bare);
   --page-title-menu-panel-background:          var(--neutral-light-100);
-  --page-title-menu-item-background-hover:     var(--neutral-light-300);
+  --page-title-menu-item-background-hover:     var(--neutral-light-200);
   --page-title-menu-kind-color:                var(--neutral-dark-400);
   --page-title-menu-url-color:                 var(--neutral-dark-900);
 
@@ -320,7 +320,7 @@
   --textarea-border:                    var(--neutral-dark-100);
   --textarea-border-focus:              var(--neutral-dark-900);
   --textarea-placeholder-color:         var(--neutral-dark-500);
-  --textarea-background-tinted:         var(--neutral-light-300);
+  --textarea-background-tinted:         var(--neutral-light-200);
   --material-field-shell-border:        var(--neutral-dark-100);
   --material-field-shell-border-focus:  var(--neutral-dark-900);
   --material-field-shell-border-invalid: var(--status-error-500);
@@ -345,11 +345,11 @@
   --badge-success-color:                var(--on-success);   /* black on green */
   --badge-warning-background:           var(--status-error-500);
   --badge-warning-color:                var(--on-error);     /* white on red   */
-  --badge-success-tint-background:      var(--neutral-light-300);
-  --badge-warning-tint-background:      var(--neutral-light-300);
+  --badge-success-tint-background:      var(--neutral-light-200);
+  --badge-warning-tint-background:      var(--neutral-light-200);
   --badge-neutral-color:                var(--neutral-dark-100);
   --badge-flow-color:                   var(--neutral-dark-500);  /* neutral gray label */
-  --pill-background:                    var(--neutral-light-300);
+  --pill-background:                    var(--neutral-light-200);
   --pill-background-hover:              var(--surface-hover);
   --pill-color:                         var(--neutral-dark-700);
   --pill-background-active:             var(--neutral-dark-900);
@@ -369,12 +369,12 @@
   --variant-tab-color:                  var(--neutral-dark-500);
   --variant-tab-color-hover:            var(--neutral-dark-900);
   --variant-tab-color-active:           var(--neutral-dark-900);
-  --segmented-background:               var(--neutral-light-300);
+  --segmented-background:               var(--neutral-light-200);
   --segmented-background-content:       var(--neutral-light-100);
   --segmented-item-color:               var(--neutral-dark-500);
   --segmented-item-color-hover:         var(--neutral-dark-900);
   --segmented-item-background-active:   var(--neutral-light-100);
-  --segmented-item-background-active-alt: var(--neutral-light-300);
+  --segmented-item-background-active-alt: var(--neutral-light-200);
   --segmented-item-color-active:        var(--neutral-dark-900);
 
   /* ── Breakpoint editor + change-list + diff + flow + slider ────── */
@@ -385,7 +385,7 @@
   --bp-chip-remove-color:                var(--neutral-dark-500);
   --bp-chip-remove-color-hover:          var(--neutral-dark-900);
   --change-list-title-color:             var(--neutral-dark-900);
-  --change-entry-background:             var(--neutral-light-300);
+  --change-entry-background:             var(--neutral-light-200);
   --change-entry-border-info:            var(--neutral-dark-400);
   --change-entry-border-error:           var(--status-error-500);
   --change-entry-border-ok:              var(--status-success-500);
@@ -393,7 +393,7 @@
   --change-entry-hover-tint:             var(--neutral-dark-900);
   --change-entry-description-color:      var(--neutral-dark-900);
   --change-entry-selector-color:         var(--neutral-dark-400);
-  --change-group-background:             var(--neutral-light-300);
+  --change-group-background:             var(--neutral-light-200);
   --change-group-border-info:            var(--neutral-dark-400);
   --change-group-border-error:           var(--status-error-500);
   --change-group-divider:                var(--neutral-dark-100);
@@ -401,7 +401,7 @@
   --change-group-count-tint:             var(--neutral-dark-900);
   --change-group-count-color:            var(--neutral-dark-700);
   --change-notice-background-accent:     var(--status-success-500);
-  --change-notice-background-tinted:     var(--neutral-light-300);
+  --change-notice-background-tinted:     var(--neutral-light-200);
   --change-notice-color:                 var(--neutral-dark-700);
   --diff-viewer-border:                  var(--neutral-dark-100);
   --flow-editor-border:                  var(--neutral-dark-100);
@@ -414,11 +414,11 @@
   --flow-step-reorder-color:             var(--neutral-dark-500);
   --flow-step-reorder-color-hover:       var(--neutral-dark-900);
   --flow-step-index-color:               var(--neutral-dark-500);
-  --flow-step-kind-background:           var(--neutral-light-300);
+  --flow-step-kind-background:           var(--neutral-light-200);
   --flow-step-kind-color:                var(--neutral-dark-500);
   --flow-step-remove-color:              var(--neutral-dark-500);
   --flow-step-remove-color-hover:        var(--neutral-dark-900);
-  --flow-chip-background:                var(--neutral-light-300);
+  --flow-chip-background:                var(--neutral-light-200);
   --flow-chip-background-hover:          var(--surface-hover);
   --flow-chip-color:                     var(--neutral-dark-500);
   --flow-chip-color-hover:               var(--neutral-dark-900);
@@ -428,8 +428,8 @@
   --flow-chip-warning-color:             var(--neutral-dark-900);
   --flow-chip-danger-tint:               var(--status-error-500);
   --flow-chip-danger-color:              var(--status-error-500);
-  --comparison-background:               var(--neutral-taupe-500);
-  --comparison-handle-background:        var(--neutral-taupe-700);
+  --comparison-background:               var(--neutral-dark-400);
+  --comparison-handle-background:        var(--neutral-dark-500);
   --comparison-header-label-color:       var(--neutral-dark-500);
   --comparison-header-label-color-active: var(--neutral-dark-900);
   --favicon-background:                  var(--neutral-light-100);
@@ -438,17 +438,17 @@
 
   /* ── Misc (_misc.scss — small one-offs across the app) ─────────── */
   --breadcrumb-color:                    var(--neutral-dark-900);
-  --code-inline-background:              var(--neutral-light-300);
+  --code-inline-background:              var(--neutral-light-200);
   --code-editor-border:                  var(--neutral-dark-100);
   --test-result-border:                  var(--neutral-dark-100);
   --test-result-pass-tint:               var(--status-success-500);
   --test-result-pass-color:              var(--status-success-500);
   --test-result-fail-border:             var(--status-error-500);
-  --test-result-fail-background:         var(--neutral-light-300);
+  --test-result-fail-background:         var(--neutral-light-200);
   --test-result-fail-color:              var(--status-error-500);
   --test-result-duration-color:          var(--neutral-dark-500);
   --info-box-border:                     var(--neutral-dark-100);
-  --info-box-background-tint:            var(--neutral-light-300);
+  --info-box-background-tint:            var(--neutral-light-200);
   --info-box-accent-tint:                var(--status-success-500);
   --info-box-title-color:                var(--neutral-dark-500);
   --info-box-list-color:                 var(--neutral-dark-500);
@@ -458,7 +458,7 @@
   --recorder-instructions-background:    var(--neutral-light-100);
   --recorder-instructions-title-color:   var(--neutral-dark-900);
   --recorder-instructions-list-color:    var(--neutral-dark-700);
-  --recorder-instructions-marker-background: var(--neutral-light-300);
+  --recorder-instructions-marker-background: var(--neutral-light-200);
   --recorder-instructions-marker-color:  var(--neutral-dark-500);
   --error-text-color:                    var(--status-error-500);
   --section-heading-color:               var(--neutral-dark-900);
@@ -485,14 +485,11 @@
   --neutral-dark-150: rgba(255, 255, 255, 0.22);
   --neutral-dark-100: rgba(255, 255, 255, 0.16);
 
-  /* Neutral / Light → dark surfaces */
+  /* Neutral / Light → dark surfaces. Two values mirror the light-mode
+   * set: -100 is the primary surface, -200 is the tinted accent that
+   * shows lighter than -100 (good for hovers + accents). */
   --neutral-light-100: #1e1e1e;
-  --neutral-light-200: #121212;
-  --neutral-light-300: #2a2a2a;
-
-  /* Taupe */
-  --neutral-taupe-500: #7a7075;
-  --neutral-taupe-700: rgba(200, 200, 200, 0.4);
+  --neutral-light-200: #2a2a2a;
 
   /* Status — accents tuned to contrast against #1e1e1e */
   --status-success-500: #2dd97d;   /* lighter take on #09c667 for dark bg */

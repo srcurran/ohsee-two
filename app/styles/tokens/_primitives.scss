@@ -17,14 +17,13 @@
   --neutral-dark-150: rgba(0, 0, 0, 0.15);
   --neutral-dark-100: rgba(0, 0, 0, 0.1);
 
-  /* Neutral / Light (surfaces) */
+  /* Neutral / Light (surfaces). Just two values:
+   *   -100 = pure white (cards, modals, panels)
+   *   -200 = single neutral tint (page bg, hovers, accents)
+   * Everything else neutral comes from the --neutral-dark-* alpha
+   * scale above. */
   --neutral-light-100: #ffffff;
-  --neutral-light-200: #f8f6f6;
-  --neutral-light-300: #f2eee9;
-
-  /* Neutral / Taupe (comparison UI) */
-  --neutral-taupe-500: #9d9297;
-  --neutral-taupe-700: rgba(75, 75, 75, 0.5);
+  --neutral-light-200: #f5f5f5;
 
   /* Action / brand — single accent for primary CTAs and the rest of
    * the brand-coloured chrome (progress bar, loader head, .badge-flow). */
