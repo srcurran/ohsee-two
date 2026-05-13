@@ -1,8 +1,13 @@
-/* Generic .modal — centered scrim + panel used by lightweight overlays. */
-
-/* .modal — centered overlay + panel. Used by:
-     NewProjectOverlay, FlowRecorderModal, MicroTestImportModal,
-     MicroTestEditor popup in tests/page.tsx, PageDetailPanel scrim. */
+/* Generic .modal — centered scrim + panel used by lightweight overlays.
+ * Consumers: Wizard, FlowRecorderModal, CodegenRecorder,
+ * CredentialsSettings, ErrorModal (with --light-scrim).
+ *
+ * Structure mirrors the JSX tree:
+ *   <div .modal [--light-scrim]>
+ *     <div .modal__panel [--md|--compact]>
+ *       <h2/h3 .modal__title>                ← optional
+ *       <div .modal__actions [--sm]>         ← optional footer row
+ */
 
 .modal {
   position: fixed;
@@ -21,7 +26,7 @@
     background: var(--modal-scrim-light);
   }
 
-  &__panel {
+  .modal__panel {
     width: 100%;
     max-width: 520px;
     background: var(--modal-panel-background);
@@ -29,40 +34,28 @@
     padding: var(--space-8);
 
     &--md { max-width: 540px; }
-    &--lg { max-width: 600px; }
-    &--xl {
-      max-width: 640px;
-      max-height: 80vh;
-      overflow: auto;
-      padding: var(--space-6);
-    }
 
     &--compact {
       padding: var(--space-6);
     }
-  }
 
-  &__title {
-    margin: 0 0 var(--space-4) 0;
-    font-size: var(--font-size-3xl);
-    font-weight: var(--weight-bold);
-    color: var(--modal-title-color);
-  }
+    .modal__title {
+      margin: 0 0 var(--space-4) 0;
+      font-size: var(--font-size-3xl);
+      font-weight: var(--weight-bold);
+      color: var(--modal-title-color);
+    }
 
-  &__title--lg {
-    font-size: var(--font-size-4xl);
-    margin-bottom: var(--space-6);
-  }
+    .modal__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+      margin-top: var(--space-7);
 
-  &__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-3);
-    margin-top: var(--space-7);
-  }
-
-  &__actions--sm {
-    gap: var(--space-2);
-    margin-top: var(--space-2);
+      &--sm {
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+      }
+    }
   }
 }

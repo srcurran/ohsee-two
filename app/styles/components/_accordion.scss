@@ -1,6 +1,14 @@
-/* AccordionSection — collapsible section used in test settings. */
+/* AccordionSection — collapsible section used in test settings.
+ * Structure mirrors the JSX tree (AccordionSection.tsx):
+ *   <section .accordion>
+ *     <button .accordion__toggle>
+ *       <span .accordion__label>
+ *       <span .accordion__count>            ← optional
+ *       <span .accordion__chevron-wrap>
+ *         <svg .accordion__chevron [--open]>
+ *     <div .accordion__body>                ← only when open
+ */
 
-/* Accordion sections (AccordionSection.tsx — used in test settings) */
 .accordion {
   margin-bottom: var(--space-3);
   overflow: hidden;
@@ -8,7 +16,7 @@
   border: 1px solid var(--accordion-border);
   background: var(--accordion-background);
 
-  &__toggle {
+  .accordion__toggle {
     display: flex;
     width: 100%;
     align-items: center;
@@ -19,35 +27,35 @@
     border: none;
     cursor: pointer;
     font-family: inherit;
-  }
 
-  &__label {
-    font-size: var(--font-size-base);
-    font-weight: var(--weight-bold);
-    color: var(--accordion-label-color);
-  }
+    .accordion__label {
+      font-size: var(--font-size-base);
+      font-weight: var(--weight-bold);
+      color: var(--accordion-label-color);
+    }
 
-  &__count {
-    font-size: var(--font-size-md);
-    font-weight: var(--weight-regular);
-    color: var(--accordion-count-color);
-  }
+    .accordion__count {
+      font-size: var(--font-size-md);
+      font-weight: var(--weight-regular);
+      color: var(--accordion-count-color);
+    }
 
-  &__chevron-wrap {
-    margin-left: auto;
-    color: var(--accordion-chevron-color);
-  }
+    .accordion__chevron-wrap {
+      margin-left: auto;
+      color: var(--accordion-chevron-color);
 
-  &__chevron {
-    flex-shrink: 0;
-    transition: transform var(--duration-base) var(--ease-standard);
+      .accordion__chevron {
+        flex-shrink: 0;
+        transition: transform var(--duration-base) var(--ease-standard);
 
-    &--open {
-      transform: rotate(180deg);
+        &--open {
+          transform: rotate(180deg);
+        }
+      }
     }
   }
 
-  &__body {
+  .accordion__body {
     padding: 0 var(--space-5) var(--space-5);
   }
 }

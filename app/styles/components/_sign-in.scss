@@ -1,4 +1,16 @@
-/* Sign-in landing screen */
+/* Sign-in landing screen.
+ * Structure mirrors the JSX tree (app/sign-in/page.tsx):
+ *   <div .sign-in>
+ *     <div .sign-in__content>
+ *       <h1     .sign-in__logo>
+ *       <p      .sign-in__tagline>
+ *       <button .sign-in__cta>            ← Google sign-in
+ *       <div    .sign-in__divider>        ← dev-only
+ *         <div  .sign-in__divider-line>
+ *         <span .sign-in__divider-label>
+ *         <div  .sign-in__divider-line>
+ *       <form   .sign-in__form>           ← dev-only credentials form
+ */
 
 .sign-in {
   display: flex;
@@ -7,75 +19,75 @@
   justify-content: center;
   background: var(--sign-in-background);
 
-  &__content {
+  .sign-in__content {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-8);
-  }
 
-  &__logo {
-    margin: 0;
-    font-size: var(--font-size-7xl);
-    font-weight: var(--weight-bold);
-    color: var(--sign-in-logo-color);
-    text-align: center;
-  }
-
-  &__tagline {
-    margin: var(--space-2) 0 0 0;
-    font-size: var(--font-size-lg);
-    color: var(--sign-in-tagline-color);
-    text-align: center;
-  }
-
-  &__cta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    border-radius: var(--radius-lg);
-    background: var(--sign-in-cta-background);
-    color: var(--sign-in-cta-color);
-    padding: 14px var(--space-8);
-    font-size: var(--font-size-lg);
-    font-weight: var(--weight-bold);
-    border: none;
-    cursor: pointer;
-    transition:
-      var(--transition-colors),
-      var(--transition-transform),
-      var(--transition-shadow);
-
-    &:hover {
-      box-shadow: var(--elevation-md);
-      transform: translateY(-1px);
+    .sign-in__logo {
+      margin: 0;
+      font-size: var(--font-size-7xl);
+      font-weight: var(--weight-bold);
+      color: var(--sign-in-logo-color);
+      text-align: center;
     }
-  }
 
-  &__divider {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    width: 100%;
-    max-width: 320px;
-  }
+    .sign-in__tagline {
+      margin: var(--space-2) 0 0 0;
+      font-size: var(--font-size-lg);
+      color: var(--sign-in-tagline-color);
+      text-align: center;
+    }
 
-  &__divider-line {
-    height: 1px;
-    flex: 1;
-    background: var(--sign-in-divider-line-background);
-  }
+    .sign-in__cta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      border-radius: var(--radius-lg);
+      background: var(--sign-in-cta-background);
+      color: var(--sign-in-cta-color);
+      padding: 14px var(--space-8);
+      font-size: var(--font-size-lg);
+      font-weight: var(--weight-bold);
+      border: none;
+      cursor: pointer;
+      transition:
+        var(--transition-colors),
+        var(--transition-transform),
+        var(--transition-shadow);
 
-  &__divider-label {
-    font-size: var(--font-size-sm);
-    color: var(--sign-in-divider-label-color);
-  }
+      &:hover {
+        box-shadow: var(--elevation-md);
+        transform: translateY(-1px);
+      }
+    }
 
-  &__form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    width: 100%;
-    max-width: 320px;
+    .sign-in__divider {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      width: 100%;
+      max-width: 320px;
+
+      .sign-in__divider-line {
+        height: 1px;
+        flex: 1;
+        background: var(--sign-in-divider-line-background);
+      }
+
+      .sign-in__divider-label {
+        font-size: var(--font-size-sm);
+        color: var(--sign-in-divider-label-color);
+      }
+    }
+
+    .sign-in__form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      width: 100%;
+      max-width: 320px;
+    }
   }
 }

@@ -1,37 +1,48 @@
-/* BreakpointEditor — label header + removable chips + add input */
+/* BreakpointEditor — label header + removable chips + add input.
+ * Structure mirrors the JSX tree:
+ *   <div .breakpoint-editor>
+ *     <div .breakpoint-editor__header>
+ *       <span .breakpoint-editor__label>
+ *       <span .breakpoint-editor__count>
+ *     <div .breakpoint-editor__chips>
+ *       <div .bp-chip>              ← per breakpoint (separate top-level class)
+ *         <button .bp-chip__remove>
+ *     <div .breakpoint-editor__add>  ← input + add button
+ */
 
 .breakpoint-editor {
-  &__header {
+  .breakpoint-editor__header {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     margin-bottom: var(--space-2);
+
+    .breakpoint-editor__label {
+      font-size: var(--font-size-base);
+      color: var(--breakpoint-editor-label-color);
+    }
+
+    .breakpoint-editor__count {
+      font-size: var(--font-size-sm);
+      color: var(--breakpoint-editor-count-color);
+    }
   }
 
-  &__label {
-    font-size: var(--font-size-base);
-    color: var(--breakpoint-editor-label-color);
-  }
-
-  &__count {
-    font-size: var(--font-size-sm);
-    color: var(--breakpoint-editor-count-color);
-  }
-
-  &__chips {
+  .breakpoint-editor__chips {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2);
     margin-bottom: var(--space-3);
   }
 
-  &__add {
+  .breakpoint-editor__add {
     display: flex;
     align-items: center;
     gap: var(--space-2);
   }
 }
 
+/* Chip lives inside .breakpoint-editor__chips but is its own top-level class. */
 .bp-chip {
   display: inline-flex;
   align-items: center;
@@ -42,7 +53,7 @@
   font-size: var(--font-size-md);
   color: var(--bp-chip-color);
 
-  &__remove {
+  .bp-chip__remove {
     background: transparent;
     border: none;
     cursor: pointer;

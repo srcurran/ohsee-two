@@ -1,21 +1,32 @@
-/* TestSettingsOverlay — step list, accordions, step editor, and section chrome. */
+/* TestSettingsOverlay — step list, accordions, step editor, and section chrome.
+ * Reuses .project-settings-overlay panel chrome and adds the pieces below.
+ *
+ * Each block here is its own root (the overlay shell mixes them as
+ * siblings inside .project-settings-overlay__body). Children of each
+ * block are nested as descendant selectors so the SCSS reads like the
+ * rendered DOM.
+ */
 
-/* TestSettingsOverlay — reuses .project-settings-overlay panel chrome and
-   adds step-list, accordion, credentials, and add-step-fork pieces. */
-
+/* ──────────────────────────────────────────────────────────────────────
+ * TestSettingsOverlay step list (TestSettingsOverlay.tsx):
+ *   <section .test-steps>
+ *     <h3 .test-steps__heading>
+ *     <ul .test-steps__list>           ← rows are .step-row (see below)
+ *     <button .test-steps__add>
+ * ────────────────────────────────────────────────────────────────────── */
 .test-steps {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 
-  &__heading {
+  .test-steps__heading {
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-regular);
     color: var(--test-steps-heading-color);
   }
 
-  &__list {
+  .test-steps__list {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -23,12 +34,27 @@
     flex-direction: column;
   }
 
-  &__add {
+  .test-steps__add {
     align-self: flex-start;
     margin-top: var(--space-3);
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * One row in the step list (TestSettingsStepRow.tsx):
+ *   <li .step-row [--dragging | --deleted]>
+ *     <span .step-row__grip>
+ *     <span .step-row__type-icon [--url | --microtest]>
+ *     <button .step-row__label>
+ *     <div .step-row__actions>
+ *       <button .step-row__camera [--on | --off]>
+ *       <button .step-row__trash>
+ *
+ *   Pending-delete variant (PendingDeleteRow):
+ *   <li .step-row .step-row--deleted>
+ *     <span .step-row__deleted-label>
+ *     <button .step-row__undo>
+ * ────────────────────────────────────────────────────────────────────── */
 .step-row {
   display: flex;
   align-items: center;
@@ -57,16 +83,7 @@
     opacity: 0.4;
   }
 
-  &__deleted-label {
-    color: var(--step-row-deleted-label-color);
-    font-size: var(--font-size-md);
-  }
-
-  &__undo {
-    color: var(--step-row-undo-color);
-  }
-
-  &__grip {
+  .step-row__grip {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -79,7 +96,7 @@
     }
   }
 
-  &__type-icon {
+  .step-row__type-icon {
     color: var(--step-row-type-icon-color);
     flex-shrink: 0;
     display: inline-flex;
@@ -89,7 +106,7 @@
     }
   }
 
-  &__label {
+  .step-row__label {
     flex: 1 1 auto;
     min-width: 0;
     text-align: left;
@@ -110,33 +127,49 @@
     }
   }
 
-  &__actions {
+  .step-row__actions {
     display: flex;
     gap: var(--space-1);
     flex-shrink: 0;
+
+    .step-row__camera {
+      color: var(--step-row-camera-color);
+
+      &--off {
+        opacity: 0.4;
+      }
+
+      &--on {
+        color: var(--step-row-camera-color-on);
+      }
+    }
+
+    .step-row__trash {
+      color: var(--step-row-trash-color);
+
+      &:hover {
+        color: var(--step-row-trash-color-hover);
+      }
+    }
   }
 
-  &__camera {
-    color: var(--step-row-camera-color);
-
-    &--off {
-      opacity: 0.4;
-    }
-
-    &--on {
-      color: var(--step-row-camera-color-on);
-    }
+  .step-row__deleted-label {
+    color: var(--step-row-deleted-label-color);
+    font-size: var(--font-size-md);
   }
 
-  &__trash {
-    color: var(--step-row-trash-color);
-
-    &:hover {
-      color: var(--step-row-trash-color-hover);
-    }
+  .step-row__undo {
+    color: var(--step-row-undo-color);
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Empty-state placeholder (TestSettingsEmpty.tsx):
+ *   <div .empty-steps>
+ *     <p .empty-steps__heading>
+ *     <p .empty-steps__copy>
+ *     <div .empty-steps__actions>
+ * ────────────────────────────────────────────────────────────────────── */
 .empty-steps {
   display: flex;
   flex-direction: column;
@@ -144,14 +177,14 @@
   gap: var(--space-3);
   padding: var(--space-4) 0;
 
-  &__heading {
+  .empty-steps__heading {
     margin: 0;
     color: var(--empty-steps-heading-color);
     font-size: var(--font-size-lg);
     font-weight: var(--weight-bold);
   }
 
-  &__copy {
+  .empty-steps__copy {
     margin: 0;
     color: var(--empty-steps-copy-color);
     font-size: var(--font-size-md);
@@ -159,13 +192,23 @@
     max-width: 48ch;
   }
 
-  &__actions {
+  .empty-steps__actions {
     display: flex;
     gap: var(--space-3);
     margin-top: var(--space-1);
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Disclosure block (TestSettingsAccordion.tsx):
+ *   <div .ts-accordion [--open]>
+ *     <button .project-settings-overlay__danger-toggle>
+ *       <span .project-settings-overlay__section-title>
+ *       <span .ts-accordion__glyph [--open]>   ← +/- morph glyph
+ *     <div .ts-accordion__collapse>
+ *       <div .ts-accordion__collapse-inner>
+ *         <div .ts-accordion__body>            ← children slot
+ * ────────────────────────────────────────────────────────────────────── */
 .ts-accordion {
   /* Border on the wrapper instead of <hr> siblings — adjacent accordions
      share a single rule via :first-of-type / :last-of-type below. */
@@ -175,32 +218,9 @@
     border-bottom: 1px solid var(--ts-accordion-border);
   }
 
-  /* CSS-grid height animation: the collapse wrapper goes from 0fr → 1fr
-     and the inner element has min-height: 0 with overflow hidden. This
-     animates the natural height of arbitrary content without measuring. */
-  &__collapse {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows var(--duration-base) var(--ease-standard);
-  }
-
-  &--open &__collapse {
-    grid-template-rows: 1fr;
-  }
-
-  &__collapse-inner {
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  &__body {
-    padding-top: var(--space-5);
-    padding-bottom: var(--space-2);
-  }
-
   /* Animated +/− glyph — two 1px lines forming a plus; the vertical line
      scales to 0 when open so it morphs into a minus. */
-  &__glyph {
+  .ts-accordion__glyph {
     position: relative;
     display: inline-block;
     width: 14px;
@@ -234,101 +254,153 @@
       transform: translate(-50%, -50%) scaleY(0);
     }
   }
+
+  /* CSS-grid height animation: the collapse wrapper goes from 0fr → 1fr
+     and the inner element has min-height: 0 with overflow hidden. This
+     animates the natural height of arbitrary content without measuring. */
+  .ts-accordion__collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-standard);
+
+    .ts-accordion__collapse-inner {
+      min-height: 0;
+      overflow: hidden;
+
+      .ts-accordion__body {
+        padding-top: var(--space-5);
+        padding-bottom: var(--space-2);
+      }
+    }
+  }
+
+  &--open .ts-accordion__collapse {
+    grid-template-rows: 1fr;
+  }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Body of the "Test settings" accordion (TestSettingsOverlay.tsx):
+ *   <div .test-settings-section>
+ *     <BreakpointEditor … />
+ *     <div .test-settings-section__variants>
+ *       <p .test-settings-section__label>
+ *       <div .variant-list> …
+ * ────────────────────────────────────────────────────────────────────── */
 .test-settings-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 
-  &__variants {
+  .test-settings-section__variants {
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
-  }
 
-  &__label {
-    margin: 0;
-    font-size: var(--font-size-md);
-    color: var(--test-settings-section-label-color);
+    .test-settings-section__label {
+      margin: 0;
+      font-size: var(--font-size-md);
+      color: var(--test-settings-section-label-color);
+    }
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Add-step fork — first screen of the step editor sub-view
+ * (TestSettingsStepEditor.tsx):
+ *   <div .add-step-fork>
+ *     <p .add-step-fork__copy>
+ *     <div .add-step-fork__cards>
+ *       <button .add-step-fork__card>          ← x2 (Path / Playwright)
+ *         <Icon .add-step-fork__card-icon />
+ *         <span .add-step-fork__card-title>
+ *         <span .add-step-fork__card-copy>
+ * ────────────────────────────────────────────────────────────────────── */
 .add-step-fork {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 
-  &__copy {
+  .add-step-fork__copy {
     margin: 0;
     color: var(--add-step-fork-copy-color);
     font-size: var(--font-size-md);
   }
 
-  &__cards {
+  .add-step-fork__cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-4);
-  }
 
-  &__card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    padding: var(--space-5);
-    background: transparent;
-    border: 1px solid var(--add-step-fork-card-border);
-    border-radius: var(--radius-md);
-    text-align: left;
-    cursor: pointer;
-    color: var(--add-step-fork-card-color);
-    transition: var(--transition-colors);
+    .add-step-fork__card {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--space-5);
+      background: transparent;
+      border: 1px solid var(--add-step-fork-card-border);
+      border-radius: var(--radius-md);
+      text-align: left;
+      cursor: pointer;
+      color: var(--add-step-fork-card-color);
+      transition: var(--transition-colors);
 
-    &:hover {
-      border-color: var(--add-step-fork-card-border-hover);
-      background: var(--add-step-fork-card-background-hover);
+      &:hover {
+        border-color: var(--add-step-fork-card-border-hover);
+        background: var(--add-step-fork-card-background-hover);
+      }
+
+      .add-step-fork__card-icon {
+        color: var(--add-step-fork-card-icon-color);
+      }
+
+      .add-step-fork__card-title {
+        font-size: var(--font-size-lg);
+        font-weight: var(--weight-bold);
+      }
+
+      .add-step-fork__card-copy {
+        font-size: var(--font-size-md);
+        color: var(--add-step-fork-card-copy-color);
+        line-height: var(--line-base);
+      }
     }
-  }
-
-  &__card-icon {
-    color: var(--add-step-fork-card-icon-color);
-  }
-
-  &__card-title {
-    font-size: var(--font-size-lg);
-    font-weight: var(--weight-bold);
-  }
-
-  &__card-copy {
-    font-size: var(--font-size-md);
-    color: var(--add-step-fork-card-copy-color);
-    line-height: var(--line-base);
   }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Path/Playwright step editor sub-view (TestSettingsStepEditor.tsx /
+ * ScriptStepEditor.tsx):
+ *   <div .step-editor>
+ *     <label .step-editor__field>             ← used by ScriptStepEditor
+ *       <span .step-editor__label>
+ *       <input/textarea ... />
+ *     <p .step-editor__hint>
+ *     <div .step-editor__actions>
+ * ────────────────────────────────────────────────────────────────────── */
 .step-editor {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 
-  &__hint {
+  .step-editor__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
+    .step-editor__label {
+      font-size: var(--font-size-sm);
+      color: var(--step-editor-label-color);
+    }
+  }
+
+  .step-editor__hint {
     margin: 0;
     color: var(--step-editor-hint-color);
     font-size: var(--font-size-md);
   }
 
-  &__field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  &__label {
-    font-size: var(--font-size-sm);
-    color: var(--step-editor-label-color);
-  }
-
-  &__actions {
+  .step-editor__actions {
     display: flex;
     justify-content: flex-end;
     gap: var(--space-3);
@@ -336,21 +408,29 @@
   }
 }
 
-/* Sections inside the app-level SettingsOverlay (and reusable elsewhere)
-   when the panel chrome is provided by .project-settings-overlay. */
+/* ──────────────────────────────────────────────────────────────────────
+ * Sections inside the app-level SettingsOverlay (and reusable elsewhere)
+ * when the panel chrome is provided by .project-settings-overlay:
+ *   <section .settings-section>
+ *     <h3 .settings-section__title>
+ *     <div .settings-section__row [--column]>
+ *       <p/label .settings-section__label>
+ *       <p .settings-section__hint>
+ *     <div .settings-section__actions>
+ * ────────────────────────────────────────────────────────────────────── */
 .settings-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 
-  &__title {
+  .settings-section__title {
     margin: 0;
     font-size: var(--font-size-2xl);
     font-weight: var(--weight-regular);
     color: var(--settings-section-title-color);
   }
 
-  &__row {
+  .settings-section__row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -363,19 +443,21 @@
     }
   }
 
-  &__label {
+  /* Used both inside .settings-section__row (label) and as a direct
+     child of .settings-section (subhead hint under section title). */
+  .settings-section__label {
     margin: 0;
     color: var(--settings-section-label-color);
     font-size: var(--font-size-base);
   }
 
-  &__hint {
+  .settings-section__hint {
     margin: 0;
     color: var(--settings-section-hint-color);
     font-size: var(--font-size-md);
   }
 
-  &__actions {
+  .settings-section__actions {
     display: flex;
     margin-top: var(--space-2);
   }

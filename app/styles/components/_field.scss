@@ -1,38 +1,46 @@
-/* .field — label + input + hint wrapper.
-   .input / .textarea — bare form controls, used standalone or inside .field. */
+/* Form primitives used across settings/auth pages.
+ * Structure mirrors the typical JSX:
+ *   <div .field [--inline]>
+ *     <label .field__label [--sm]> … </label>
+ *     <input .input  … /> or <textarea .textarea … /> ← own BEM blocks
+ *     <p .field__hint>  or  <p .field__error>
+ *
+ * .input, .textarea, and .checkbox are independent BEM blocks because
+ * they are also used standalone (e.g. inside .flow-step, search bars,
+ * checkbox lists) — see grep results in components/. */
 
 .field {
   display: flex;
   flex-direction: column;
 
-  &__label {
+  &--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .field__label {
     display: block;
     margin-bottom: var(--space-1);
     font-size: var(--font-size-base);
     color: var(--field-label-color);
+
+    &--sm {
+      font-size: var(--font-size-sm);
+      color: var(--field-label-sm-color);
+    }
   }
 
-  &__label--sm {
-    font-size: var(--font-size-sm);
-    color: var(--field-label-sm-color);
-  }
-
-  &__hint {
+  .field__hint {
     margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--field-hint-color);
   }
 
-  &__error {
+  .field__error {
     margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--field-error-color);
-  }
-
-  &--inline {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-2);
   }
 }
 
