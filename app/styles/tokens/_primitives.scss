@@ -26,13 +26,8 @@
   --neutral-taupe-500: #9d9297;
   --neutral-taupe-700: rgba(75, 75, 75, 0.5);
 
-  /* Brand */
-  --brand-primary-100: #fef3e7;
-  --brand-primary-200: #fdd9b0;
-  --brand-primary-300: #f4b76b;
+  /* Brand — only -500 is used (progress bar, spinner head, .badge-flow) */
   --brand-primary-500: #e88f2f;
-  --brand-primary-700: #c67320;
-  --brand-primary-900: #8b4f13;
 
   /* Status — success */
   --status-success-100: #c8ffc7;
