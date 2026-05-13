@@ -1,3 +1,5 @@
+@use "../mixins/interactive" as *;
+
 /* Report overview route + related chrome (report nav, progress bar) */
 
 .report {
@@ -184,22 +186,13 @@
   font-weight: var(--weight-bold);
   color: var(--run-pill-color);
   background: var(--run-pill-background);
-  cursor: pointer;
   font-family: inherit;
-  transition:
-    var(--transition-colors),
-    var(--transition-transform),
-    var(--transition-shadow);
+  @include interactive;
 
+  /* Lift on hover — pairs with the brightness/press from `interactive` */
   &:hover:not(:disabled) {
-    background: var(--run-pill-background-hover);
     box-shadow: var(--elevation-md);
     transform: translateY(-1px);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   &--lg {
@@ -207,14 +200,9 @@
     padding: var(--space-3) var(--space-6);
   }
 
-  /* Cancel state — same footprint, warm orange-red. Toggle this class
-   * (or swap to it) while a run is in flight so click cancels. */
+  /* Cancel state — same footprint, swaps to the error red. */
   &--cancel {
     background: var(--run-pill-cancel-background);
-
-    &:hover:not(:disabled) {
-      background: var(--run-pill-cancel-background-hover);
-    }
   }
 
   &__icon {

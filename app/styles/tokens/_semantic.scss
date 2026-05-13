@@ -100,10 +100,8 @@
 
   /* ── Buttons (.btn variants) ───────────────────────────────────── */
   --btn-primary-background:             var(--action-500);
-  --btn-primary-background-hover:       var(--action-600);
   --btn-primary-color:                  #1a1a1a;
   --btn-cancel-background:              var(--status-error-500);
-  --btn-cancel-background-hover:        var(--status-error-800);
   --btn-cancel-color:                   #1a1a1a;
   --btn-secondary-background:           var(--neutral-light-300);
   --btn-secondary-background-hover:     var(--surface-hover);       /* computed tint */
@@ -117,7 +115,7 @@
   --btn-ghost-background-hover:         var(--neutral-light-300);
   --btn-danger-background:              var(--status-error-500);
   --btn-danger-color:                   #fff;
-  --btn-danger-outline-border:          var(--status-error-200);
+  --btn-danger-outline-border:          var(--status-error-500);
   --btn-danger-outline-color:           var(--status-error-500);
   --btn-danger-outline-background-hover: var(--neutral-light-300);
   --btn-text-color:                     var(--neutral-dark-500);
@@ -130,10 +128,8 @@
 
   /* ── Run pill (the "play" CTA on test / report pages) ──────────── */
   --run-pill-background:                var(--action-500);
-  --run-pill-background-hover:          var(--action-600);
   --run-pill-color:                     #1a1a1a;
   --run-pill-cancel-background:         var(--status-error-500);
-  --run-pill-cancel-background-hover:   var(--status-error-800);
 
   /* ── Report route + progress + loader (.report, .progress, etc.) ─ */
   --report-sticky-background:                  var(--neutral-light-100);
@@ -143,7 +139,7 @@
   --report-date-color:                         var(--neutral-dark-900);
   --report-status-banner-border:               var(--neutral-dark-100);
   --report-status-banner-background:           var(--neutral-light-300);
-  --report-status-banner-border-error:         var(--status-error-200);
+  --report-status-banner-border-error:         var(--status-error-500);
   --report-status-banner-background-error:     var(--neutral-light-300);
   --report-status-banner-title-color:          var(--neutral-dark-500);
   --report-status-banner-title-color-error:    var(--status-error-800);
@@ -184,7 +180,7 @@
   --credential-row-label-color:                var(--neutral-dark-900);
   --credential-row-key-color:                  var(--neutral-dark-500);
   --card-border:                               var(--neutral-dark-100);
-  --card-danger-border:                        var(--status-error-200);
+  --card-danger-border:                        var(--status-error-500);
   --card-tinted-background:                    var(--neutral-light-300);
   --card-content-background:                   var(--neutral-light-100);
   --card-title-color:                          var(--neutral-dark-900);
@@ -444,7 +440,7 @@
   --test-result-border:                  var(--neutral-dark-100);
   --test-result-pass-tint:               var(--status-success-500);
   --test-result-pass-color:              var(--status-success-500);
-  --test-result-fail-border:             var(--status-error-200);
+  --test-result-fail-border:             var(--status-error-500);
   --test-result-fail-background:         var(--neutral-light-300);
   --test-result-fail-color:              var(--status-error-500);
   --test-result-duration-color:          var(--neutral-dark-500);
@@ -497,7 +493,6 @@
 
   /* Status — accents tuned to contrast against #1e1e1e */
   --status-success-500: #3aaa80;
-  --status-error-200:   #5c3030;
   --status-error-500:   #e06060;
   --status-error-800:   #e88a8a;
 

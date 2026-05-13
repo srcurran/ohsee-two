@@ -1,0 +1,39 @@
+/* Interactive feedback — applied to every clickable surface (.btn,
+ * .icon-btn, .run-pill, and any other class that opts in). Gives a
+ * consistent feel across the app without each variant having to
+ * define hover/active backgrounds:
+ *
+ *   hover  → filter: brightness(0.94) — proportional dimming that
+ *            works on any colored fill (yellow, red, transparent,
+ *            light surface).
+ *   active → brightness(0.85) + 1px press translation.
+ *   disabled → 50% opacity + no pointer events.
+ *
+ * Variants that need an explicit hover background (e.g. transparent
+ * outline/ghost variants where filter has nothing to dim) can still
+ * set their own &:hover { background: ... } on top — that just
+ * coexists with the brightness shift.
+ */
+@mixin interactive {
+  cursor: pointer;
+  transition:
+    filter var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.94);
+  }
+
+  &:active:not(:disabled) {
+    filter: brightness(0.85);
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}

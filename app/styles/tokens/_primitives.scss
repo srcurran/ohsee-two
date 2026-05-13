@@ -29,13 +29,11 @@
   /* Action / brand — single accent for primary CTAs and the rest of
    * the brand-coloured chrome (progress bar, loader head, .badge-flow). */
   --action-500: #FFE030;
-  --action-600: #e6b922;
 
   /* Status — consolidated palette
    * The 100 tints are gone; muted tinted backgrounds use --neutral-light-300.
    * Warning was merged into error. Cancel UI uses error-500/-800. */
   --status-success-500: #34e1a4;
-  --status-error-200:   #fecaca;
   --status-error-500:   #ef4444;
   --status-error-800:   #b91c1c;
   --status-running-400: #60a5fa;
