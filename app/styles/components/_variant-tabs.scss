@@ -1,0 +1,35 @@
+/* VariantTabs — horizontal row with label prefix, border-bottom. */
+
+.variant-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--variant-tabs-border);
+  padding: var(--space-2) var(--space-6);
+
+  &__label {
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--variant-tabs-label-color);
+  }
+}
+
+.variant-tab {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-base);
+  color: var(--variant-tab-color);
+  cursor: pointer;
+  transition: var(--transition-colors);
+  font-family: inherit;
+
+  &:hover {
+    color: var(--variant-tab-color-hover);
+  }
+
+  &--active {
+    color: var(--variant-tab-color-active);
+    font-weight: var(--weight-bold);
+  }
+}

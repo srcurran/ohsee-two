@@ -1,0 +1,382 @@
+/* TestSettingsOverlay — step list, accordions, step editor, and section chrome. */
+
+/* TestSettingsOverlay — reuses .project-settings-overlay panel chrome and
+   adds step-list, accordion, credentials, and add-step-fork pieces. */
+
+.test-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__heading {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-regular);
+    color: var(--test-steps-heading-color);
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__add {
+    align-self: flex-start;
+    margin-top: var(--space-3);
+  }
+}
+
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--step-row-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  /* Inline-undo replacement for a removed step. Soft-pink fill, persists for
+     3 s, replaces the visual slot of the deleted row so the layout doesn't
+     jump. */
+  &--deleted {
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    background: var(--step-row-deleted-background);
+    border-radius: var(--radius-sm);
+    border-bottom: none;
+  }
+
+  /* Drag preview — fades the row being moved without removing it from
+     layout, so the surrounding rows can shift around it visibly. */
+  &--dragging {
+    opacity: 0.4;
+  }
+
+  &__deleted-label {
+    color: var(--step-row-deleted-label-color);
+    font-size: var(--font-size-md);
+  }
+
+  &__undo {
+    color: var(--step-row-undo-color);
+  }
+
+  &__grip {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    color: var(--step-row-grip-color);
+    line-height: 1;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &__type-icon {
+    color: var(--step-row-type-icon-color);
+    flex-shrink: 0;
+    display: inline-flex;
+
+    &--microtest {
+      color: var(--step-row-type-icon-color-microtest);
+    }
+  }
+
+  &__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--step-row-label-color);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+  }
+
+  &__camera {
+    color: var(--step-row-camera-color);
+
+    &--off {
+      opacity: 0.4;
+    }
+
+    &--on {
+      color: var(--step-row-camera-color-on);
+    }
+  }
+
+  &__trash {
+    color: var(--step-row-trash-color);
+
+    &:hover {
+      color: var(--step-row-trash-color-hover);
+    }
+  }
+}
+
+.empty-steps {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+
+  &__heading {
+    margin: 0;
+    color: var(--empty-steps-heading-color);
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+  }
+
+  &__copy {
+    margin: 0;
+    color: var(--empty-steps-copy-color);
+    font-size: var(--font-size-md);
+    line-height: var(--line-base);
+    max-width: 48ch;
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-1);
+  }
+}
+
+.ts-accordion {
+  /* Border on the wrapper instead of <hr> siblings — adjacent accordions
+     share a single rule via :first-of-type / :last-of-type below. */
+  border-top: 1px solid var(--ts-accordion-border);
+
+  &:last-of-type {
+    border-bottom: 1px solid var(--ts-accordion-border);
+  }
+
+  /* CSS-grid height animation: the collapse wrapper goes from 0fr → 1fr
+     and the inner element has min-height: 0 with overflow hidden. This
+     animates the natural height of arbitrary content without measuring. */
+  &__collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-standard);
+  }
+
+  &--open &__collapse {
+    grid-template-rows: 1fr;
+  }
+
+  &__collapse-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__body {
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-2);
+  }
+
+  /* Animated +/− glyph — two 1px lines forming a plus; the vertical line
+     scales to 0 when open so it morphs into a minus. */
+  &__glyph {
+    position: relative;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--ts-accordion-glyph-color);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: currentColor;
+      transition: transform var(--duration-base) var(--ease-standard);
+    }
+    /* Horizontal bar — always visible. */
+    &::before {
+      width: 100%;
+      height: 1.5px;
+      transform: translate(-50%, -50%);
+    }
+    /* Vertical bar — collapses to 0 when open. */
+    &::after {
+      width: 1.5px;
+      height: 100%;
+      transform: translate(-50%, -50%) scaleY(1);
+    }
+
+    &--open::after {
+      transform: translate(-50%, -50%) scaleY(0);
+    }
+  }
+}
+
+.test-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+
+  &__variants {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__label {
+    margin: 0;
+    font-size: var(--font-size-md);
+    color: var(--test-settings-section-label-color);
+  }
+}
+
+.add-step-fork {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__copy {
+    margin: 0;
+    color: var(--add-step-fork-copy-color);
+    font-size: var(--font-size-md);
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    background: transparent;
+    border: 1px solid var(--add-step-fork-card-border);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    color: var(--add-step-fork-card-color);
+    transition: var(--transition-colors);
+
+    &:hover {
+      border-color: var(--add-step-fork-card-border-hover);
+      background: var(--add-step-fork-card-background-hover);
+    }
+  }
+
+  &__card-icon {
+    color: var(--add-step-fork-card-icon-color);
+  }
+
+  &__card-title {
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+  }
+
+  &__card-copy {
+    font-size: var(--font-size-md);
+    color: var(--add-step-fork-card-copy-color);
+    line-height: var(--line-base);
+  }
+}
+
+.step-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__hint {
+    margin: 0;
+    color: var(--step-editor-hint-color);
+    font-size: var(--font-size-md);
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__label {
+    font-size: var(--font-size-sm);
+    color: var(--step-editor-label-color);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+}
+
+/* Sections inside the app-level SettingsOverlay (and reusable elsewhere)
+   when the panel chrome is provided by .project-settings-overlay. */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-regular);
+    color: var(--settings-section-title-color);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    &--column {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-2);
+    }
+  }
+
+  &__label {
+    margin: 0;
+    color: var(--settings-section-label-color);
+    font-size: var(--font-size-base);
+  }
+
+  &__hint {
+    margin: 0;
+    color: var(--settings-section-hint-color);
+    font-size: var(--font-size-md);
+  }
+
+  &__actions {
+    display: flex;
+    margin-top: var(--space-2);
+  }
+}

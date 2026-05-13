@@ -1,0 +1,33 @@
+/* Toggle switch — boolean setting control used inline across forms. */
+
+/* Toggle switch (boolean settings) */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  width: 40px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color var(--duration-base) var(--ease-standard);
+
+  &:disabled { opacity: 0.4; }
+
+  &--on  { background: var(--toggle-background-on); }
+  &--off { background: var(--toggle-background-off); }
+
+  &__knob {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-full);
+    background: var(--toggle-knob-background);
+    transition: transform var(--duration-base) var(--ease-standard);
+
+    &--on  { transform: translateX(19px); }
+    &--off { transform: translateX(3px); }
+  }
+}

@@ -1,0 +1,13 @@
+/* SaveButton — project tile save row and feedback label */
+
+/* Project tile save button label */
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.save-feedback {
+  font-size: var(--font-size-base);
+  color: var(--save-feedback-color);
+}

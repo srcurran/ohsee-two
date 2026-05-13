@@ -1,4 +1,4 @@
-/* Pills + badges for counts, status, labels, filters */
+/* Badge — small count/label indicator. */
 
 .badge {
   display: inline-flex;
@@ -7,6 +7,7 @@
   border-radius: var(--radius-full);
   padding: var(--space-0-5) var(--space-1-5);
   min-width: 22px;
+  aspect-ratio: 1/1;
   font-size: var(--font-size-xs);
   font-weight: var(--weight-bold);
   line-height: var(--line-none);
@@ -58,67 +59,4 @@
     padding: var(--space-0-5) var(--space-2);
     font-size: var(--font-size-sm);
   }
-}
-
-/* Small flex pill for filters + category tabs */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  border-radius: var(--radius-full);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-md);
-  font-weight: var(--weight-regular);
-  cursor: pointer;
-  transition: var(--transition-colors);
-  background: var(--pill-background);
-  color: var(--pill-color);
-  border: none;
-  white-space: nowrap;
-
-  &:hover {
-    background: var(--pill-background-hover);
-  }
-
-  &--active {
-    background: var(--pill-background-active);
-    color: var(--pill-color-active);
-
-    &:hover {
-      background: var(--pill-background-active);
-    }
-  }
-
-  &--disabled {
-    background: color-mix(in srgb, var(--pill-background) 50%, transparent);
-    color: color-mix(in srgb, var(--pill-disabled-color) 60%, transparent);
-    cursor: not-allowed;
-
-    &:hover { background: color-mix(in srgb, var(--pill-background) 50%, transparent); }
-  }
-
-  &__icon {
-    margin-right: var(--space-1);
-  }
-
-  &--flex-shrink {
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-}
-
-/* Status dot — small colored circle */
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-
-  &--success { background: var(--status-dot-success-background); }
-  &--warning { background: var(--status-dot-warning-background); }
-  &--disabled { background: var(--status-dot-disabled-background); }
-  &--inactive { background: var(--status-dot-inactive-background); }
-  &--error    { background: var(--status-dot-error-background); }
-  &--running  { background: var(--status-dot-running-background); }
 }

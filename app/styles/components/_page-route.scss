@@ -1,0 +1,218 @@
+/* Page detail route wrapper — /reports/[reportId]/pages/[pageId] */
+
+/* Full-route page detail (reports/[reportId]/pages/[pageId]) */
+.report-page {
+  animation: fade-in-up 0.35s var(--ease-standard) both;
+
+  &__sticky {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-overlay);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+    background: var(--report-page-sticky-background);
+  }
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-5) 0;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  &__title-group {
+    display: flex;
+    min-width: 0;
+    max-width: 66%;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  &__title-inner {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: var(--space-1);
+  }
+
+  &__domain {
+    flex-shrink: 0;
+    font-size: var(--font-size-6xl);
+    color: var(--report-page-domain-color);
+    transition: var(--transition-opacity);
+    text-decoration: none;
+
+    &:hover { opacity: 0.7; }
+  }
+
+  &__slash {
+    flex-shrink: 0;
+    font-size: var(--font-size-6xl);
+    color: var(--report-page-slash-color);
+  }
+
+  &__page-name-wrap {
+    position: relative;
+    min-width: 0;
+  }
+
+  &__page-btn {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: var(--radius-md);
+    transition: background-color var(--duration-base) var(--ease-standard);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+      background: var(--report-page-page-btn-background-hover);
+    }
+  }
+
+  &__page-name {
+    font-size: var(--font-size-6xl);
+    color: var(--report-page-page-name-color);
+  }
+
+  &__nav {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  &__date-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-lg);
+    color: var(--report-page-date-btn-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-opacity);
+    font-family: inherit;
+
+    &:hover { opacity: 0.7; }
+  }
+
+  &__arrow {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    color: var(--report-page-arrow-color);
+    transition: var(--transition-colors);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover { color: var(--report-page-arrow-color-hover); }
+
+    &--disabled {
+      color: var(--report-page-arrow-color-disabled);
+      pointer-events: none;
+    }
+  }
+
+  &__headers {
+    display: flex;
+    gap: 29px;
+    padding: var(--space-4) var(--space-5) var(--space-2);
+  }
+
+  &__header-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    font-size: var(--font-size-base);
+    color: var(--report-page-header-col-color);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-5);
+  }
+
+  &__compare-row {
+    display: flex;
+    gap: 29px;
+  }
+
+  &__compare-col {
+    flex: 1;
+  }
+
+  &__loading {
+    padding: var(--space-6);
+    color: var(--report-page-loading-color);
+  }
+
+  &__collapsible {
+    position: relative;
+  }
+
+  &__collapsible-inner {
+    overflow: hidden;
+    transition: max-height var(--duration-base);
+  }
+
+  &__fade {
+    position: absolute;
+    inset: 0 0 0 0;
+    top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(to top, var(--surface-fade-from), var(--surface-fade-via), transparent);
+    padding: var(--space-10) 0 var(--space-2);
+  }
+
+  &__show-all {
+    border-radius: var(--radius-full);
+    border: 1px solid var(--report-page-show-all-border);
+    background: var(--report-page-show-all-background);
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--font-size-md);
+    color: var(--report-page-show-all-color);
+    box-shadow: var(--elevation-sm);
+    cursor: pointer;
+    transition:
+      background-color var(--duration-base),
+      box-shadow var(--duration-fast);
+    font-family: inherit;
+
+    &:hover {
+      background: var(--report-page-show-all-background-hover);
+      box-shadow: var(--elevation-sm);
+    }
+  }
+
+  &__collapse {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-md);
+    color: var(--report-page-collapse-color);
+    text-decoration: underline;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+
+    &:hover { color: var(--report-page-collapse-color-hover); }
+  }
+}

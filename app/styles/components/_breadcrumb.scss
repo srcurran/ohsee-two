@@ -1,0 +1,14 @@
+/* Breadcrumb trail (Breadcrumb.tsx) */
+
+.breadcrumb {
+  font-size: var(--font-size-base);
+  color: var(--breadcrumb-color);
+
+  &__link {
+    text-decoration: underline;
+  }
+
+  &__separator {
+    display: inline;
+  }
+}

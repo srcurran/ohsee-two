@@ -1,0 +1,24 @@
+/* Horizontal/vertical divider line */
+
+.divider {
+  height: 1px;
+  background: var(--divider-background);
+
+  &--black-10 {
+    background: var(--divider-background-black-10);
+  }
+
+  &--secondary {
+    background: var(--divider-background-secondary);
+  }
+
+  &--vertical {
+    width: 1px;
+    height: auto;
+  }
+
+  &--inset {
+    margin-inline: var(--space-8);
+    margin-bottom: var(--space-3);
+  }
+}

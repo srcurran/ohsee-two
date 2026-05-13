@@ -1,0 +1,52 @@
+/* Segmented — pill-style mode selector primitive (e.g. comparison tap/slider). */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-75);
+  border-radius: var(--radius-md);
+  background: var(--segmented-background);
+
+  &--content-bg {
+    background: var(--segmented-background-content);
+  }
+
+  &__item {
+    padding: var(--space-0-75) var(--space-2-5);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--segmented-item-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-colors);
+    font-family: inherit;
+
+    &:hover {
+      color: var(--segmented-item-color-hover);
+    }
+
+    &--active {
+      background: var(--segmented-item-background-active);
+      color: var(--segmented-item-color-active);
+      font-weight: var(--weight-bold);
+      box-shadow: var(--elevation-sm);
+
+      &:hover {
+        color: var(--segmented-item-color-active);
+      }
+    }
+
+    &--active-alt {
+      background: var(--segmented-item-background-active-alt);
+      color: var(--segmented-item-color-active);
+      font-weight: var(--weight-bold);
+      box-shadow: var(--elevation-sm);
+
+      &:hover {
+        color: var(--segmented-item-color-active);
+      }
+    }
+  }
+}

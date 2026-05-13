@@ -1,0 +1,67 @@
+/* PageDetailHeader — page title with prod/dev URL dropdown */
+
+/* Page title with prod/dev URL dropdown */
+.page-title-menu {
+  position: relative;
+  min-width: 0;
+
+  &__trigger {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
+    padding-inline: var(--space-1);
+    font-size: var(--font-size-5xl);
+    color: var(--page-title-menu-trigger-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--duration-base) var(--ease-standard);
+    font-family: inherit;
+
+    &:hover { background: var(--page-title-menu-trigger-background-hover); }
+  }
+
+  &__panel {
+    position: absolute;
+    left: 0;
+    top: 52px;
+    z-index: var(--z-modal);
+    display: flex;
+    min-width: 320px;
+    flex-direction: column;
+    gap: var(--space-0-5);
+    border-radius: var(--radius-lg);
+    background: var(--page-title-menu-panel-background);
+    padding: var(--space-2);
+    box-shadow: var(--elevation-lg);
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-0-5);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: background-color var(--duration-base) var(--ease-standard);
+
+    &:hover { background: var(--page-title-menu-item-background-hover); }
+  }
+
+  &__kind {
+    font-size: var(--font-size-sm);
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--page-title-menu-kind-color);
+  }
+
+  &__url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-base);
+    color: var(--page-title-menu-url-color);
+  }
+}

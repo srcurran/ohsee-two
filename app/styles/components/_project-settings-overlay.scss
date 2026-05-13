@@ -1,0 +1,238 @@
+/* ProjectSettingsOverlay / SettingsOverlay / TestSettingsOverlay panel chrome. */
+
+/* ProjectSettingsOverlay — centered modal-style panel anchored to the
+   active window. Width follows the figma (640px); accordion-style danger
+   zone with archive + archived-tests list. */
+
+.project-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8vh var(--space-4) var(--space-8);
+  background: var(--project-settings-overlay-scrim);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-standard);
+
+  /* Narrow viewports: drop the top breathing room so the panel uses
+     more of the available height, but keep horizontal margin. */
+  @media (max-width: 640px) {
+    padding-top: var(--space-6);
+    padding-inline: var(--space-3);
+  }
+
+  &--visible {
+    opacity: 1;
+  }
+
+  &--exiting {
+    opacity: 0;
+  }
+
+  &__panel {
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow: auto;
+    background: var(--project-settings-overlay-panel-background);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--elevation-lg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-7) var(--space-7) var(--space-5);
+  }
+
+  &__title-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: text;
+    color: var(--project-settings-overlay-title-color);
+    border-radius: var(--radius-sm);
+
+    &:hover .project-settings-overlay__title-icon {
+      opacity: 1;
+    }
+  }
+
+  &__title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--weight-bold);
+    line-height: var(--line-tight);
+  }
+
+  &__title-icon {
+    color: var(--project-settings-overlay-title-icon-color);
+    opacity: 0.5;
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
+
+  &__title-input {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--project-settings-overlay-title-input-color);
+    font-family: inherit;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--weight-bold);
+    line-height: var(--line-tight);
+    border-bottom: 1px solid var(--project-settings-overlay-title-input-border);
+  }
+
+  &__close {
+    flex-shrink: 0;
+  }
+
+  /* Step-editor "‹ Back to steps" link in the overlay header. Uses .btn--text
+     so it picks up the standard text-button hover. */
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: 0 var(--space-7) var(--space-7);
+  }
+
+  &__divider {
+    border: none;
+    border-top: 1px solid var(--project-settings-overlay-divider-color);
+    margin: 0;
+  }
+
+  &__danger-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    /* Closed accordion rows want compact padding so adjacent toggles sit
+       close together with the divider between (matches Figma 169:877). */
+    padding: var(--space-3) 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--project-settings-overlay-danger-toggle-color);
+
+    &:hover {
+      color: var(--project-settings-overlay-danger-toggle-color-hover);
+    }
+  }
+
+  &__section-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-regular);
+    color: var(--project-settings-overlay-section-title-color);
+  }
+
+  &__danger-glyph {
+    font-size: var(--font-size-xl);
+    line-height: 1;
+    color: var(--project-settings-overlay-danger-glyph-color);
+  }
+
+  &__danger-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-7);
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-2);
+  }
+
+  &__danger-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__danger-heading {
+    margin: 0 0 var(--space-1) 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--weight-bold);
+    color: var(--project-settings-overlay-danger-heading-color);
+  }
+
+  &__danger-copy {
+    margin: 0 0 var(--space-3) 0;
+    font-size: var(--font-size-md);
+    color: var(--project-settings-overlay-danger-copy-color);
+  }
+
+  &__empty {
+    margin: 0;
+    font-size: var(--font-size-md);
+    color: var(--project-settings-overlay-empty-color);
+    font-style: italic;
+  }
+
+  &__archived-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__archived-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-top: 1px solid var(--project-settings-overlay-archived-row-border);
+
+    &:last-child {
+      border-bottom: 1px solid var(--project-settings-overlay-archived-row-border);
+    }
+  }
+
+  &__archived-name {
+    font-size: var(--font-size-md);
+    color: var(--project-settings-overlay-archived-name-color);
+  }
+
+  &__archived-actions {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  &__link-action {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--project-settings-overlay-link-action-color);
+    font-size: var(--font-size-md);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      opacity: 0.7;
+    }
+
+    &--danger {
+      color: var(--project-settings-overlay-link-action-color-danger);
+    }
+  }
+}

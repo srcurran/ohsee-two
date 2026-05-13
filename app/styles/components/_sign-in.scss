@@ -1,0 +1,81 @@
+/* Sign-in landing screen */
+
+.sign-in {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background: var(--sign-in-background);
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  &__logo {
+    margin: 0;
+    font-size: var(--font-size-7xl);
+    font-weight: var(--weight-bold);
+    color: var(--sign-in-logo-color);
+    text-align: center;
+  }
+
+  &__tagline {
+    margin: var(--space-2) 0 0 0;
+    font-size: var(--font-size-lg);
+    color: var(--sign-in-tagline-color);
+    text-align: center;
+  }
+
+  &__cta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--sign-in-cta-background);
+    color: var(--sign-in-cta-color);
+    padding: 14px var(--space-8);
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+    border: none;
+    cursor: pointer;
+    transition:
+      var(--transition-colors),
+      var(--transition-transform),
+      var(--transition-shadow);
+
+    &:hover {
+      box-shadow: var(--elevation-md);
+      transform: translateY(-1px);
+    }
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    width: 100%;
+    max-width: 320px;
+  }
+
+  &__divider-line {
+    height: 1px;
+    flex: 1;
+    background: var(--sign-in-divider-line-background);
+  }
+
+  &__divider-label {
+    font-size: var(--font-size-sm);
+    color: var(--sign-in-divider-label-color);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+    max-width: 320px;
+  }
+}

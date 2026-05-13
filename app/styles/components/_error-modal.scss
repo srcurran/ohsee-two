@@ -1,0 +1,75 @@
+/* ErrorModal — three-level error dialog inside a .modal scrim. */
+
+/* ErrorModal — three-level hierarchy (eyebrow, title, body) inside a
+   standard .modal scrim. The "error-y" treatment is intentionally subtle:
+   a single red eyebrow line plus a thin red separator rule beneath it.
+   Anything more (red panel, alert icon, full red title) read as too loud
+   when the modal is shown for benign-but-blocking issues like a typo'd URL. */
+.error-modal {
+  width: 100%;
+  max-width: 520px;
+  background: var(--error-modal-background);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  &__eyebrow {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--error-modal-eyebrow-color);
+  }
+
+  &__icon {
+    color: var(--error-modal-icon-color);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    margin: var(--space-3) 0 var(--space-5);
+    font-size: var(--font-size-4xl);
+    font-weight: var(--weight-bold);
+    color: var(--error-modal-title-color);
+    line-height: var(--line-tight);
+  }
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  &__body {
+    margin: 0;
+    font-size: var(--font-size-base);
+    line-height: var(--line-base);
+    color: var(--error-modal-body-color);
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: var(--font-size-base);
+    line-height: var(--line-base);
+    color: var(--error-modal-hint-color);
+
+    a {
+      color: var(--error-modal-hint-color);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--space-7);
+  }
+}

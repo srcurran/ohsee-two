@@ -1,4 +1,4 @@
-/* Main app sidebar (Sidebar.tsx) + Settings sub-nav (SettingsSideNav.tsx). */
+/* Sidebar — main app navigation rail (Sidebar.tsx). */
 
 .sidebar {
   position: sticky;
@@ -299,98 +299,5 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-}
-
-/* Settings sub-navigation */
-.sidenav {
-  width: 200px;
-  flex-shrink: 0;
-  padding: var(--space-6);
-
-  &__back {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1-5);
-    margin-bottom: var(--space-4);
-    font-size: var(--font-size-md);
-    color: var(--sidenav-back-color);
-    text-decoration: none;
-    transition: var(--transition-colors);
-
-    &:hover {
-      color: var(--sidenav-back-color-hover);
-    }
-  }
-
-  &__title {
-    margin: 0 0 var(--space-6) 0;
-    font-size: var(--font-size-5xl);
-    font-weight: var(--weight-regular);
-    color: var(--sidenav-title-color);
-  }
-
-  &__list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-0-5);
-  }
-
-  &__item {
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-base);
-    color: var(--sidenav-item-color);
-    text-decoration: none;
-    transition: var(--transition-colors);
-
-    &:hover {
-      background: var(--sidenav-item-background-hover);
-      color: var(--sidenav-item-color-hover);
-    }
-
-    &--active {
-      background: var(--sidenav-item-background-active);
-      font-weight: var(--weight-bold);
-      color: var(--sidenav-item-color-active);
-    }
-  }
-}
-
-.settings-shell {
-  display: flex;
-  height: 100%;
-
-  &__content {
-    flex: 1;
-    overflow-y: auto;
-    padding: var(--space-6) var(--space-8);
-  }
-
-  &__inner {
-    max-width: 560px;
-  }
-}
-
-/* Backdrop shown when the sidebar is expanded over content at narrow
-   viewports. Click to collapse. Hidden on desktop where the sidebar
-   shares the layout. */
-.sidebar-scrim {
-  display: none;
-
-  @media (max-width: 1024px) {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: calc(var(--z-overlay) - 1);
-    background: var(--overlay-backdrop-light);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s var(--ease-standard);
-
-    &--visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
   }
 }

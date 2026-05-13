@@ -1,0 +1,11 @@
+/* Inline error message text */
+
+.error-text {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--error-text-color);
+
+  &--xs {
+    font-size: var(--font-size-sm);
+  }
+}

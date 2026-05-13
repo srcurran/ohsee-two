@@ -1,0 +1,22 @@
+/* Form/content section block with heading and body */
+
+.section-block {
+  margin-bottom: var(--space-8);
+
+  &--sm {
+    margin-bottom: var(--space-6);
+  }
+}
+
+.section-heading {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--weight-bold);
+  color: var(--section-heading-color);
+}
+
+.section-body {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--font-size-base);
+  color: var(--section-body-color);
+}

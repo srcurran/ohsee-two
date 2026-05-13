@@ -1,0 +1,200 @@
+/* PageDetailPanel — animated expand-from-thumbnail panel + scrim */
+
+.page-detail-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sticky);
+  transition: background-color var(--duration-base) var(--ease-decel);
+
+  &--visible {
+    background: var(--page-detail-scrim-background);
+  }
+
+  &--hidden {
+    background: transparent;
+    pointer-events: none;
+  }
+}
+
+.page-detail-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-detail-panel-background);
+  box-shadow: var(--elevation-lg);
+  overflow: hidden;
+
+  &__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__header {
+    position: relative;
+    z-index: var(--z-10);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-5) var(--space-6);
+  }
+
+  &__title-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-5xl);
+    color: var(--page-detail-panel-title-color);
+  }
+
+  &__nav {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  &__date-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__date {
+    font-size: var(--font-size-lg);
+    color: var(--page-detail-panel-date-color);
+  }
+
+  &__breakpoints {
+    padding: 0 var(--space-6);
+  }
+
+  &__divider {
+    height: 1px;
+    background: var(--page-detail-panel-divider-background);
+  }
+
+  &__main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    background: var(--page-detail-panel-main-background);
+
+    /* Narrow viewports: stack screenshot above changes panel so each gets
+       full width. The panel takes its natural height, the screenshot
+       column scrolls. The whole thing scrolls within the panel rather
+       than the columns scrolling independently. */
+    @media (max-width: 1024px) {
+      flex-direction: column;
+      overflow-y: auto;
+    }
+  }
+
+  &__screenshot-col {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    padding: var(--space-6);
+
+    &--sticky-header {
+      padding-top: 0;
+      padding-inline: var(--space-6);
+      padding-bottom: var(--space-6);
+    }
+
+    /* Stacked layout: parent __main scrolls, columns flow naturally. */
+    @media (max-width: 1024px) {
+      overflow-y: visible;
+    }
+  }
+
+  &__view-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-14);
+    padding-bottom: var(--space-4);
+    font-size: var(--font-size-base);
+
+    &--sticky {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-10);
+      align-self: stretch;
+      background: var(--page-detail-panel-view-toggle-sticky-background);
+      padding-top: var(--space-6);
+    }
+  }
+
+  &__view-label {
+    width: 32px;
+    transition: color var(--duration-fast) var(--ease-standard);
+    color: var(--page-detail-panel-view-label-color);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: right;
+    font-family: inherit;
+
+    &--right { text-align: left; }
+    &--active {
+      color: var(--page-detail-panel-view-label-color-active);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      text-decoration-thickness: 1px;
+    }
+
+    &:hover {
+      color: var(--page-detail-panel-view-label-color-hover);
+    }
+  }
+
+  &__screenshot {
+    min-width: 0;
+  }
+
+  &__empty {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--page-detail-panel-empty-background);
+    padding: var(--space-12) var(--space-6);
+
+    &-text {
+      margin: 0;
+      font-size: var(--font-size-base);
+      color: var(--page-detail-panel-empty-text-color);
+    }
+  }
+
+  &__changes {
+    width: 340px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    border-left: 1px solid var(--page-detail-panel-changes-border);
+    background: var(--page-detail-panel-changes-background);
+    padding: var(--space-6);
+
+    /* Stacked under the screenshot at narrow widths — full bleed with
+       a top border instead of the side border. */
+    @media (max-width: 1024px) {
+      width: 100%;
+      overflow-y: visible;
+      border-left: none;
+      border-top: 1px solid var(--page-detail-panel-changes-border);
+    }
+  }
+}

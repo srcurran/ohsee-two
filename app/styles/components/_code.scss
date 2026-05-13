@@ -1,0 +1,25 @@
+/* Inline code chips and JSON code editor container */
+
+.code-inline {
+  border-radius: 4px;
+  background: var(--code-inline-background);
+  padding: var(--space-px) var(--space-1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--font-size-sm);
+
+  &--xs {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* Inline JSON code editor container (MicroTestEditor wraps CodeMirror) */
+.code-editor {
+  min-height: 200px;
+  max-height: 400px;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--code-editor-border);
+
+  .cm-editor { outline: none !important; }
+  .cm-scroller { min-height: 200px; }
+}
