@@ -22,10 +22,6 @@
   --text-subdued:    color-mix(in srgb, var(--foreground) 70%, transparent);
   --text-dim:        color-mix(in srgb, var(--foreground) 60%, transparent);
 
-  /* ── Severity (DiffViewer markers — pinned, not theme-aware) ───── */
-  --severity-error: #cc4444;
-  --severity-info:  #aaaaaa;
-
   /* ── Overlays (scrims — do not flip in dark mode) ──────────────── */
   --overlay-backdrop:       rgba(0, 0, 0, 0.4);
   --overlay-backdrop-light: rgba(0, 0, 0, 0.3);
@@ -88,7 +84,7 @@
   --sidebar-cta-color-hover:            var(--text-dim);            /* computed tint */
   --sidebar-footer-color:               var(--text-subdued);        /* computed tint */
   --sidebar-footer-color-hover:         var(--neutral-dark-900);
-  --sidebar-avatar-background:          var(--status-warning-500);
+  --sidebar-avatar-background:          var(--action-500);
   --sidebar-avatar-color:               var(--neutral-dark-900);
   --sidebar-plus-background:            var(--neutral-light-100);
 
@@ -106,8 +102,8 @@
   --btn-primary-background:             var(--action-500);
   --btn-primary-background-hover:       var(--action-600);
   --btn-primary-color:                  #1a1a1a;
-  --btn-cancel-background:              var(--action-cancel-500);
-  --btn-cancel-background-hover:        var(--action-cancel-600);
+  --btn-cancel-background:              var(--status-error-500);
+  --btn-cancel-background-hover:        var(--status-error-800);
   --btn-cancel-color:                   #1a1a1a;
   --btn-secondary-background:           var(--neutral-light-300);
   --btn-secondary-background-hover:     var(--surface-hover);       /* computed tint */
@@ -123,7 +119,7 @@
   --btn-danger-color:                   #fff;
   --btn-danger-outline-border:          var(--status-error-200);
   --btn-danger-outline-color:           var(--status-error-500);
-  --btn-danger-outline-background-hover: var(--status-error-100);
+  --btn-danger-outline-background-hover: var(--neutral-light-300);
   --btn-text-color:                     var(--neutral-dark-500);
   --btn-text-color-hover:               var(--neutral-dark-900);
   --btn-link-color:                     var(--neutral-dark-500);
@@ -136,8 +132,8 @@
   --run-pill-background:                var(--action-500);
   --run-pill-background-hover:          var(--action-600);
   --run-pill-color:                     #1a1a1a;
-  --run-pill-cancel-background:         var(--action-cancel-500);
-  --run-pill-cancel-background-hover:   var(--action-cancel-600);
+  --run-pill-cancel-background:         var(--status-error-500);
+  --run-pill-cancel-background-hover:   var(--status-error-800);
 
   /* ── Report route + progress + loader (.report, .progress, etc.) ─ */
   --report-sticky-background:                  var(--neutral-light-100);
@@ -148,16 +144,16 @@
   --report-status-banner-border:               var(--neutral-dark-100);
   --report-status-banner-background:           var(--neutral-light-300);
   --report-status-banner-border-error:         var(--status-error-200);
-  --report-status-banner-background-error:     var(--status-error-100);
+  --report-status-banner-background-error:     var(--neutral-light-300);
   --report-status-banner-title-color:          var(--neutral-dark-500);
   --report-status-banner-title-color-error:    var(--status-error-800);
   --report-status-banner-detail-color:         var(--status-error-800);
   --report-flow-title-color:                   var(--neutral-dark-900);
   --progress-bar-background:                   var(--neutral-light-300);
-  --progress-fill-background:                  var(--brand-primary-500);
+  --progress-fill-background:                  var(--action-500);
   --progress-text-color:                       var(--neutral-dark-500);
   --loader-spinner-track-color:                var(--neutral-light-300);
-  --loader-spinner-head-color:                 var(--brand-primary-500);
+  --loader-spinner-head-color:                 var(--action-500);
   --loader-text-color:                         var(--neutral-dark-500);
   --save-feedback-color:                       var(--status-success-500);
 
@@ -203,8 +199,8 @@
   --modal-panel-background:                    var(--neutral-light-100);
   --modal-title-color:                         var(--neutral-dark-900);
   --error-modal-background:                    var(--neutral-light-100);
-  --error-modal-eyebrow-color:                 var(--severity-error);
-  --error-modal-icon-color:                    var(--severity-error);
+  --error-modal-eyebrow-color:                 var(--status-error-500);
+  --error-modal-icon-color:                    var(--status-error-500);
   --error-modal-title-color:                   var(--neutral-dark-900);
   --error-modal-body-color:                    var(--neutral-dark-900);
   --error-modal-hint-color:                    var(--neutral-dark-900);
@@ -230,10 +226,10 @@
   --project-settings-overlay-archived-row-border:         var(--neutral-dark-100);
   --project-settings-overlay-archived-name-color:         var(--neutral-dark-900);
   --project-settings-overlay-link-action-color:           var(--neutral-dark-900);
-  --project-settings-overlay-link-action-color-danger:    var(--severity-error);
+  --project-settings-overlay-link-action-color-danger:    var(--status-error-500);
   --test-steps-heading-color:                  var(--neutral-dark-500);
   --step-row-border:                           var(--neutral-dark-100);
-  --step-row-deleted-background:               color-mix(in srgb, var(--severity-error) 8%, transparent);
+  --step-row-deleted-background:               color-mix(in srgb, var(--status-error-500) 8%, transparent);
   --step-row-deleted-label-color:              var(--neutral-dark-500);
   --step-row-undo-color:                       var(--neutral-dark-900);
   --step-row-grip-color:                       var(--neutral-dark-500);
@@ -243,7 +239,7 @@
   --step-row-camera-color:                     var(--neutral-dark-500);
   --step-row-camera-color-on:                  var(--neutral-dark-900);
   --step-row-trash-color:                      var(--neutral-dark-500);
-  --step-row-trash-color-hover:                var(--severity-error);
+  --step-row-trash-color-hover:                var(--status-error-500);
   --empty-steps-heading-color:                 var(--neutral-dark-900);
   --empty-steps-copy-color:                    var(--neutral-dark-500);
   --ts-accordion-border:                       var(--neutral-dark-100);
@@ -330,15 +326,15 @@
   --textarea-background-tinted:         var(--neutral-light-300);
   --material-field-shell-border:        var(--neutral-dark-100);
   --material-field-shell-border-focus:  var(--neutral-dark-900);
-  --material-field-shell-border-invalid: var(--severity-error);
+  --material-field-shell-border-invalid: var(--status-error-500);
   --material-field-label-color:         var(--neutral-dark-500);
   --material-field-input-color:         var(--neutral-dark-900);
   --material-field-input-placeholder-color: var(--neutral-dark-500);
   --material-field-trailing-color:      var(--neutral-dark-500);
   --material-field-icon-color-success:  var(--status-success-500);
-  --material-field-icon-color-error:    var(--severity-error);
+  --material-field-icon-color-error:    var(--status-error-500);
   --material-field-caption-color:       var(--neutral-dark-500);
-  --material-field-caption-color-error: var(--severity-error);
+  --material-field-caption-color-error: var(--status-error-500);
   --wizard-title-color:                 var(--neutral-dark-500);
   --wizard-section-title-color:         var(--neutral-dark-500);
   --wizard-hint-color:                  var(--neutral-dark-500);
@@ -349,11 +345,11 @@
   /* ── Badge / Pill / Tab / Status dot ───────────────────────────── */
   --badge-color:                        var(--neutral-dark-900);
   --badge-success-background:           var(--status-success-500);
-  --badge-warning-background:           var(--status-warning-500);
-  --badge-success-tint-background:      var(--status-success-100);
-  --badge-warning-tint-background:      var(--status-warning-100);
+  --badge-warning-background:           var(--status-error-500);
+  --badge-success-tint-background:      var(--neutral-light-300);
+  --badge-warning-tint-background:      var(--neutral-light-300);
   --badge-neutral-color:                var(--neutral-dark-100);
-  --badge-flow-color:                   var(--brand-primary-500);
+  --badge-flow-color:                   var(--action-500);
   --pill-background:                    var(--neutral-light-300);
   --pill-background-hover:              var(--surface-hover);
   --pill-color:                         var(--neutral-dark-700);
@@ -361,7 +357,7 @@
   --pill-color-active:                  var(--neutral-light-100);
   --pill-disabled-color:                var(--neutral-dark-400);
   --status-dot-success-background:      var(--status-success-500);
-  --status-dot-warning-background:      var(--status-warning-500);
+  --status-dot-warning-background:      var(--status-error-500);
   --status-dot-disabled-background:     var(--neutral-dark-100);
   --status-dot-inactive-background:     var(--neutral-dark-200);
   --status-dot-error-background:        var(--status-error-500);
@@ -391,16 +387,16 @@
   --bp-chip-remove-color-hover:          var(--neutral-dark-900);
   --change-list-title-color:             var(--neutral-dark-900);
   --change-entry-background:             var(--neutral-light-300);
-  --change-entry-border-info:            var(--severity-info);
-  --change-entry-border-error:           var(--severity-error);
+  --change-entry-border-info:            var(--neutral-dark-400);
+  --change-entry-border-error:           var(--status-error-500);
   --change-entry-border-ok:              var(--status-success-500);
   --change-entry-divider:                var(--neutral-dark-100);
   --change-entry-hover-tint:             var(--neutral-dark-900);
   --change-entry-description-color:      var(--neutral-dark-900);
   --change-entry-selector-color:         var(--neutral-dark-400);
   --change-group-background:             var(--neutral-light-300);
-  --change-group-border-info:            var(--severity-info);
-  --change-group-border-error:           var(--severity-error);
+  --change-group-border-info:            var(--neutral-dark-400);
+  --change-group-border-error:           var(--status-error-500);
   --change-group-divider:                var(--neutral-dark-100);
   --change-group-selector-color:         var(--neutral-dark-400);
   --change-group-count-tint:             var(--neutral-dark-900);
@@ -429,7 +425,7 @@
   --flow-chip-color-hover:               var(--neutral-dark-900);
   --flow-chip-accent-tint:               var(--neutral-dark-900);
   --flow-chip-accent-color:              var(--neutral-dark-900);
-  --flow-chip-warning-tint:              var(--status-warning-500);
+  --flow-chip-warning-tint:              var(--status-error-500);
   --flow-chip-warning-color:             var(--neutral-dark-900);
   --flow-chip-danger-tint:               var(--status-error-500);
   --flow-chip-danger-color:              var(--status-error-500);
@@ -449,7 +445,7 @@
   --test-result-pass-tint:               var(--status-success-500);
   --test-result-pass-color:              var(--status-success-500);
   --test-result-fail-border:             var(--status-error-200);
-  --test-result-fail-background:         var(--status-error-100);
+  --test-result-fail-background:         var(--neutral-light-300);
   --test-result-fail-color:              var(--status-error-500);
   --test-result-duration-color:          var(--neutral-dark-500);
   --info-box-border:                     var(--neutral-dark-100);
@@ -499,18 +495,11 @@
   --neutral-taupe-500: #7a7075;
   --neutral-taupe-700: rgba(200, 200, 200, 0.4);
 
-  /* Brand — slightly brighter for dark bg contrast */
-  --brand-primary-500: #f0a040;
-
-  /* Status — tints must contrast against #1e1e1e */
-  --status-success-100: #1e4a2e;
+  /* Status — accents tuned to contrast against #1e1e1e */
   --status-success-500: #3aaa80;
-  --status-warning-100: #4a4520;
-  --status-warning-500: #d6c840;
-  --status-error-100: #4a2424;
-  --status-error-200: #5c3030;
-  --status-error-500: #e06060;
-  --status-error-800: #e88a8a;
+  --status-error-200:   #5c3030;
+  --status-error-500:   #e06060;
+  --status-error-800:   #e88a8a;
 
   /* Elevation — stronger for dark bg visibility */
   --elevation-sm: 0px 1px 3px rgba(0, 0, 0, 0.40), 0px 1px 2px rgba(0, 0, 0, 0.30);
