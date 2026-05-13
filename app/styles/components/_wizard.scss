@@ -18,7 +18,7 @@
     margin: 0;
     font-size: var(--font-size-md);
     font-weight: var(--weight-semibold);
-    color: var(--text-muted);
+    color: var(--wizard-title-color);
   }
 
   &__body {
@@ -37,13 +37,13 @@
     margin: 0;
     font-size: var(--font-size-md);
     font-weight: var(--weight-regular);
-    color: var(--text-muted);
+    color: var(--wizard-section-title-color);
   }
 
   &__hint {
     margin: 0;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--wizard-hint-color);
     line-height: var(--line-base);
   }
 
@@ -57,7 +57,7 @@
 
   &__step-count {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--wizard-step-count-color);
   }
 
   &__footer-actions {
@@ -81,7 +81,7 @@
     justify-content: space-between;
     gap: var(--space-3);
     padding: var(--space-2) 0;
-    border-bottom: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--wizard-step-item-border);
 
     &:last-child {
       border-bottom: none;
@@ -89,7 +89,7 @@
   }
 
   &__step-label {
-    color: var(--foreground);
+    color: var(--wizard-step-label-color);
     font-size: var(--font-size-base);
     overflow: hidden;
     text-overflow: ellipsis;

@@ -19,7 +19,7 @@
 
   /* Neutral / Light (surfaces) */
   --neutral-light-100: #ffffff;
-  --neutral-light-200: #f5f4f3;
+  --neutral-light-200: #f8f6f6;
   --neutral-light-300: #f2eee9;
 
   /* Neutral / Taupe (comparison UI) */
@@ -41,6 +41,12 @@
   /* Status — warning */
   --status-warning-100: #faf5d4;
   --status-warning-500: #e1d034;
+
+  /* Action — primary CTA (golden yellow, paired with action-cancel below) */
+  --action-500: #FFE030;
+  --action-600: #e6b922;
+  --action-cancel-500: #e26a32;
+  --action-cancel-600: #cc561e;
 
   /* Status — error */
   --status-error-100: #fef2f2;

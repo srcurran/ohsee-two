@@ -7,7 +7,7 @@
   transition: background-color var(--duration-base) var(--ease-decel);
 
   &--visible {
-    background: var(--overlay-backdrop-light);
+    background: var(--page-detail-scrim-background);
   }
 
   &--hidden {
@@ -20,7 +20,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--surface-content);
+  background: var(--page-detail-panel-background);
   box-shadow: var(--elevation-lg);
   overflow: hidden;
 
@@ -53,7 +53,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: var(--font-size-5xl);
-    color: var(--foreground);
+    color: var(--page-detail-panel-title-color);
   }
 
   &__nav {
@@ -71,7 +71,7 @@
 
   &__date {
     font-size: var(--font-size-lg);
-    color: var(--foreground);
+    color: var(--page-detail-panel-date-color);
   }
 
   &__breakpoints {
@@ -80,14 +80,14 @@
 
   &__divider {
     height: 1px;
-    background: var(--border-primary);
+    background: var(--page-detail-panel-divider-background);
   }
 
   &__main {
     display: flex;
     flex: 1;
     overflow: hidden;
-    background: var(--surface-tertiary);
+    background: var(--page-detail-panel-main-background);
 
     /* Narrow viewports: stack screenshot above changes panel so each gets
        full width. The panel takes its natural height, the screenshot
@@ -132,7 +132,7 @@
       top: 0;
       z-index: var(--z-10);
       align-self: stretch;
-      background: var(--surface-tertiary);
+      background: var(--page-detail-panel-view-toggle-sticky-background);
       padding-top: var(--space-6);
     }
   }
@@ -140,7 +140,7 @@
   &__view-label {
     width: 32px;
     transition: color var(--duration-fast) var(--ease-standard);
-    color: var(--text-muted);
+    color: var(--page-detail-panel-view-label-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -149,14 +149,14 @@
 
     &--right { text-align: left; }
     &--active {
-      color: var(--foreground);
+      color: var(--page-detail-panel-view-label-color-active);
       text-decoration: underline;
       text-underline-offset: 4px;
       text-decoration-thickness: 1px;
     }
 
     &:hover {
-      color: var(--foreground);
+      color: var(--page-detail-panel-view-label-color-hover);
     }
   }
 
@@ -170,13 +170,13 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-md);
-    background: var(--surface-content);
+    background: var(--page-detail-panel-empty-background);
     padding: var(--space-12) var(--space-6);
 
     &-text {
       margin: 0;
       font-size: var(--font-size-base);
-      color: var(--text-muted);
+      color: var(--page-detail-panel-empty-text-color);
     }
   }
 
@@ -184,8 +184,8 @@
     width: 340px;
     flex-shrink: 0;
     overflow-y: auto;
-    border-left: 1px solid var(--border-primary);
-    background: var(--surface-content);
+    border-left: 1px solid var(--page-detail-panel-changes-border);
+    background: var(--page-detail-panel-changes-background);
     padding: var(--space-6);
 
     /* Stacked under the screenshot at narrow widths — full bleed with
@@ -194,7 +194,7 @@
       width: 100%;
       overflow-y: visible;
       border-left: none;
-      border-top: 1px solid var(--border-primary);
+      border-top: 1px solid var(--page-detail-panel-changes-border);
     }
   }
 }
@@ -209,7 +209,7 @@
     z-index: var(--z-overlay);
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
-    background: var(--surface-content);
+    background: var(--report-page-sticky-background);
   }
 
   &__header {
@@ -244,7 +244,7 @@
   &__domain {
     flex-shrink: 0;
     font-size: var(--font-size-6xl);
-    color: var(--foreground);
+    color: var(--report-page-domain-color);
     transition: var(--transition-opacity);
     text-decoration: none;
 
@@ -254,7 +254,7 @@
   &__slash {
     flex-shrink: 0;
     font-size: var(--font-size-6xl);
-    color: var(--text-subtle);
+    color: var(--report-page-slash-color);
   }
 
   &__page-name-wrap {
@@ -276,13 +276,13 @@
     padding: 0;
 
     &:hover {
-      background: var(--surface-hover-bare);
+      background: var(--report-page-page-btn-background-hover);
     }
   }
 
   &__page-name {
     font-size: var(--font-size-6xl);
-    color: var(--foreground);
+    color: var(--report-page-page-name-color);
   }
 
   &__nav {
@@ -297,7 +297,7 @@
     align-items: center;
     gap: var(--space-2);
     font-size: var(--font-size-lg);
-    color: var(--foreground);
+    color: var(--report-page-date-btn-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -313,16 +313,16 @@
     height: 24px;
     align-items: center;
     justify-content: center;
-    color: var(--text-subtle);
+    color: var(--report-page-arrow-color);
     transition: var(--transition-colors);
     background: transparent;
     border: none;
     cursor: pointer;
 
-    &:hover { color: var(--foreground); }
+    &:hover { color: var(--report-page-arrow-color-hover); }
 
     &--disabled {
-      color: var(--text-disabled);
+      color: var(--report-page-arrow-color-disabled);
       pointer-events: none;
     }
   }
@@ -338,7 +338,7 @@
     display: flex;
     align-items: center;
     font-size: var(--font-size-base);
-    color: var(--foreground);
+    color: var(--report-page-header-col-color);
   }
 
   &__body {
@@ -359,7 +359,7 @@
 
   &__loading {
     padding: var(--space-6);
-    color: var(--text-muted);
+    color: var(--report-page-loading-color);
   }
 
   &__collapsible {
@@ -384,11 +384,11 @@
 
   &__show-all {
     border-radius: var(--radius-full);
-    border: 1px solid var(--border-primary);
-    background: var(--surface-content);
+    border: 1px solid var(--report-page-show-all-border);
+    background: var(--report-page-show-all-background);
     padding: var(--space-2) var(--space-5);
     font-size: var(--font-size-md);
-    color: var(--foreground);
+    color: var(--report-page-show-all-color);
     box-shadow: var(--elevation-sm);
     cursor: pointer;
     transition:
@@ -397,7 +397,7 @@
     font-family: inherit;
 
     &:hover {
-      background: var(--surface-tertiary);
+      background: var(--report-page-show-all-background-hover);
       box-shadow: var(--elevation-sm);
     }
   }
@@ -405,14 +405,14 @@
   &__collapse {
     margin-top: var(--space-2);
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--report-page-collapse-color);
     text-decoration: underline;
     background: transparent;
     border: none;
     cursor: pointer;
     font-family: inherit;
 
-    &:hover { color: var(--foreground); }
+    &:hover { color: var(--report-page-collapse-color-hover); }
   }
 }
 
@@ -452,14 +452,14 @@
     border-radius: var(--radius-sm);
     padding-inline: var(--space-1);
     font-size: var(--font-size-5xl);
-    color: var(--foreground);
+    color: var(--page-title-menu-trigger-color);
     background: transparent;
     border: none;
     cursor: pointer;
     transition: background-color var(--duration-base) var(--ease-standard);
     font-family: inherit;
 
-    &:hover { background: var(--surface-hover-bare); }
+    &:hover { background: var(--page-title-menu-trigger-background-hover); }
   }
 
   &__panel {
@@ -472,7 +472,7 @@
     flex-direction: column;
     gap: var(--space-0-5);
     border-radius: var(--radius-lg);
-    background: var(--surface-content);
+    background: var(--page-title-menu-panel-background);
     padding: var(--space-2);
     box-shadow: var(--elevation-lg);
   }
@@ -486,7 +486,7 @@
     text-decoration: none;
     transition: background-color var(--duration-base) var(--ease-standard);
 
-    &:hover { background: var(--surface-tertiary); }
+    &:hover { background: var(--page-title-menu-item-background-hover); }
   }
 
   &__kind {
@@ -494,7 +494,7 @@
     font-weight: var(--weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-subtle);
+    color: var(--page-title-menu-kind-color);
   }
 
   &__url {
@@ -502,7 +502,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: var(--font-size-base);
-    color: var(--foreground);
+    color: var(--page-title-menu-url-color);
   }
 }
 

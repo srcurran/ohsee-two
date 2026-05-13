@@ -2,7 +2,7 @@
 
 .flow-editor {
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--flow-editor-border);
   padding: var(--space-4);
 
   &__header {
@@ -18,7 +18,7 @@
     gap: var(--space-2);
     font-size: var(--font-size-lg);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--flow-editor-toggle-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -27,7 +27,7 @@
 
   &__chevron {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--flow-editor-chevron-color);
   }
 
   &__meta {
@@ -53,14 +53,14 @@
   &__separator {
     margin-inline: var(--space-1);
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--flow-editor-separator-color);
   }
 
   &__empty {
     padding-block: var(--space-2);
     text-align: center;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--flow-editor-empty-color);
   }
 }
 
@@ -69,15 +69,15 @@
   align-items: center;
   gap: var(--space-2);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-  background: var(--surface-secondary);
+  border: 1px solid var(--flow-step-border);
+  background: var(--flow-step-background);
   padding: var(--space-2);
 
   &__reorder {
     display: flex;
     flex-direction: column;
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--flow-step-reorder-color);
   }
 
   &__reorder-btn {
@@ -89,7 +89,7 @@
     line-height: 1;
 
     &:hover {
-      color: var(--foreground);
+      color: var(--flow-step-reorder-color-hover);
     }
   }
 
@@ -97,16 +97,16 @@
     width: 24px;
     text-align: center;
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--flow-step-index-color);
   }
 
   &__kind {
     border-radius: var(--radius-xs);
-    background: var(--surface-tertiary);
+    background: var(--flow-step-kind-background);
     padding: var(--space-0-5) var(--space-1-5);
     font-size: var(--font-size-xs);
     font-weight: var(--weight-bold);
-    color: var(--text-muted);
+    color: var(--flow-step-kind-color);
   }
 
   &__fields {
@@ -129,58 +129,58 @@
 
   &__remove {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--flow-step-remove-color);
     background: transparent;
     border: none;
     cursor: pointer;
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--foreground);
+      color: var(--flow-step-remove-color-hover);
     }
   }
 }
 
 .flow-chip {
   border-radius: var(--radius-sm);
-  background: var(--surface-tertiary);
+  background: var(--flow-chip-background);
   padding: var(--space-1) var(--space-2-5);
   font-size: var(--font-size-sm);
-  color: var(--text-muted);
+  color: var(--flow-chip-color);
   border: none;
   cursor: pointer;
   transition: var(--transition-colors);
   font-family: inherit;
 
   &:hover {
-    background: var(--surface-hover);
-    color: var(--foreground);
+    background: var(--flow-chip-background-hover);
+    color: var(--flow-chip-color-hover);
   }
 
   &--accent {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
+    background: color-mix(in srgb, var(--flow-chip-accent-tint) 10%, transparent);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--flow-chip-accent-color);
 
     &:hover {
-      background: color-mix(in srgb, var(--foreground) 20%, transparent);
-      color: var(--foreground);
+      background: color-mix(in srgb, var(--flow-chip-accent-tint) 20%, transparent);
+      color: var(--flow-chip-accent-color);
     }
   }
 
   &--warning {
-    background: color-mix(in srgb, var(--accent-yellow) 20%, transparent);
+    background: color-mix(in srgb, var(--flow-chip-warning-tint) 20%, transparent);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--flow-chip-warning-color);
 
-    &:hover { background: color-mix(in srgb, var(--accent-yellow) 30%, transparent); }
+    &:hover { background: color-mix(in srgb, var(--flow-chip-warning-tint) 30%, transparent); }
   }
 
   &--danger {
-    color: var(--status-error);
+    color: var(--flow-chip-danger-color);
     &:hover {
-      background: color-mix(in srgb, var(--status-error) 10%, transparent);
-      color: var(--status-error);
+      background: color-mix(in srgb, var(--flow-chip-danger-tint) 10%, transparent);
+      color: var(--flow-chip-danger-color);
     }
   }
 }
@@ -191,13 +191,13 @@
   align-items: center;
   gap: var(--space-2);
   border-radius: var(--radius-xs);
-  background: color-mix(in srgb, var(--surface-tertiary) 50%, transparent);
+  background: color-mix(in srgb, var(--comp-step-background-tint) 50%, transparent);
   padding: var(--space-2) var(--space-3);
   transition: background-color var(--duration-base) var(--ease-standard);
 
   /* Highlighted while another row hovers over it during drag-to-reorder. */
   &--drag-over {
-    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+    background: color-mix(in srgb, var(--comp-step-drag-over-tint) 5%, transparent);
   }
 
   /* Grab handle — same affordance as .path-row__grab. The whole row is
@@ -206,7 +206,7 @@
   &__grab {
     flex-shrink: 0;
     cursor: grab;
-    color: var(--text-muted);
+    color: var(--comp-step-grab-color);
 
     &:active {
       cursor: grabbing;
@@ -217,14 +217,14 @@
     flex-shrink: 0;
     width: 20px;
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--comp-step-index-color);
   }
 
   &__name {
     flex: 1;
     text-align: left;
     font-size: var(--font-size-base);
-    color: var(--foreground);
+    color: var(--comp-step-name-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -235,7 +235,7 @@
     font-family: inherit;
 
     &:hover {
-      color: var(--accent-primary);
+      color: var(--comp-step-name-color-hover);
     }
   }
 
@@ -244,11 +244,11 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--foreground);
+    color: var(--comp-step-camera-color);
     transition: var(--transition-colors);
 
     &--disabled {
-      color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+      color: color-mix(in srgb, var(--comp-step-camera-disabled-tint) 40%, transparent);
     }
   }
 
@@ -262,13 +262,13 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--text-muted);
+    color: var(--comp-step-reorder-color);
     transition: var(--transition-colors);
     padding: 0;
     display: inline-flex;
 
     &:hover {
-      color: var(--foreground);
+      color: var(--comp-step-reorder-color-hover);
     }
 
     &:disabled {
@@ -281,21 +281,21 @@
     flex-shrink: 0;
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--comp-step-remove-color);
     cursor: pointer;
     padding: 0;
     display: inline-flex;
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--status-error);
+      color: var(--comp-step-remove-color-hover);
     }
   }
 }
 
 .composition-editor {
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--composition-editor-border);
 
   &__header {
     display: flex;
@@ -318,7 +318,7 @@
   &__title {
     font-size: var(--font-size-base);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--composition-editor-title-color);
   }
 
   &__chevron {
@@ -331,19 +331,19 @@
 
   &__remove {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--composition-editor-remove-color);
     background: transparent;
     border: none;
     cursor: pointer;
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--status-error);
+      color: var(--composition-editor-remove-color-hover);
     }
   }
 
   &__body {
-    border-top: 1px solid var(--border-primary);
+    border-top: 1px solid var(--composition-editor-divider);
     padding: var(--space-3);
   }
 
@@ -364,20 +364,20 @@
     margin-bottom: var(--space-3);
     text-align: center;
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--composition-editor-empty-color);
     padding-block: var(--space-3);
   }
 
   &__add-panel {
     border-radius: var(--radius-md);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--composition-editor-add-panel-border);
     padding: var(--space-3);
   }
 
   &__add-hint {
     margin-bottom: var(--space-2);
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: var(--composition-editor-add-hint-color);
   }
 
   &__add-list {
@@ -394,7 +394,7 @@
 
   &__add-btn {
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--composition-editor-add-btn-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -402,7 +402,7 @@
     transition: var(--transition-colors);
 
     &:hover {
-      color: var(--foreground);
+      color: var(--composition-editor-add-btn-color-hover);
     }
   }
 }

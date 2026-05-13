@@ -37,10 +37,6 @@ interface ProjectFaviconProps {
   url: string;
   /** Secondary URL to try if primary fails */
   fallbackUrl?: string;
-  /** Total outer size including padding */
-  size?: number;
-  /** Border radius of the favicon tile in px. Defaults to 8. */
-  borderRadius?: number;
   className?: string;
 }
 
@@ -53,8 +49,6 @@ interface ProjectFaviconProps {
 export default function ProjectFavicon({
   url,
   fallbackUrl,
-  size = 56,
-  borderRadius = 8,
   className,
 }: ProjectFaviconProps) {
   // Order URLs: try non-localhost first
@@ -77,19 +71,15 @@ export default function ProjectFavicon({
 
   if (failed || urls.length === 0 || allLocalhost) {
     return (
-      <span
-        className={`favicon favicon--fallback ${className || ""}`}
-        style={{ width: size, height: size }}
-      >
+      <span className={`favicon favicon--fallback ${className || ""}`}>
         <svg
-          width={size * 0.65}
-          height={size * 0.65}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="favicon__svg"
         >
           <circle cx="12" cy="12" r="10" />
           <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
@@ -101,16 +91,11 @@ export default function ProjectFavicon({
   const activeHostname = getHostname(urls[attemptIndex] || urls[0]);
 
   return (
-    <span
-      className={`favicon ${className || ""}`}
-      style={{ width: size, height: size }}
-    >
-      <span className="favicon__inner" style={{ borderRadius }}>
+    <span className={`favicon ${className || ""}`}>
+      <span className="favicon__inner">
         <img
           src={`/api/favicon?domain=${activeHostname}`}
           alt={domain}
-          width={size}
-          height={size}
           className="favicon__img"
           onError={() => {
             if (attemptIndex < urls.length - 1) {

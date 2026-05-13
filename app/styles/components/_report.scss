@@ -11,12 +11,12 @@
     z-index: var(--z-dropdown);
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
-    background: var(--surface-content);
+    background: var(--report-sticky-background);
   }
 
   &__project-label {
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--report-project-label-color);
   }
 
   &__title-row {
@@ -41,7 +41,7 @@
     margin: 0;
     font-size: var(--font-size-3xl);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--report-title-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -74,13 +74,13 @@
       background-color var(--duration-base) var(--ease-standard);
 
     &:hover {
-      background: var(--surface-hover-bare);
+      background: var(--report-date-btn-background-hover);
     }
   }
 
   &__date {
     font-size: var(--font-size-lg);
-    color: var(--foreground);
+    color: var(--report-date-color);
   }
 
   &__status-banner {
@@ -88,22 +88,22 @@
     margin-bottom: var(--space-3);
     border-radius: var(--radius-md);
     padding: var(--space-4);
-    border: 1px solid var(--border-primary);
-    background: var(--surface-tertiary);
+    border: 1px solid var(--report-status-banner-border);
+    background: var(--report-status-banner-background);
 
     &--error {
-      border-color: var(--status-error-border);
-      background: var(--status-error-muted);
+      border-color: var(--report-status-banner-border-error);
+      background: var(--report-status-banner-background-error);
     }
 
     &-title {
       margin: 0;
       font-size: var(--font-size-md);
-      color: var(--text-muted);
+      color: var(--report-status-banner-title-color);
 
       &--error {
         font-weight: var(--weight-bold);
-        color: var(--status-error-strong);
+        color: var(--report-status-banner-title-color-error);
       }
     }
 
@@ -114,7 +114,7 @@
       white-space: pre-wrap;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: var(--font-size-sm);
-      color: var(--status-error-text);
+      color: var(--report-status-banner-detail-color);
     }
   }
 
@@ -143,7 +143,7 @@
     margin: 0;
     font-size: var(--font-size-lg);
     font-weight: var(--weight-bold);
-    color: var(--foreground);
+    color: var(--report-flow-title-color);
   }
 }
 
@@ -157,19 +157,19 @@
     width: 120px;
     overflow: hidden;
     border-radius: var(--radius-full);
-    background: var(--surface-tertiary);
+    background: var(--progress-bar-background);
   }
 
   &__fill {
     height: 100%;
     border-radius: var(--radius-full);
-    background: var(--accent-primary);
+    background: var(--progress-fill-background);
     transition: width var(--duration-slow) var(--ease-standard);
   }
 
   &__text {
     font-size: var(--font-size-md);
-    color: var(--text-muted);
+    color: var(--progress-text-color);
   }
 }
 
@@ -178,11 +178,12 @@
   align-items: center;
   gap: var(--space-4);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
+  border: 1px solid transparent;
   padding: var(--space-2) var(--space-5) var(--space-2) var(--space-6);
   font-size: var(--font-size-lg);
-  color: var(--foreground);
-  background: transparent;
+  font-weight: var(--weight-bold);
+  color: var(--run-pill-color);
+  background: var(--run-pill-background);
   cursor: pointer;
   font-family: inherit;
   transition:
@@ -191,7 +192,7 @@
     var(--transition-shadow);
 
   &:hover:not(:disabled) {
-    background: var(--surface-tertiary);
+    background: var(--run-pill-background-hover);
     box-shadow: var(--elevation-md);
     transform: translateY(-1px);
   }
@@ -206,8 +207,18 @@
     padding: var(--space-3) var(--space-6);
   }
 
+  /* Cancel state — same footprint, warm orange-red. Toggle this class
+   * (or swap to it) while a run is in flight so click cancels. */
+  &--cancel {
+    background: var(--run-pill-cancel-background);
+
+    &:hover:not(:disabled) {
+      background: var(--run-pill-cancel-background-hover);
+    }
+  }
+
   &__icon {
-    color: var(--text-subtle);
+    color: currentColor;
   }
 }
 
@@ -215,8 +226,8 @@
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
-  border: 3px solid var(--surface-tertiary);
-  border-top-color: var(--accent-primary);
+  border: 3px solid var(--loader-spinner-track-color);
+  border-top-color: var(--loader-spinner-head-color);
   animation: spin 1s linear infinite;
 }
 
@@ -230,7 +241,7 @@
 
 .loader-text {
   font-size: var(--font-size-base);
-  color: var(--text-muted);
+  color: var(--loader-text-color);
 }
 
 /* Project tile save button label */
@@ -242,5 +253,5 @@
 
 .save-feedback {
   font-size: var(--font-size-base);
-  color: var(--accent-green);
+  color: var(--save-feedback-color);
 }
