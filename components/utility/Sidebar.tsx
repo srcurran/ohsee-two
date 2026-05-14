@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { SidebarGroup } from "@/components/utility/SidebarGroup";
@@ -22,6 +22,7 @@ export default function Sidebar() {
     openTestSettings,
     openNewProjectWizard,
     openNewTestWizard,
+    setHasProjects,
   } = useSidebar();
   const router = useRouter();
 
@@ -62,6 +63,13 @@ export default function Sidebar() {
     () => data.filter(({ project }) => !project.archived),
     [data],
   );
+
+  useEffect(() => {
+    if (!loading) setHasProjects(visibleData.length > 0);
+  }, [loading, visibleData.length, setHasProjects]);
+
+  if (!loading && visibleData.length === 0) return null;
+
   const stateMod = collapsed ? "sidebar--collapsed" : "sidebar--expanded";
   const transitionMod = ready ? "sidebar--animated" : "";
 
