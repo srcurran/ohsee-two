@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 interface SidebarContextValue {
@@ -116,7 +116,24 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string } | null>(null);
   const pathname = usePathname();
 
-  const refreshProjects = useCallback(() => setRefreshKey((k) => k + 1), []);
+  // Coalesce rapid refreshProjects() calls into one refetch. Multiple
+  // surfaces (sidebar poll, report poll completion, settings save,
+  // wizard finish) can fire this within tens of ms; without coalescing
+  // each becomes its own N+1 refetch storm.
+  const refreshPendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshProjects = useCallback(() => {
+    if (refreshPendingRef.current) return;
+    refreshPendingRef.current = setTimeout(() => {
+      refreshPendingRef.current = null;
+      setRefreshKey((k) => k + 1);
+    }, 100);
+  }, []);
+  useEffect(
+    () => () => {
+      if (refreshPendingRef.current) clearTimeout(refreshPendingRef.current);
+    },
+    [],
+  );
   const setPageTitle = useCallback((title: string | null) => setPageTitleState(title), []);
   const setPageHeader = useCallback((node: ReactNode) => setPageHeaderState(node), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);
@@ -202,36 +219,70 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname]);
 
+  // Memoize the context value so consumers don't re-render every
+  // time SidebarProvider itself re-renders (e.g. on each pathname
+  // change). The action callbacks are all `useCallback`'d above so
+  // they're stable references; the state primitives change only when
+  // their respective setters fire.
+  const value = useMemo(
+    () => ({
+      refreshKey,
+      refreshProjects,
+      collapsed,
+      setCollapsed,
+      toggleCollapsed,
+      ready,
+      pageTitle,
+      setPageTitle,
+      pageHeader,
+      setPageHeader,
+      settingsOpen,
+      openSettings,
+      closeSettings,
+      projectSettingsId,
+      openProjectSettings,
+      closeProjectSettings,
+      testSettings,
+      openTestSettings,
+      closeTestSettings,
+      newProjectWizardOpen,
+      openNewProjectWizard,
+      closeNewProjectWizard,
+      newTestWizard,
+      openNewTestWizard,
+      closeNewTestWizard,
+    }),
+    [
+      refreshKey,
+      refreshProjects,
+      collapsed,
+      setCollapsed,
+      toggleCollapsed,
+      ready,
+      pageTitle,
+      setPageTitle,
+      pageHeader,
+      setPageHeader,
+      settingsOpen,
+      openSettings,
+      closeSettings,
+      projectSettingsId,
+      openProjectSettings,
+      closeProjectSettings,
+      testSettings,
+      openTestSettings,
+      closeTestSettings,
+      newProjectWizardOpen,
+      openNewProjectWizard,
+      closeNewProjectWizard,
+      newTestWizard,
+      openNewTestWizard,
+      closeNewTestWizard,
+    ],
+  );
+
   return (
-    <SidebarContext.Provider
-      value={{
-        refreshKey,
-        refreshProjects,
-        collapsed,
-        setCollapsed,
-        toggleCollapsed,
-        ready,
-        pageTitle,
-        setPageTitle,
-        pageHeader,
-        setPageHeader,
-        settingsOpen,
-        openSettings,
-        closeSettings,
-        projectSettingsId,
-        openProjectSettings,
-        closeProjectSettings,
-        testSettings,
-        openTestSettings,
-        closeTestSettings,
-        newProjectWizardOpen,
-        openNewProjectWizard,
-        closeNewProjectWizard,
-        newTestWizard,
-        openNewTestWizard,
-        closeNewTestWizard,
-      }}
-    >
+    <SidebarContext.Provider value={value}>
       {children}
     </SidebarContext.Provider>
   );

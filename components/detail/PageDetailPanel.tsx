@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
 import DiffViewer from "@/components/detail/DiffViewer";
@@ -108,14 +108,24 @@ export default function PageDetailPanel({
       ? "index"
       : currentPage.path.replace(/^\//, "");
 
-  const bpChangeCounts = computeBpChangeCounts(activeBpData);
-
-  const totalUniqueChanges = countUniqueSemanticChanges(
-    Object.values(activeBpData).map((bp) => bp.semanticChanges),
+  // These walk the full report / page tree — memoize so they don't re-run
+  // on every peek/hover state change inside the panel.
+  const bpChangeCounts = useMemo(
+    () => computeBpChangeCounts(activeBpData),
+    [activeBpData],
   );
-
-  const reportBreakpoints = collectReportBreakpoints(report);
-  const reportVariants = collectReportVariants(report);
+  const totalUniqueChanges = useMemo(
+    () =>
+      countUniqueSemanticChanges(
+        Object.values(activeBpData).map((bp) => bp.semanticChanges),
+      ),
+    [activeBpData],
+  );
+  const reportBreakpoints = useMemo(
+    () => collectReportBreakpoints(report),
+    [report],
+  );
+  const reportVariants = useMemo(() => collectReportVariants(report), [report]);
 
   const badgeMod = !bpResult?.prodScreenshot
     ? "badge--neutral"

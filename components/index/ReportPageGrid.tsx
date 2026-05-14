@@ -5,6 +5,7 @@
  * fallbacks for the zero-page case live here too, since they only ever
  * render in place of this grid. */
 
+import { memo, useMemo } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
 import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp, groupPagesByFlow } from "@/components/index/utils/report";
@@ -16,13 +17,18 @@ interface ReportPageGridProps {
   onOpenPage: (pageId: string, e?: React.MouseEvent) => void;
 }
 
-export function ReportPageGrid({
+function ReportPageGridComponent({
   report,
   activeBp,
   activeVariant,
   onOpenPage,
 }: ReportPageGridProps) {
-  const { regularPages, flowGroups } = groupPagesByFlow(report);
+  // groupPagesByFlow walks every page in the report; memoize so the grid
+  // doesn't re-walk it when only the active breakpoint/variant changes.
+  const { regularPages, flowGroups } = useMemo(
+    () => groupPagesByFlow(report),
+    [report],
+  );
 
   const renderPageCard = (page: ReportPage, index: number) => {
     const bpResult = getPageBp(page, String(activeBp), activeVariant);
@@ -46,6 +52,8 @@ export function ReportPageGrid({
               alt={page.stepLabel || page.path}
               className="page-tile__thumb-img page-tile__thumb-img--clamped"
               style={{ maxWidth: activeBp }}
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="page-tile__thumb-empty">No screenshot</div>
@@ -107,3 +115,6 @@ export function ReportPageGrid({
     </>
   );
 }
+
+export const ReportPageGrid = memo(ReportPageGridComponent);
+ReportPageGrid.displayName = "ReportPageGrid";

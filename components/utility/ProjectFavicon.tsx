@@ -38,6 +38,9 @@ interface ProjectFaviconProps {
   /** Secondary URL to try if primary fails */
   fallbackUrl?: string;
   className?: string;
+  /** Pixel size for the <img>. Matches SidebarFavicon's API — used as
+   * width/height attributes so the browser reserves space. */
+  size?: number;
 }
 
 /**
@@ -50,6 +53,7 @@ export default function ProjectFavicon({
   url,
   fallbackUrl,
   className,
+  size = 24,
 }: ProjectFaviconProps) {
   // Order URLs: try non-localhost first
   const urls = [url, fallbackUrl].filter(Boolean) as string[];
@@ -97,6 +101,10 @@ export default function ProjectFavicon({
           src={`/api/favicon?domain=${activeHostname}`}
           alt={domain}
           className="favicon__img"
+          width={size}
+          height={size}
+          loading="lazy"
+          decoding="async"
           onError={() => {
             if (attemptIndex < urls.length - 1) {
               setAttemptIndex(attemptIndex + 1);

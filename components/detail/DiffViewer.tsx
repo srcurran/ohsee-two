@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import type { SemanticChange } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_COLOR_FALLBACK } from "@/lib/colors";
 
@@ -19,7 +19,7 @@ interface Props {
   highlightedChangeId?: string | null;
 }
 
-export default function DiffViewer({
+function DiffViewerComponent({
   prodSrc,
   devSrc,
   alt = "Diff view",
@@ -98,7 +98,13 @@ export default function DiffViewer({
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [highlightedChangeId, scale]);
-  const markers = changes ? dedupeMarkers(changes, scale) : [];
+  // dedupeMarkers is O(n log n) over the change set — re-running it on
+  // every render (including every peek pointerdown) was the dominant
+  // cost in this view per the perf audit.
+  const markers = useMemo(
+    () => (changes ? dedupeMarkers(changes, scale) : []),
+    [changes, scale],
+  );
 
   return (
     <div>
@@ -124,11 +130,15 @@ export default function DiffViewer({
           alt={`${alt} (dev)`}
           className="diff-viewer__image diff-viewer__image--base"
           draggable={false}
+          loading="lazy"
+          decoding="async"
         />
         <img
           src={prodSrc}
           alt={`${alt} (prod)`}
           onLoad={() => setOverlayLoaded(true)}
+          loading="lazy"
+          decoding="async"
           /* Hybrid blend (option 5): the difference layer at <1 opacity lets
              the base (dev) image show through. Identical regions render as
              (1 - opacity) × dev (dim but readable); differences render as
@@ -225,3 +235,7 @@ function severityOrder(a: SemanticChange, b: SemanticChange): number {
   const order: Record<string, number> = { error: 0, warning: 1, info: 2 };
   return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
 }
+
+const DiffViewer = memo(DiffViewerComponent);
+DiffViewer.displayName = "DiffViewer";
+export default DiffViewer;

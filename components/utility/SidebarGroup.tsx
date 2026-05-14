@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import ProjectFavicon from "@/components/utility/ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
@@ -31,8 +31,12 @@ interface SidebarGroupProps {
 
 /** One project's group in the sidebar: header, visible tests (with optional
  * see-more), add-test button. Owns only its expanded-tests toggle — every
- * other state and handler is supplied by the parent shell. */
-export function SidebarGroup({
+ * other state and handler is supplied by the parent shell.
+ *
+ * React.memo'd: re-renders only when props change. The parent passes
+ * useCallback'd handlers so unrelated state changes upstream (overlay
+ * toggles, pathname changes) don't reconcile every project row. */
+function SidebarGroupComponent({
   project,
   reports,
   index,
@@ -51,9 +55,12 @@ export function SidebarGroup({
   const domain = getDomain(project.prodUrl);
   // Archived tests live on the project but are hidden here — they're
   // restored from the project Danger Zone.
-  const tests = (project.tests || []).filter((t) => !t.archived);
-  const testsWithReports = tests.map((t) =>
-    getTestWithLatestReport(t, reports),
+  const testsWithReports = useMemo(
+    () =>
+      (project.tests || [])
+        .filter((t) => !t.archived)
+        .map((t) => getTestWithLatestReport(t, reports)),
+    [project.tests, reports],
   );
   const visibleTests = expanded
     ? testsWithReports
@@ -173,3 +180,6 @@ function isProjectActive(
   if (pathname.startsWith(`/projects/${project.id}`)) return true;
   return reports.some((r) => pathname.startsWith(`/reports/${r.id}`));
 }
+
+export const SidebarGroup = memo(SidebarGroupComponent);
+SidebarGroup.displayName = "SidebarGroup";
