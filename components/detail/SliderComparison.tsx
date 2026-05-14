@@ -101,13 +101,22 @@ function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
       onTouchEnd={() => updatePressed(false)}
       onTouchCancel={() => updatePressed(false)}
     >
-      <img src={devSrc} alt="Dev version" className="comparison__image" draggable={false} />
+      <img
+        src={devSrc}
+        alt="Dev version"
+        className="comparison__image"
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+      />
       <img
         src={prodSrc}
         alt="Prod version"
         className="comparison__overlay"
         style={{ opacity: showingDev ? 0 : 1 }}
         draggable={false}
+        loading="lazy"
+        decoding="async"
       />
     </div>
   );
@@ -159,10 +168,24 @@ function SliderReveal({ prodSrc, devSrc }: Props) {
         handleMove(e.touches[0].clientX);
       }}
     >
-      <img src={devSrc} alt="Dev version" className="comparison__image" draggable={false} />
+      <img
+        src={devSrc}
+        alt="Dev version"
+        className="comparison__image"
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+      />
 
       <div className="comparison__clip" style={{ clipPath: `inset(0 ${100 - dividerPos}% 0 0)` }}>
-        <img src={prodSrc} alt="Prod version" className="comparison__image" draggable={false} />
+        <img
+          src={prodSrc}
+          alt="Prod version"
+          className="comparison__image"
+          draggable={false}
+          loading="lazy"
+          decoding="async"
+        />
       </div>
 
       <div className="comparison__divider" style={{ left: `${dividerPos}%` }}>

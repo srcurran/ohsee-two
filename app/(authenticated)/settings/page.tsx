@@ -90,6 +90,8 @@ export default function SettingsPage() {
                       height={48}
                       style={{ borderRadius: "var(--radius-full)" }}
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <span

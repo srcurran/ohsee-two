@@ -46,6 +46,8 @@ export function ReportPageGrid({
               alt={page.stepLabel || page.path}
               className="page-tile__thumb-img page-tile__thumb-img--clamped"
               style={{ maxWidth: activeBp }}
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="page-tile__thumb-empty">No screenshot</div>

@@ -124,11 +124,15 @@ export default function DiffViewer({
           alt={`${alt} (dev)`}
           className="diff-viewer__image diff-viewer__image--base"
           draggable={false}
+          loading="lazy"
+          decoding="async"
         />
         <img
           src={prodSrc}
           alt={`${alt} (prod)`}
           onLoad={() => setOverlayLoaded(true)}
+          loading="lazy"
+          decoding="async"
           /* Hybrid blend (option 5): the difference layer at <1 opacity lets
              the base (dev) image show through. Identical regions render as
              (1 - opacity) × dev (dim but readable); differences render as

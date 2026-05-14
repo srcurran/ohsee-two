@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useSidebar, usePageTitle } from "@/components/SidebarProvider";
+import { useSidebar, usePageTitle } from "@/components/utility/SidebarProvider";
 import type { Project, Report } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
-import ErrorModal, { type ErrorModalDetails } from "@/components/ErrorModal";
-import { buildRunErrorDetails } from "@/components/run-error-details";
+import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
+import { buildRunErrorDetails } from "@/components/settings/run-error-details";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -21,15 +21,17 @@ export default function ProjectPage() {
 
   useEffect(() => {
     async function load() {
-      const pRes = await fetch(`/api/projects/${params.id}`);
+      // The reports list lookup only needs params.id, not the project
+      // body — fire both fetches in parallel.
+      const [pRes, rRes] = await Promise.all([
+        fetch(`/api/projects/${params.id}`),
+        fetch(`/api/projects/${params.id}/reports`),
+      ]);
       if (pRes.ok) setProject(await pRes.json());
-
-      const rRes = await fetch(`/api/projects/${params.id}/reports`);
       if (rRes.ok) {
         const reports: Report[] = await rRes.json();
         if (reports.length > 0) {
           router.replace(`/reports/${reports[0].id}`);
-          return;
         }
       }
     }

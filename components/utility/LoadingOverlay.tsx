@@ -16,7 +16,13 @@ export function LoadingOverlay({ ready }: LoadingOverlayProps) {
   const [unmounted, setUnmounted] = useState(false);
 
   useEffect(() => {
-    if (!ready) return;
+    // Re-entering loading after a successful navigation needs to
+    // remount the overlay; reset the unmount flag whenever ready
+    // flips back to false.
+    if (!ready) {
+      setUnmounted(false);
+      return;
+    }
     const t = setTimeout(() => setUnmounted(true), 300);
     return () => clearTimeout(t);
   }, [ready]);
