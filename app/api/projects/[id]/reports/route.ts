@@ -6,6 +6,7 @@ import { requireUserId } from "@/lib/auth-helpers";
 import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import { checkProjectUrlsReachable } from "@/lib/url-reachability";
+import { getTestSteps } from "@/lib/test-steps";
 import type { Report } from "@/lib/types";
 import path from "path";
 import { promises as fs } from "fs";
@@ -18,20 +19,24 @@ export async function GET(
     const userId = await requireUserId();
     const { id } = await params;
     const reportsDir = userReportsDir(userId);
-    const reports: Report[] = [];
+    let reports: Report[] = [];
     try {
       const dirs = await fs.readdir(reportsDir);
-      for (const dir of dirs) {
-        const reportPath = path.join(reportsDir, dir, "report.json");
-        try {
-          const report = await readJsonFile<Report>(reportPath, null as unknown as Report);
-          if (report && report.projectId === id) {
-            reports.push(report);
+      // Read every report.json concurrently — sequential awaits used
+      // to scale N×fs-latency. A null per missing/invalid file lets
+      // us flatten with .filter() at the end.
+      const read = await Promise.all(
+        dirs.map(async (dir) => {
+          const reportPath = path.join(reportsDir, dir, "report.json");
+          try {
+            const report = await readJsonFile<Report>(reportPath, null as unknown as Report);
+            return report && report.projectId === id ? report : null;
+          } catch {
+            return null;
           }
-        } catch {
-          // skip invalid report files
-        }
-      }
+        }),
+      );
+      reports = read.filter((r): r is Report => r !== null);
     } catch {
       // reports dir doesn't exist yet
     }
@@ -66,8 +71,10 @@ export async function POST(
     // lib/url-reachability.ts for the failure modes we surface.
     const reachable = await checkProjectUrlsReachable(project.prodUrl, project.devUrl);
     if (!reachable.ok) {
+      // `issues` is the structured field the client (buildRunErrorDetails)
+      // actually reads. `error` is the legacy single-string fallback.
       return NextResponse.json(
-        { error: reachable.error, prod: reachable.prod, dev: reachable.dev },
+        { error: reachable.error, issues: reachable.issues },
         { status: 400 },
       );
     }
@@ -77,8 +84,14 @@ export async function POST(
 
     const reportId = uuidv4();
     const bpCount = project.breakpoints?.length || BREAKPOINTS.length;
-    const pages = siteTest?.pages ?? project.pages;
-    const totalOps = pages.length * bpCount * 3;
+    // Progress estimate: one capture per URL step × breakpoint × ~3 phases.
+    // Use the unified getTestSteps so tests with the new `steps[]` shape
+    // count correctly (their legacy `pages` field is empty). Fall back to
+    // project.pages for projects that have no test at all.
+    const urlStepCount = siteTest
+      ? getTestSteps(siteTest).filter((s) => s.type === "url").length
+      : project.pages.length;
+    const totalOps = urlStepCount * bpCount * 3;
     const report: Report = {
       id: reportId,
       projectId: id,

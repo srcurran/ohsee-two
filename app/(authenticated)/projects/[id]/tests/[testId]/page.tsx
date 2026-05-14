@@ -58,10 +58,14 @@ export default function TestPage() {
     );
   }
 
+  // `steps` is the unified ordered list (URLs + microtests) that the new
+  // wizard writes. Older tests still use the legacy pages/compositions/
+  // flows fields, so check both.
+  const hasSteps = (test.steps?.length ?? 0) > 0;
   const hasPages = test.pages.length > 0;
   const hasCompositions = (test.compositions?.length ?? 0) > 0;
   const hasFlows = (test.flows?.length ?? 0) > 0;
-  const canRun = hasPages || hasCompositions || hasFlows;
+  const canRun = hasSteps || hasPages || hasCompositions || hasFlows;
 
   return (
     <div className="empty-state">

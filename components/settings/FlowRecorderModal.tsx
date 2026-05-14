@@ -113,11 +113,11 @@ export default function FlowRecorderModal({ onImport, onClose }: Props) {
           style={{ marginBottom: "var(--space-4)" }}
         >
           {copied ? (
-            <span style={{ fontWeight: "var(--weight-bold)", color: "var(--accent-green)" }}>Copied to clipboard!</span>
+            <span style={{ fontWeight: "var(--weight-bold)", color: "var(--status-success-500)" }}>Copied to clipboard!</span>
           ) : (
             <>
               <span style={{ fontWeight: "var(--weight-bold)", color: "var(--foreground)" }}>Copy recorder snippet</span>
-              <span style={{ marginLeft: "var(--space-2)", fontSize: "var(--font-size-sm)", color: "var(--text-muted)" }}>click to copy</span>
+              <span style={{ marginLeft: "var(--space-2)", fontSize: "var(--font-size-sm)", color: "var(--neutral-dark-500)" }}>click to copy</span>
             </>
           )}
         </button>

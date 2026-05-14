@@ -90,6 +90,8 @@ export default function SettingsPage() {
                       height={48}
                       style={{ borderRadius: "var(--radius-full)" }}
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <span
@@ -98,7 +100,7 @@ export default function SettingsPage() {
                         width: 48,
                         height: 48,
                         borderRadius: "var(--radius-full)",
-                        background: "var(--accent-yellow)",
+                        background: "var(--action-500)",
                         fontSize: 18,
                         fontWeight: "var(--weight-bold)",
                         color: "var(--foreground)",
@@ -109,7 +111,7 @@ export default function SettingsPage() {
                   )}
                   <div>
                     <p style={{ fontSize: "var(--font-size-lg)", fontWeight: "var(--weight-bold)", color: "var(--foreground)" }}>{user?.name}</p>
-                    <p style={{ fontSize: "var(--font-size-base)", color: "var(--text-muted)" }}>{user?.email}</p>
+                    <p style={{ fontSize: "var(--font-size-base)", color: "var(--neutral-dark-500)" }}>{user?.email}</p>
                   </div>
                 </div>
               </section>

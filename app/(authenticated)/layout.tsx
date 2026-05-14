@@ -1,15 +1,37 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { SessionProvider } from "next-auth/react";
 import SidebarProvider, { useSidebar } from "@/components/utility/SidebarProvider";
 import Sidebar from "@/components/utility/Sidebar";
-import SettingsOverlay from "@/components/settings/SettingsOverlay";
-import ProjectSettingsOverlay from "@/components/settings/ProjectSettingsOverlay";
-import TestSettingsOverlay from "@/components/settings/TestSettingsOverlay";
-import NewProjectWizard from "@/components/settings/NewProjectWizard";
-import NewTestWizard from "@/components/settings/NewTestWizard";
 import TitlebarCollapseButton from "@/components/utility/TitlebarCollapseButton";
 import PageTitleBar from "@/components/utility/PageTitleBar";
+
+/* Overlays + wizards are lazy-loaded. Each is only mounted when the
+ * user opens it via the sidebar context (Host components below) so
+ * the initial bundle doesn't pay for them — particularly the test
+ * settings overlay, which transitively pulls in CodeMirror via
+ * ScriptStepEditor (~3MB). */
+const SettingsOverlay = dynamic(
+  () => import("@/components/settings/SettingsOverlay"),
+  { ssr: false },
+);
+const ProjectSettingsOverlay = dynamic(
+  () => import("@/components/settings/ProjectSettingsOverlay"),
+  { ssr: false },
+);
+const TestSettingsOverlay = dynamic(
+  () => import("@/components/settings/TestSettingsOverlay"),
+  { ssr: false },
+);
+const NewProjectWizard = dynamic(
+  () => import("@/components/settings/NewProjectWizard"),
+  { ssr: false },
+);
+const NewTestWizard = dynamic(
+  () => import("@/components/settings/NewTestWizard"),
+  { ssr: false },
+);
 
 export default function AuthenticatedLayout({
   children,
@@ -31,7 +53,7 @@ export default function AuthenticatedLayout({
           <Sidebar />
           <SidebarScrim />
           <MainFrame>{children}</MainFrame>
-          <SettingsOverlay />
+          <SettingsHost />
           <ProjectSettingsHost />
           <TestSettingsHost />
           <NewProjectWizardHost />
@@ -40,6 +62,14 @@ export default function AuthenticatedLayout({
       </div>
     </SessionProvider>
   );
+}
+
+/** Defer SettingsOverlay's lazy chunk until the user actually opens
+ *  the global settings overlay. */
+function SettingsHost() {
+  const { settingsOpen } = useSidebar();
+  if (!settingsOpen) return null;
+  return <SettingsOverlay />;
 }
 
 /** Subscribes to projectSettingsId from the sidebar context and mounts

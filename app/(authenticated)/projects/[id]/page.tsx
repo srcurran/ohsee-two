@@ -21,15 +21,17 @@ export default function ProjectPage() {
 
   useEffect(() => {
     async function load() {
-      const pRes = await fetch(`/api/projects/${params.id}`);
+      // The reports list lookup only needs params.id, not the project
+      // body — fire both fetches in parallel.
+      const [pRes, rRes] = await Promise.all([
+        fetch(`/api/projects/${params.id}`),
+        fetch(`/api/projects/${params.id}/reports`),
+      ]);
       if (pRes.ok) setProject(await pRes.json());
-
-      const rRes = await fetch(`/api/projects/${params.id}/reports`);
       if (rRes.ok) {
         const reports: Report[] = await rRes.json();
         if (reports.length > 0) {
           router.replace(`/reports/${reports[0].id}`);
-          return;
         }
       }
     }
