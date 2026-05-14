@@ -2,22 +2,22 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import BreakpointTabs from "@/components/BreakpointTabs";
-import VariantTabs from "@/components/VariantTabs";
-import { ComparisonHeader, type ComparisonMode } from "@/components/SliderComparison";
-import { usePageTitle } from "@/components/SidebarProvider";
-import PageRouteHeader from "@/components/PageRouteHeader";
-import PageRouteCompareRow from "@/components/PageRouteCompareRow";
-import PageRouteIssues from "@/components/PageRouteIssues";
-import ScrollToTopButton from "@/components/ScrollToTopButton";
-import { usePageRouteData } from "@/components/use/pageRouteData";
-import { usePageRouteKeyboardNav } from "@/components/use/pageRouteKeyboardNav";
-import { getDomain } from "@/components/utils/sidebar";
+import BreakpointTabs from "@/components/index/BreakpointTabs";
+import VariantTabs from "@/components/index/VariantTabs";
+import { ComparisonHeader, type ComparisonMode } from "@/components/detail/SliderComparison";
+import { usePageTitle } from "@/components/utility/SidebarProvider";
+import PageRouteHeader from "@/components/detail/PageRouteHeader";
+import PageRouteCompareRow from "@/components/detail/PageRouteCompareRow";
+import PageRouteIssues from "@/components/detail/PageRouteIssues";
+import ScrollToTopButton from "@/components/detail/ScrollToTopButton";
+import { usePageRouteData } from "@/components/detail/use/pageRouteData";
+import { usePageRouteKeyboardNav } from "@/components/detail/use/pageRouteKeyboardNav";
+import { getDomain } from "@/components/utility/utils/sidebar";
 import {
   computeBpChangeCounts,
   getActiveBpData,
   getReportVariants,
-} from "@/components/utils/pageRoute";
+} from "@/components/detail/utils/pageRoute";
 import { countUniqueSemanticChanges } from "@/lib/change-identity";
 
 function PageDetailInner() {
@@ -55,7 +55,10 @@ function PageDetailInner() {
     [report],
   );
 
-  if (!report) {
+  // Gate on both — usePageRouteData fires the project + sibling-reports
+  // fetches in parallel with the report fetch, so the wait isn't longer
+  // than report alone, and the header doesn't flicker a `...` placeholder.
+  if (!report || !project) {
     return (
       <div style={{ padding: "var(--space-6)" }}>
         <p className="loader-text">Loading...</p>

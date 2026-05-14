@@ -2,24 +2,24 @@
 
 import { useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
-import BreakpointTabs from "@/components/BreakpointTabs";
-import VariantTabs from "@/components/VariantTabs";
-import ErrorModal from "@/components/ErrorModal";
-import { useSidebar, usePageHeader } from "@/components/SidebarProvider";
-import PageDetailPanel from "@/components/PageDetailPanel";
-import { ReportHeader } from "@/components/ReportHeader";
-import { ReportStatusBanner } from "@/components/ReportStatusBanner";
-import { ReportPageGrid } from "@/components/ReportPageGrid";
-import { ProjectMenuIcon } from "@/components/icons";
-import { useReportData } from "@/components/use/reportData";
-import { useReportUrlState } from "@/components/use/reportUrlState";
+import BreakpointTabs from "@/components/index/BreakpointTabs";
+import VariantTabs from "@/components/index/VariantTabs";
+import ErrorModal from "@/components/utility/ErrorModal";
+import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
+import PageDetailPanel from "@/components/detail/PageDetailPanel";
+import { ReportHeader } from "@/components/index/ReportHeader";
+import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
+import { ReportPageGrid } from "@/components/index/ReportPageGrid";
+import { ProjectMenuIcon } from "@/components/utility/icons";
+import { useReportData } from "@/components/index/use/reportData";
+import { useReportUrlState } from "@/components/index/use/reportUrlState";
 import {
   computeBpChangeCounts,
   computeReportBreakpoints,
   computeReportVariants,
   getDomain,
   pickActiveBp,
-} from "@/components/utils/report";
+} from "@/components/index/utils/report";
 
 function ReportPageInner() {
   const params = useParams<{ reportId: string }>();
@@ -82,7 +82,11 @@ function ReportPageInner() {
   }, [project, projectLabel, openProjectSettings]);
   usePageHeader(pageHeaderNode);
 
-  if (!report) {
+  // Gate on both — the project/allReports fetch is parallel with the
+  // report fetch (see useReportData), so this only adds one round-trip
+  // of "Loading..." but removes the `...` placeholder flicker in the
+  // header that happens when only the report has resolved.
+  if (!report || !project) {
     return (
       <div style={{ padding: "var(--space-6)" }}>
         <p className="loader-text">{notFound ? "Redirecting..." : "Loading..."}</p>
@@ -90,7 +94,7 @@ function ReportPageInner() {
     );
   }
 
-  const projectName = project ? (project.name || getDomain(project.prodUrl)) : "...";
+  const projectName = project.name || getDomain(project.prodUrl);
   // Title is the test name when present; legacy reports without a siteTest
   // fall back to the project name. Project label lives in the titlebar slot.
   const headerTitle = siteTest?.name ?? projectName;

@@ -20,26 +20,26 @@ export function usePageRouteData(reportId: string): UsePageRouteDataResult {
   const [allReports, setAllReports] = useState<Report[]>([]);
 
   useEffect(() => {
-    fetch(`/api/reports/${reportId}`)
-      .then((res) => {
-        if (!res.ok) {
-          setNotFound(true);
-          return null;
-        }
-        return res.json();
-      })
-      .then((r) => {
-        if (!r || !Array.isArray(r.pages)) return;
-        setReport(r);
-        fetch(`/api/projects/${r.projectId}`)
-          .then((pr) => pr.json())
-          .then((p) => {
-            setProject(p);
-            fetch(`/api/projects/${p.id}/reports`)
-              .then((res) => res.json())
-              .then((reports) => setAllReports(reports));
-          });
-      });
+    const load = async () => {
+      const res = await fetch(`/api/reports/${reportId}`);
+      if (!res.ok) {
+        setNotFound(true);
+        return;
+      }
+      const r = await res.json();
+      if (!r || !Array.isArray(r.pages)) return;
+      setReport(r);
+
+      // Parallel: the sibling-reports list only needs r.projectId, not
+      // the project object — so fire both at once instead of chaining.
+      const [pRes, reportsRes] = await Promise.all([
+        fetch(`/api/projects/${r.projectId}`),
+        fetch(`/api/projects/${r.projectId}/reports`),
+      ]);
+      if (pRes.ok) setProject(await pRes.json());
+      if (reportsRes.ok) setAllReports(await reportsRes.json());
+    };
+    load();
   }, [reportId]);
 
   useEffect(() => {
