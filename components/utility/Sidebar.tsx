@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { SidebarGroup } from "@/components/utility/SidebarGroup";
@@ -27,33 +28,40 @@ export default function Sidebar() {
   const { data, setData, loading } = useSidebarData({ refreshKey, refreshProjects });
   const drag = useProjectDrag({ data, setData });
 
-  const handleProjectClick = (project: Project, reports: Report[]) => {
-    if (reports.length > 0) {
-      router.push(`/reports/${reports[0].id}`);
-    } else {
-      router.push(`/projects/${project.id}`);
-    }
-  };
+  // useCallback so SidebarGroup (once memo'd) doesn't rerender on every
+  // parent render. Only depends on the stable router instance.
+  const handleProjectClick = useCallback(
+    (project: Project, reports: Report[]) => {
+      if (reports.length > 0) {
+        router.push(`/reports/${reports[0].id}`);
+      } else {
+        router.push(`/projects/${project.id}`);
+      }
+    },
+    [router],
+  );
 
-  const handleTestClick = (
-    test: SiteTest,
-    project: Project,
-    reports: Report[],
-  ) => {
-    const testReports = reports
-      .filter((r) => r.siteTestId === test.id)
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-    if (testReports.length > 0) {
-      router.push(`/reports/${testReports[0].id}`);
-    } else {
-      router.push(`/projects/${project.id}/tests/${test.id}`);
-    }
-  };
+  const handleTestClick = useCallback(
+    (test: SiteTest, project: Project, reports: Report[]) => {
+      const testReports = reports
+        .filter((r) => r.siteTestId === test.id)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+      if (testReports.length > 0) {
+        router.push(`/reports/${testReports[0].id}`);
+      } else {
+        router.push(`/projects/${project.id}/tests/${test.id}`);
+      }
+    },
+    [router],
+  );
 
-  const visibleData = data.filter(({ project }) => !project.archived);
+  const visibleData = useMemo(
+    () => data.filter(({ project }) => !project.archived),
+    [data],
+  );
   const stateMod = collapsed ? "sidebar--collapsed" : "sidebar--expanded";
   const transitionMod = ready ? "sidebar--animated" : "";
 

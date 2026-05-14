@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 interface SidebarContextValue {
@@ -219,36 +219,70 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname]);
 
+  // Memoize the context value so consumers don't re-render every
+  // time SidebarProvider itself re-renders (e.g. on each pathname
+  // change). The action callbacks are all `useCallback`'d above so
+  // they're stable references; the state primitives change only when
+  // their respective setters fire.
+  const value = useMemo(
+    () => ({
+      refreshKey,
+      refreshProjects,
+      collapsed,
+      setCollapsed,
+      toggleCollapsed,
+      ready,
+      pageTitle,
+      setPageTitle,
+      pageHeader,
+      setPageHeader,
+      settingsOpen,
+      openSettings,
+      closeSettings,
+      projectSettingsId,
+      openProjectSettings,
+      closeProjectSettings,
+      testSettings,
+      openTestSettings,
+      closeTestSettings,
+      newProjectWizardOpen,
+      openNewProjectWizard,
+      closeNewProjectWizard,
+      newTestWizard,
+      openNewTestWizard,
+      closeNewTestWizard,
+    }),
+    [
+      refreshKey,
+      refreshProjects,
+      collapsed,
+      setCollapsed,
+      toggleCollapsed,
+      ready,
+      pageTitle,
+      setPageTitle,
+      pageHeader,
+      setPageHeader,
+      settingsOpen,
+      openSettings,
+      closeSettings,
+      projectSettingsId,
+      openProjectSettings,
+      closeProjectSettings,
+      testSettings,
+      openTestSettings,
+      closeTestSettings,
+      newProjectWizardOpen,
+      openNewProjectWizard,
+      closeNewProjectWizard,
+      newTestWizard,
+      openNewTestWizard,
+      closeNewTestWizard,
+    ],
+  );
+
   return (
-    <SidebarContext.Provider
-      value={{
-        refreshKey,
-        refreshProjects,
-        collapsed,
-        setCollapsed,
-        toggleCollapsed,
-        ready,
-        pageTitle,
-        setPageTitle,
-        pageHeader,
-        setPageHeader,
-        settingsOpen,
-        openSettings,
-        closeSettings,
-        projectSettingsId,
-        openProjectSettings,
-        closeProjectSettings,
-        testSettings,
-        openTestSettings,
-        closeTestSettings,
-        newProjectWizardOpen,
-        openNewProjectWizard,
-        closeNewProjectWizard,
-        newTestWizard,
-        openNewTestWizard,
-        closeNewTestWizard,
-      }}
-    >
+    <SidebarContext.Provider value={value}>
       {children}
     </SidebarContext.Provider>
   );

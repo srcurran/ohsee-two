@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 
@@ -138,22 +138,29 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
 
   // Every category is shown so the user sees the full detection surface;
   // counts of 0 render as disabled pills.
-  const definedOrder = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
-  const categoryCounts: Record<ChangeCategory, number> = {} as Record<ChangeCategory, number>;
-  for (const cat of definedOrder) {
-    categoryCounts[cat] = summary?.[cat] ?? 0;
-  }
-  // Primary sort: count desc (most-frequent issue first). Secondary sort:
-  // CATEGORY_CONFIG declaration order, preserved by Array.sort's stable
-  // ordering for equal keys.
-  const sortedCategories = [...definedOrder].sort(
-    (a, b) => categoryCounts[b] - categoryCounts[a],
-  );
+  // Memoized: re-runs only when the underlying summary changes, not on
+  // every filter-pill click or pointer event during drag.
+  const { sortedCategories, categoryCounts } = useMemo(() => {
+    const definedOrder = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
+    const counts: Record<ChangeCategory, number> = {} as Record<ChangeCategory, number>;
+    for (const cat of definedOrder) {
+      counts[cat] = summary?.[cat] ?? 0;
+    }
+    // Primary sort: count desc (most-frequent issue first). Secondary
+    // sort: CATEGORY_CONFIG declaration order, preserved by Array.sort's
+    // stable ordering for equal keys.
+    const sorted = [...definedOrder].sort((a, b) => counts[b] - counts[a]);
+    return { sortedCategories: sorted, categoryCounts: counts };
+  }, [summary]);
 
-  const filtered =
-    activeFilter === "all"
-      ? changes
-      : changes.filter((c) => c.category === activeFilter);
+  const filtered = useMemo(
+    () =>
+      activeFilter === "all"
+        ? changes
+        : changes.filter((c) => c.category === activeFilter),
+    [activeFilter, changes],
+  );
+  const groups = useMemo(() => groupBySelector(filtered), [filtered]);
 
   // Drag-to-scroll the pill row horizontally. We use Pointer Events but
   // intentionally do NOT call setPointerCapture on pointerdown — capturing
@@ -264,7 +271,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
       </div>
 
       <div className="change-list__items">
-        {groupBySelector(filtered).map((group) =>
+        {groups.map((group) =>
           group.changes.length === 1 ? (
             <ChangeEntry
               key={group.changes[0].id}
