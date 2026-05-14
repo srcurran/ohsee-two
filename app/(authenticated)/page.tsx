@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Project, Report } from "@/lib/types";
-import { useSidebar } from "@/components/SidebarProvider";
+import { useSidebar } from "@/components/utility/SidebarProvider";
 
 export default function Home() {
   const router = useRouter();
@@ -34,21 +34,27 @@ export default function Home() {
 
       setHasProjects(true);
 
+      // Fetch every project's reports in parallel. The previous
+      // sequential await inside a for-loop blocked the redirect on
+      // N × round-trip and was the main reason the initial "Loading..."
+      // lingered for seconds.
+      const reportFetches = await Promise.all(
+        projects.map(async (project) => {
+          const rRes = await fetch(`/api/projects/${project.id}/reports`);
+          if (!rRes.ok) return { project, reports: [] as Report[] };
+          const reports: Report[] = await rRes.json();
+          return { project, reports };
+        }),
+      );
+
       let latestReportId: string | null = null;
       let latestDate = 0;
-      let firstProjectId: string | null = null;
-
-      for (const project of projects) {
-        if (!firstProjectId) firstProjectId = project.id;
-        const rRes = await fetch(`/api/projects/${project.id}/reports`);
-        if (rRes.ok) {
-          const reports: Report[] = await rRes.json();
-          if (reports.length > 0) {
-            const reportDate = new Date(reports[0].createdAt).getTime();
-            if (reportDate > latestDate) {
-              latestDate = reportDate;
-              latestReportId = reports[0].id;
-            }
+      for (const { reports } of reportFetches) {
+        if (reports.length > 0) {
+          const reportDate = new Date(reports[0].createdAt).getTime();
+          if (reportDate > latestDate) {
+            latestDate = reportDate;
+            latestReportId = reports[0].id;
           }
         }
       }
@@ -56,7 +62,7 @@ export default function Home() {
       if (latestReportId) {
         router.replace(`/reports/${latestReportId}`);
       } else {
-        router.replace(`/projects/${firstProjectId}`);
+        router.replace(`/projects/${projects[0].id}`);
       }
     }
     redirectToLatest();
