@@ -16,9 +16,10 @@
   font-family: inherit;
   @include interactive;
 
-  /* Lift on hover — pairs with the brightness/press from `interactive` */
-  &:hover:not(:disabled) {
-    box-shadow: var(--elevation-md);
+  /* Lift on hover — pairs with the brightness/press from `interactive`.
+   * `:not(:active)` so the click-press feedback wins on click+hold. */
+  &:hover:not(:disabled):not(:active) {
+    box-shadow: var(--state-hover);
     transform: translateY(-1px);
   }
 

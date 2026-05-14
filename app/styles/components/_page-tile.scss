@@ -16,7 +16,7 @@
   background: var(--page-tile-background);
   padding: var(--space-2);
   text-align: left;
-  box-shadow: var(--elevation-card);
+  box-shadow: var(--elevation-sm);
   transition:
     box-shadow var(--duration-fast) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);
@@ -24,8 +24,8 @@
   cursor: pointer;
   font-family: inherit;
 
-  &:hover:not(:disabled) {
-    box-shadow: var(--elevation-md);
+  &:hover:not(:disabled):not(:active) {
+    box-shadow: var(--state-hover);
     transform: translateY(-1px);
   }
 
