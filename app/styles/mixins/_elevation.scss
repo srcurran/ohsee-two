@@ -7,8 +7,11 @@
     var(--transition-transform),
     var(--transition-shadow);
 
-  &:hover:not(:disabled) {
-    box-shadow: var(--elevation-md);
+  /* `:not(:active)` so the click-press feedback from `@mixin
+   * interactive` (which uses --state-active + translateY(1px))
+   * isn't overridden by the lift on click+hold. */
+  &:hover:not(:disabled):not(:active) {
+    box-shadow: var(--state-hover);
     transform: translateY(-1px);
   }
 }
