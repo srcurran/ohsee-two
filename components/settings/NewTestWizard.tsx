@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
 import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/settings/Wizard";
+import { CredentialEditor, type VaultEntryMeta } from "@/components/settings/CredentialEditor";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";
-import { trackReportCompletion } from "@/lib/electron";
+import { getOhsee, isElectronRuntime, trackReportCompletion } from "@/lib/electron";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, TestStep, TestCredentials } from "@/lib/types";
 
@@ -52,6 +53,29 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
 
   // Step 4 state: credentials
   const [credentials, setCredentials] = useState<TestCredentials | undefined>(undefined);
+  // Vault entries shown inline on step 4 so users can add credentials
+  // without leaving the wizard and losing the in-progress test config.
+  const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(null);
+  const [credEditorOpen, setCredEditorOpen] = useState(false);
+  const [vaultError, setVaultError] = useState<string | null>(null);
+
+  const refreshVault = useCallback(async () => {
+    const ohsee = getOhsee();
+    if (!ohsee) return;
+    try {
+      setVaultEntries(await ohsee.vault.list());
+      setVaultError(null);
+    } catch (err) {
+      setVaultError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  // Load vault entries once the user reaches the credentials step.
+  useEffect(() => {
+    if (step === 4 && vaultEntries === null && isElectronRuntime()) {
+      refreshVault();
+    }
+  }, [step, vaultEntries, refreshVault]);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -371,7 +395,62 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
             No credentials configured — runs use the project default.
           </p>
         )}
+
+        {/* Vault entry list + add button — users can add credentials to
+         * the local Keychain vault without leaving the wizard. Only
+         * shown in the Electron runtime, since the vault is
+         * Keychain-backed. */}
+        {isElectronRuntime() && (
+          <div className="credentials-section__row" style={{ flexDirection: "column", alignItems: "stretch", gap: "var(--space-2)" }}>
+            <label className="credentials-section__label">Vault credentials</label>
+
+            {vaultError && (
+              <p className="credentials-section__hint" style={{ color: "var(--status-error-500)" }}>
+                {vaultError}
+              </p>
+            )}
+
+            {vaultEntries === null ? (
+              <p className="credentials-section__hint">Loading…</p>
+            ) : vaultEntries.length === 0 ? (
+              <p className="credentials-section__hint">
+                No credentials stored yet — add one below to reference in your flow.
+              </p>
+            ) : (
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                {vaultEntries.map((entry) => (
+                  <li key={entry.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "var(--space-1) 0" }}>
+                    <span style={{ fontSize: "var(--font-size-md)" }}>{entry.label}</span>
+                    <code style={{ fontSize: "var(--font-size-sm)", color: "var(--neutral-dark-500)" }}>{entry.key}{entry.hasTotp ? " · 2FA" : ""}</code>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setCredEditorOpen(true)}
+                className="btn btn--ghost"
+              >
+                + Add credential
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {credEditorOpen && (
+        <CredentialEditor
+          existing={null}
+          onClose={() => setCredEditorOpen(false)}
+          onSaved={() => {
+            setCredEditorOpen(false);
+            refreshVault();
+          }}
+          onError={setVaultError}
+        />
+      )}
     </Wizard>
   );
 }
