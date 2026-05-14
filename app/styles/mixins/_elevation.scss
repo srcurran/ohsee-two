@@ -16,9 +16,13 @@
   }
 }
 
+/* Keyboard focus feedback. Outline is the accessibility-required
+ * indicator; box-shadow adds a soft outer glow that matches the
+ * --state-hover/--state-active vocabulary from `@mixin interactive`. */
 @mixin focus-ring {
   &:focus-visible {
     outline: 2px solid var(--foreground);
     outline-offset: 2px;
+    box-shadow: var(--state-focus);
   }
 }
