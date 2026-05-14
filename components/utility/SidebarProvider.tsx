@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 interface SidebarContextValue {
@@ -116,7 +116,24 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string } | null>(null);
   const pathname = usePathname();
 
-  const refreshProjects = useCallback(() => setRefreshKey((k) => k + 1), []);
+  // Coalesce rapid refreshProjects() calls into one refetch. Multiple
+  // surfaces (sidebar poll, report poll completion, settings save,
+  // wizard finish) can fire this within tens of ms; without coalescing
+  // each becomes its own N+1 refetch storm.
+  const refreshPendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshProjects = useCallback(() => {
+    if (refreshPendingRef.current) return;
+    refreshPendingRef.current = setTimeout(() => {
+      refreshPendingRef.current = null;
+      setRefreshKey((k) => k + 1);
+    }, 100);
+  }, []);
+  useEffect(
+    () => () => {
+      if (refreshPendingRef.current) clearTimeout(refreshPendingRef.current);
+    },
+    [],
+  );
   const setPageTitle = useCallback((title: string | null) => setPageTitleState(title), []);
   const setPageHeader = useCallback((node: ReactNode) => setPageHeaderState(node), []);
   const openSettings = useCallback(() => setSettingsOpen(true), []);

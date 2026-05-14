@@ -19,20 +19,25 @@ export async function GET(
     const userId = await requireUserId();
     const { id, testId } = await params;
     const reportsDir = userReportsDir(userId);
-    const reports: Report[] = [];
+    let reports: Report[] = [];
     try {
       const dirs = await fs.readdir(reportsDir);
-      for (const dir of dirs) {
-        const reportPath = path.join(reportsDir, dir, "report.json");
-        try {
-          const report = await readJsonFile<Report>(reportPath, null as unknown as Report);
-          if (report && report.projectId === id && report.siteTestId === testId) {
-            reports.push(report);
+      // Concurrent reads — see /api/projects/[id]/reports for the
+      // same pattern.
+      const read = await Promise.all(
+        dirs.map(async (dir) => {
+          const reportPath = path.join(reportsDir, dir, "report.json");
+          try {
+            const report = await readJsonFile<Report>(reportPath, null as unknown as Report);
+            return report && report.projectId === id && report.siteTestId === testId
+              ? report
+              : null;
+          } catch {
+            return null;
           }
-        } catch {
-          // skip invalid
-        }
-      }
+        }),
+      );
+      reports = read.filter((r): r is Report => r !== null);
     } catch {
       // reports dir doesn't exist yet
     }
