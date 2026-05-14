@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Project, Report } from "@/lib/types";
 import { useSidebar } from "@/components/utility/SidebarProvider";
+import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 
 export default function Home() {
   const router = useRouter();
@@ -68,15 +69,14 @@ export default function Home() {
     redirectToLatest();
   }, [router]);
 
-  if (loading && hasProjects) {
-    return (
-      <div className="center" style={{ height: "100%" }}>
-        <p className="loader-text">Loading...</p>
-      </div>
-    );
+  // Loading or about to redirect: show the neutral overlay. Once the
+  // destination route mounts its own LoadingOverlay we cross-fade
+  // through that one's transition instead of this component's.
+  if (loading) {
+    return <LoadingOverlay ready={false} />;
   }
 
-  if (!hasProjects && !loading) {
+  if (!hasProjects) {
     return (
       <>
         <div className="empty-state empty-state--flush">
@@ -106,9 +106,6 @@ export default function Home() {
     );
   }
 
-  return (
-    <div className="center" style={{ height: "100%" }}>
-      <p className="loader-text">Redirecting...</p>
-    </div>
-  );
+  // Fallback (shouldn't normally render — redirect should have fired).
+  return <LoadingOverlay ready={false} />;
 }

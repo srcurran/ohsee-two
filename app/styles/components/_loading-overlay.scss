@@ -1,0 +1,45 @@
+/* LoadingOverlay — neutral white scrim with animated dots that fades
+ * out over 0.3s once the page below is ready. */
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-0-5);
+  background: var(--neutral-light-100);
+  font-size: var(--font-size-md);
+  color: var(--neutral-dark-500);
+  transition: opacity 0.3s var(--ease-standard);
+
+  &--ready {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* The dot ellipsis. Reveals 0 → 1 → 2 → 3 dots over a 1.4s loop by
+   * clipping its width through fixed positions. The fixed width
+   * (calc on em) keeps "Loading" + dots from jittering. */
+  &__dots {
+    display: inline-block;
+    overflow: hidden;
+    width: 1.2em;
+    text-align: left;
+
+    &::before {
+      content: "...";
+      letter-spacing: 0.15em;
+      animation: loading-dots 1.4s steps(4, end) infinite;
+    }
+  }
+}
+
+@keyframes loading-dots {
+  0%   { clip-path: inset(0 100% 0 0); }
+  25%  { clip-path: inset(0  66% 0 0); }
+  50%  { clip-path: inset(0  33% 0 0); }
+  75%  { clip-path: inset(0   0% 0 0); }
+  100% { clip-path: inset(0 100% 0 0); }
+}

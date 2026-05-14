@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
 import ErrorModal from "@/components/utility/ErrorModal";
+import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
 import PageDetailPanel from "@/components/detail/PageDetailPanel";
 import { ReportHeader } from "@/components/index/ReportHeader";
@@ -82,96 +83,100 @@ function ReportPageInner() {
   }, [project, projectLabel, openProjectSettings]);
   usePageHeader(pageHeaderNode);
 
-  // Gate on both — the project/allReports fetch is parallel with the
-  // report fetch (see useReportData), so this only adds one round-trip
-  // of "Loading..." but removes the `...` placeholder flicker in the
-  // header that happens when only the report has resolved.
-  if (!report || !project) {
-    return (
-      <div style={{ padding: "var(--space-6)" }}>
-        <p className="loader-text">{notFound ? "Redirecting..." : "Loading..."}</p>
+  // Build the content tree only when both `report` and `project` are
+  // ready. The LoadingOverlay sits as a sibling at the same JSX
+  // position regardless of ready state so React keeps the same
+  // instance across the transition — that's what lets it animate
+  // its opacity from 1 → 0 and self-unmount after 300ms.
+  let content: React.ReactNode = null;
+  if (report && project) {
+    const projectName = project.name || getDomain(project.prodUrl);
+    // Title is the test name when present; legacy reports without a
+    // siteTest fall back to the project name. Project label lives in
+    // the titlebar slot.
+    const headerTitle = siteTest?.name ?? projectName;
+    // Both project-level and test-level reports now open overlays.
+    // Legacy reports without a siteTestId open the project settings
+    // overlay.
+    const openSettings = () => {
+      if (report.siteTestId) {
+        openTestSettings(project.id, report.siteTestId);
+      } else {
+        openProjectSettings(project.id);
+      }
+    };
+
+    const reportBreakpoints = computeReportBreakpoints(report);
+    const activeBp = pickActiveBp(bpParam, reportBreakpoints);
+    const bpChangeCounts = computeBpChangeCounts(report, activeVariant);
+
+    content = (
+      <div className="report">
+        <ErrorModal error={runError} onClose={() => setRunError(null)} />
+        {activePageId && (
+          <PageDetailPanel
+            report={report}
+            project={project}
+            pageId={activePageId}
+            initialBp={activeBp}
+            initialVariant={activeVariant}
+            originRect={pageOriginRect}
+            originThumb={pageOriginThumb}
+            onClose={() => { closePage(); setPageOriginRect(null); setPageOriginThumb(null); }}
+            onNavigate={(pid) => openPage(pid)}
+            onBpChange={handleBpChange}
+            onVariantChange={handleVariantChange}
+          />
+        )}
+
+        <div className="report__sticky">
+          <ReportHeader
+            report={report}
+            allReports={allReports}
+            headerTitle={headerTitle}
+            activeBp={activeBp}
+            onRun={runNow}
+            onCancel={cancel}
+            onOpenSettings={openSettings}
+            settingsTitle={report.siteTestId ? "Test settings" : "Project settings"}
+          />
+
+          <ReportStatusBanner report={report} />
+
+          <VariantTabs
+            variants={reportVariants}
+            active={activeVariant}
+            onChange={handleVariantChange}
+          />
+
+          <div className="report__breakpoints">
+            <BreakpointTabs
+              active={activeBp}
+              onChange={handleBpChange}
+              changeCounts={bpChangeCounts}
+              breakpoints={reportBreakpoints}
+              align="start"
+            />
+          </div>
+        </div>
+
+        <div className="report__grid-wrap">
+          <ReportPageGrid
+            report={report}
+            activeBp={activeBp}
+            activeVariant={activeVariant}
+            onOpenPage={openPage}
+          />
+        </div>
       </div>
     );
   }
 
-  const projectName = project.name || getDomain(project.prodUrl);
-  // Title is the test name when present; legacy reports without a siteTest
-  // fall back to the project name. Project label lives in the titlebar slot.
-  const headerTitle = siteTest?.name ?? projectName;
-  // Both project-level and test-level reports now open overlays. Legacy
-  // reports without a siteTestId open the project settings overlay.
-  const openSettings = () => {
-    if (!project) return;
-    if (report?.siteTestId) {
-      openTestSettings(project.id, report.siteTestId);
-    } else {
-      openProjectSettings(project.id);
-    }
-  };
-
-  const reportBreakpoints = computeReportBreakpoints(report);
-  const activeBp = pickActiveBp(bpParam, reportBreakpoints);
-  const bpChangeCounts = computeBpChangeCounts(report, activeVariant);
-
   return (
-    <div className="report">
-      <ErrorModal error={runError} onClose={() => setRunError(null)} />
-      {activePageId && report && project && (
-        <PageDetailPanel
-          report={report}
-          project={project}
-          pageId={activePageId}
-          initialBp={activeBp}
-          initialVariant={activeVariant}
-          originRect={pageOriginRect}
-          originThumb={pageOriginThumb}
-          onClose={() => { closePage(); setPageOriginRect(null); setPageOriginThumb(null); }}
-          onNavigate={(pid) => openPage(pid)}
-          onBpChange={handleBpChange}
-          onVariantChange={handleVariantChange}
-        />
-      )}
-
-      <div className="report__sticky">
-        <ReportHeader
-          report={report}
-          allReports={allReports}
-          headerTitle={headerTitle}
-          activeBp={activeBp}
-          onRun={runNow}
-          onCancel={cancel}
-          onOpenSettings={openSettings}
-          settingsTitle={report?.siteTestId ? "Test settings" : "Project settings"}
-        />
-
-        <ReportStatusBanner report={report} />
-
-        <VariantTabs
-          variants={reportVariants}
-          active={activeVariant}
-          onChange={handleVariantChange}
-        />
-
-        <div className="report__breakpoints">
-          <BreakpointTabs
-            active={activeBp}
-            onChange={handleBpChange}
-            changeCounts={bpChangeCounts}
-            breakpoints={reportBreakpoints}
-            align="start"
-          />
-        </div>
-      </div>
-
-      <div className="report__grid-wrap">
-        <ReportPageGrid
-          report={report}
-          activeBp={activeBp}
-          activeVariant={activeVariant}
-          onOpenPage={openPage}
-        />
-      </div>
-    </div>
+    <>
+      <LoadingOverlay ready={!!content} />
+      {content}
+    </>
   );
 }
 
