@@ -2,9 +2,12 @@
  * out over 0.3s once the page below is ready. */
 
 .loading-overlay {
-  position: absolute;
+  /* Fixed + viewport-spanning + above the titlebar drag region
+   * (--z-30) and the collapse button (--z-toast) so the entire
+   * window is the neutral white scrim during loading. */
+  position: fixed;
   inset: 0;
-  z-index: var(--z-overlay);
+  z-index: var(--z-60);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,6 +16,10 @@
   font-size: var(--font-size-md);
   color: var(--neutral-dark-500);
   transition: opacity 0.3s var(--ease-standard);
+
+  /* Keep the Electron window draggable while loading covers the
+   * titlebar. */
+  -webkit-app-region: drag;
 
   &--ready {
     opacity: 0;
