@@ -57,8 +57,8 @@
         var(--transition-transform),
         var(--transition-shadow);
 
-      &:hover {
-        box-shadow: var(--elevation-md);
+      &:hover:not(:active) {
+        box-shadow: var(--state-hover);
         transform: translateY(-1px);
       }
     }

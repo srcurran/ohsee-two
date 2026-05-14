@@ -24,8 +24,8 @@
   cursor: pointer;
   font-family: inherit;
 
-  &:hover:not(:disabled) {
-    box-shadow: var(--elevation-md);
+  &:hover:not(:disabled):not(:active) {
+    box-shadow: var(--state-hover);
     transform: translateY(-1px);
   }
 
