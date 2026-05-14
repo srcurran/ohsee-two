@@ -52,22 +52,29 @@ export function useReportData({
       }
       const r = await res.json();
       setReport(r);
-      if (!project) {
-        const pRes = await fetch(`/api/projects/${r.projectId}`);
-        if (pRes.ok) {
-          const p = await pRes.json();
-          setProject(p);
-          if (r.siteTestId && p.tests) {
-            const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
-            if (test) setSiteTest(test);
-          }
-          const reportsUrl = r.siteTestId
-            ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
-            : `/api/projects/${r.projectId}/reports`;
-          const allRes = await fetch(reportsUrl);
-          if (allRes.ok) setAllReports(await allRes.json());
+      if (project) return;
+
+      // Fire the project lookup and the sibling-reports lookup in
+      // parallel — the second only needs r.projectId/siteTestId, not
+      // the project object, so it doesn't need to wait. This used to
+      // be three sequential round-trips and was the main reason the
+      // report page filled in slot-by-slot.
+      const reportsUrl = r.siteTestId
+        ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
+        : `/api/projects/${r.projectId}/reports`;
+      const [pRes, allRes] = await Promise.all([
+        fetch(`/api/projects/${r.projectId}`),
+        fetch(reportsUrl),
+      ]);
+      if (pRes.ok) {
+        const p = await pRes.json();
+        setProject(p);
+        if (r.siteTestId && p.tests) {
+          const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
+          if (test) setSiteTest(test);
         }
       }
+      if (allRes.ok) setAllReports(await allRes.json());
     };
     loadReport();
     const interval = setInterval(async () => {

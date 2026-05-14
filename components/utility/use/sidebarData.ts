@@ -15,6 +15,10 @@ interface UseSidebarDataArgs {
 interface UseSidebarDataResult {
   data: ProjectWithReports[];
   setData: React.Dispatch<React.SetStateAction<ProjectWithReports[]>>;
+  /** True until the first fetch completes — lets the rail render a
+   * skeleton/empty state instead of a misleading "+ Add new site"
+   * CTA while data is in flight. */
+  loading: boolean;
 }
 
 /** Owns the sidebar's project + reports data: initial fetch, refresh-driven
@@ -26,6 +30,7 @@ export function useSidebarData({
   refreshProjects,
 }: UseSidebarDataArgs): UseSidebarDataResult {
   const [data, setData] = useState<ProjectWithReports[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +39,10 @@ export function useSidebarData({
         fetch("/api/projects", { cache: "no-store" }),
         fetch("/api/settings", { cache: "no-store" }),
       ]);
-      if (!projRes.ok || cancelled) return;
+      if (!projRes.ok || cancelled) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
       const projects: Project[] = await projRes.json();
       const settings = settingsRes.ok ? await settingsRes.json() : {};
       const projectOrder: string[] = settings.projectOrder || [];
@@ -51,6 +59,7 @@ export function useSidebarData({
       if (cancelled) return;
 
       setData(sortByProjectOrder(items, projectOrder));
+      setLoading(false);
     }
     load();
     return () => {
@@ -68,5 +77,5 @@ export function useSidebarData({
     return () => clearInterval(interval);
   }, [hasRunningReport, refreshProjects]);
 
-  return { data, setData };
+  return { data, setData, loading };
 }

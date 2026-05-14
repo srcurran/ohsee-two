@@ -171,8 +171,8 @@
 
         .sidebar__add-test {
           display: flex;
+          gap: var(--space-1);
           align-items: center;
-          justify-content: space-between;
           padding: var(--space-1) var(--space-2);
           border-radius: var(--radius-xs);
           font-size: var(--font-size-base);

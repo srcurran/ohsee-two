@@ -24,7 +24,7 @@ export default function Sidebar() {
   } = useSidebar();
   const router = useRouter();
 
-  const { data, setData } = useSidebarData({ refreshKey, refreshProjects });
+  const { data, setData, loading } = useSidebarData({ refreshKey, refreshProjects });
   const drag = useProjectDrag({ data, setData });
 
   const handleProjectClick = (project: Project, reports: Report[]) => {
@@ -60,7 +60,10 @@ export default function Sidebar() {
   return (
     <aside className={`sidebar  ${stateMod} ${transitionMod}`}>
       <nav className="sidebar__nav">
-        {!collapsed && (
+        {/* Skip the inner content while collapsed OR while the initial
+         * fetch is in flight — otherwise the rail flashes a misleading
+         * lone "+ Add new site" CTA before the project list arrives. */}
+        {!collapsed && !loading && (
           <>
             {visibleData.map(({ project, reports }, index) => (
               <SidebarGroup

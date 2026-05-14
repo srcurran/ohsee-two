@@ -6,6 +6,7 @@ import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
 import { ComparisonHeader, type ComparisonMode } from "@/components/detail/SliderComparison";
 import { usePageTitle } from "@/components/utility/SidebarProvider";
+import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 import PageRouteHeader from "@/components/detail/PageRouteHeader";
 import PageRouteCompareRow from "@/components/detail/PageRouteCompareRow";
 import PageRouteIssues from "@/components/detail/PageRouteIssues";
@@ -55,114 +56,120 @@ function PageDetailInner() {
     [report],
   );
 
-  if (!report) {
-    return (
-      <div style={{ padding: "var(--space-6)" }}>
-        <p className="loader-text">Loading...</p>
-      </div>
-    );
-  }
+  // Build the content tree only once `report` + `project` resolve.
+  // LoadingOverlay sits in the same JSX position regardless so React
+  // keeps the same instance across the loading → ready transition,
+  // which is what lets it animate its opacity 1 → 0 and self-unmount.
+  let content: React.ReactNode = null;
+  if (report && project) {
+    const currentIndex = report.pages.findIndex((p) => p.pageId === params.pageId);
+    const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
 
-  const currentIndex = report.pages.findIndex((p) => p.pageId === params.pageId);
-  const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
-
-  if (!currentPage) {
-    return (
-      <div style={{ padding: "var(--space-6)" }}>
-        <p className="loader-text">Page not found in report.</p>
-      </div>
-    );
-  }
-
-  const prevPage = currentIndex > 0 ? report.pages[currentIndex - 1] : null;
-  const nextPage =
-    currentIndex < report.pages.length - 1 ? report.pages[currentIndex + 1] : null;
-
-  const activeBpData = getActiveBpData(currentPage, activeVariant);
-  const bpResult = activeBpData[String(activeBp)];
-
-  const displayUrl = project ? project.name || getDomain(project.prodUrl) : "...";
-  const totalUniqueChanges = countUniqueSemanticChanges(
-    Object.values(activeBpData).map((bp) => bp.semanticChanges),
-  );
-  const bpChangeCounts = computeBpChangeCounts(activeBpData);
-
-  return (
-    <div className="report-page">
-      <div className="report-page__sticky">
-        <PageRouteHeader
-          report={report}
-          allReports={allReports}
-          currentPage={currentPage}
-          pageId={params.pageId}
-          prevPage={prevPage}
-          nextPage={nextPage}
-          displayUrl={displayUrl}
-          totalUniqueChanges={totalUniqueChanges}
-          activeBp={activeBp}
-        />
-
-        <VariantTabs
-          variants={reportVariants}
-          active={activeVariant}
-          onChange={handleVariantChange}
-        />
-
-        <div style={{ padding: "0 var(--space-5)" }}>
-          <BreakpointTabs
-            active={activeBp}
-            onChange={handleBpChange}
-            changeCounts={bpChangeCounts}
-            breakpoints={project?.breakpoints}
-          />
+    if (!currentPage) {
+      content = (
+        <div style={{ padding: "var(--space-6)" }}>
+          <p className="loader-text">Page not found in report.</p>
         </div>
+      );
+    } else {
+      const prevPage = currentIndex > 0 ? report.pages[currentIndex - 1] : null;
+      const nextPage =
+        currentIndex < report.pages.length - 1 ? report.pages[currentIndex + 1] : null;
 
-        {bpResult && (
-          <div className="report-page__headers">
-            <div className="report-page__header-col">
-              <span>Changes</span>
-            </div>
-            <div className="report-page__header-col">
-              <ComparisonHeader
-                mode={comparisonMode}
-                onModeChange={setComparisonMode}
-                showingDev={showingDev}
+      const activeBpData = getActiveBpData(currentPage, activeVariant);
+      const bpResult = activeBpData[String(activeBp)];
+
+      const displayUrl = project.name || getDomain(project.prodUrl);
+      const totalUniqueChanges = countUniqueSemanticChanges(
+        Object.values(activeBpData).map((bp) => bp.semanticChanges),
+      );
+      const bpChangeCounts = computeBpChangeCounts(activeBpData);
+
+      content = (
+        <div className="report-page">
+          <div className="report-page__sticky">
+            <PageRouteHeader
+              report={report}
+              allReports={allReports}
+              currentPage={currentPage}
+              pageId={params.pageId}
+              prevPage={prevPage}
+              nextPage={nextPage}
+              displayUrl={displayUrl}
+              totalUniqueChanges={totalUniqueChanges}
+              activeBp={activeBp}
+            />
+
+            <VariantTabs
+              variants={reportVariants}
+              active={activeVariant}
+              onChange={handleVariantChange}
+            />
+
+            <div style={{ padding: "0 var(--space-5)" }}>
+              <BreakpointTabs
+                active={activeBp}
+                onChange={handleBpChange}
+                changeCounts={bpChangeCounts}
+                breakpoints={project.breakpoints}
               />
             </div>
+
+            {bpResult && (
+              <div className="report-page__headers">
+                <div className="report-page__header-col">
+                  <span>Changes</span>
+                </div>
+                <div className="report-page__header-col">
+                  <ComparisonHeader
+                    mode={comparisonMode}
+                    onModeChange={setComparisonMode}
+                    showingDev={showingDev}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="report-page__body">
-        {bpResult ? (
-          <PageRouteCompareRow
-            bpResult={bpResult}
-            alt={`Diff for ${currentPage.path}`}
-            highlightedChangeId={highlightedChangeId}
-            comparisonMode={comparisonMode}
-            onComparisonModeChange={setComparisonMode}
-            onShowingDevChange={setShowingDev}
-          />
-        ) : (
-          <p className="loader-text" style={{ textAlign: "center" }}>
-            No screenshot available for this breakpoint.
-          </p>
-        )}
+          <div className="report-page__body">
+            {bpResult ? (
+              <PageRouteCompareRow
+                bpResult={bpResult}
+                alt={`Diff for ${currentPage.path}`}
+                highlightedChangeId={highlightedChangeId}
+                comparisonMode={comparisonMode}
+                onComparisonModeChange={setComparisonMode}
+                onShowingDevChange={setShowingDev}
+              />
+            ) : (
+              <p className="loader-text" style={{ textAlign: "center" }}>
+                No screenshot available for this breakpoint.
+              </p>
+            )}
 
-        {bpResult?.semanticChanges && bpResult.semanticChanges.length > 0 && (
-          <PageRouteIssues
-            changes={bpResult.semanticChanges}
-            summary={bpResult.changeSummary}
-            onIssueClick={(id) => {
-              setHighlightedChangeId(id);
-              setTimeout(() => setHighlightedChangeId(null), 3000);
-            }}
-          />
-        )}
+            {bpResult?.semanticChanges && bpResult.semanticChanges.length > 0 && (
+              <PageRouteIssues
+                changes={bpResult.semanticChanges}
+                summary={bpResult.changeSummary}
+                onIssueClick={(id) => {
+                  setHighlightedChangeId(id);
+                  setTimeout(() => setHighlightedChangeId(null), 3000);
+                }}
+              />
+            )}
 
-        <ScrollToTopButton />
-      </div>
-    </div>
+            <ScrollToTopButton />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  return (
+    <>
+      <LoadingOverlay ready={!!content} />
+      {content}
+    </>
   );
 }
 
