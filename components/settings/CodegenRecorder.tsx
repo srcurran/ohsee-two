@@ -145,7 +145,7 @@ function PromptModal({
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com"
           className="input input--compact input--solid-bg"
-          style={{ background: "var(--surface-tertiary)", marginBottom: "var(--space-4)" }}
+          style={{ background: "var(--neutral-light-200)", marginBottom: "var(--space-4)" }}
           autoFocus
         />
         <div className="modal__actions modal__actions--sm">

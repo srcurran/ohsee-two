@@ -179,7 +179,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
         <div className="project-settings-overlay__body">
           {!data.project || !data.activeTest ? (
-            <p style={{ color: "var(--text-muted)" }}>Loading...</p>
+            <p style={{ color: "var(--neutral-dark-500)" }}>Loading...</p>
           ) : stepEditor ? (
             <AddEditStepView
               projectUrls={[data.project.prodUrl, data.project.devUrl]}
