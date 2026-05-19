@@ -1,4 +1,4 @@
-import { chromium, type BrowserContextOptions } from "playwright";
+import { chromium, type Browser, type BrowserContextOptions } from "playwright";
 import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
@@ -25,11 +25,13 @@ export async function captureScreenshots(options: {
   /** JS to run before every page load (e.g., localStorage theme injection) */
   initScript?: string;
   onProgress?: (breakpoint: number, status: string) => void | Promise<void>;
+  /** Reuse an existing browser instance instead of launching a new one. */
+  browser?: Browser;
 }): Promise<ScreenshotResult[]> {
-  const { url, breakpoints, outputDir, prefix, authConfig, contextOptions, initScript, onProgress } = options;
+  const { url, breakpoints, outputDir, prefix, authConfig, contextOptions, initScript, onProgress, browser: externalBrowser } = options;
   await ensureDir(outputDir);
 
-  const browser = await chromium.launch({
+  const browser = externalBrowser ?? await chromium.launch({
     headless: true,
     args: [
       "--disable-dev-shm-usage",
@@ -37,45 +39,43 @@ export async function captureScreenshots(options: {
       "--disable-gpu",
     ],
   });
-  const results: ScreenshotResult[] = [];
 
   try {
-    for (const bp of breakpoints) {
-      const context = await browser.newContext({
-        viewport: { width: bp, height: 900 },
-        deviceScaleFactor: 1,
-        reducedMotion: "reduce",
-        ...contextOptions,
-        // Inject auth cookie if provided
-        ...(authConfig
-          ? {
-              storageState: {
-                cookies: [
-                  {
-                    name: authConfig.cookieName,
-                    value: authConfig.cookieValue,
-                    domain: authConfig.domain,
-                    path: "/",
-                    httpOnly: true,
-                    sameSite: "Lax" as const,
-                    secure: authConfig.cookieName.startsWith("__Secure-"),
-                    expires: Math.floor(Date.now() / 1000) + 3600,
-                  },
-                ],
-                origins: [],
-              },
-            }
-          : {}),
-      });
-
-      // Run init script before every page load (e.g., theme localStorage injection)
-      if (initScript) {
-        await context.addInitScript(initScript);
-      }
-
-      const page = await context.newPage();
-
+    const settled = await Promise.all(breakpoints.map(async (bp) => {
+      let context;
       try {
+        context = await browser.newContext({
+          viewport: { width: bp, height: 900 },
+          deviceScaleFactor: 1,
+          reducedMotion: "reduce",
+          ...contextOptions,
+          ...(authConfig
+            ? {
+                storageState: {
+                  cookies: [
+                    {
+                      name: authConfig.cookieName,
+                      value: authConfig.cookieValue,
+                      domain: authConfig.domain,
+                      path: "/",
+                      httpOnly: true,
+                      sameSite: "Lax" as const,
+                      secure: authConfig.cookieName.startsWith("__Secure-"),
+                      expires: Math.floor(Date.now() / 1000) + 3600,
+                    },
+                  ],
+                  origins: [],
+                },
+              }
+            : {}),
+        });
+
+        if (initScript) {
+          await context.addInitScript(initScript);
+        }
+
+        const page = await context.newPage();
+
         // Use domcontentloaded then briefly wait for networkidle.
         // Sites with persistent connections (analytics, websockets) will
         // never reach networkidle — the 5s timeout keeps things moving.
@@ -120,20 +120,22 @@ export async function captureScreenshots(options: {
           console.error(`Failed to extract DOM snapshot for ${capturedUrl} at ${bp}px:`, err);
         }
 
-        results.push({ breakpoint: bp, filePath, url: capturedUrl, domSnapshot });
+        return { breakpoint: bp, filePath, url: capturedUrl, domSnapshot } as ScreenshotResult;
       } catch (err) {
         console.error(`Failed to capture ${url} at ${bp}px:`, err);
+        return null;
       } finally {
-        await context.close();
+        await context?.close().catch(() => {});
+        await onProgress?.(bp, "done");
       }
+    }));
 
-      await onProgress?.(bp, "done");
-    }
+    return settled.filter((r): r is ScreenshotResult => r !== null);
   } finally {
-    await browser.close();
+    if (!externalBrowser) {
+      await browser.close();
+    }
   }
-
-  return results;
 }
 
 async function autoScroll(page: import("playwright").Page): Promise<void> {

@@ -1,4 +1,5 @@
 import path from "path";
+import { chromium, type Browser } from "playwright";
 import { captureScreenshots } from "./screenshot";
 import { generateDiff } from "./diff";
 import { generateSemanticDiff } from "./semantic-diff";
@@ -10,6 +11,8 @@ import { executeFlow, getScreenshotStepIds } from "./flow-runner";
 import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
+
+const BROWSER_ARGS = ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"];
 
 /**
  * In-memory map of running report abort controllers.
@@ -147,12 +150,26 @@ export async function runReport(
     pages: [],
   });
 
+  // Serialize progress saves so parallel breakpoint callbacks don't
+  // cause concurrent writes to the same report file.
+  let saveChain = Promise.resolve();
   const saveProgress = async () => {
     report.progress = { completed: completedOps, total: totalOps };
-    await writeJsonFile(reportPath, report);
+    const p = saveChain.then(() => writeJsonFile(reportPath, report));
+    saveChain = p.catch(() => {});
+    await p;
   };
 
+  let prodBrowser: Browser | undefined;
+  let devBrowser: Browser | undefined;
+
   try {
+    // Launch two long-lived browsers — one for prod, one for dev — so
+    // capture functions reuse them instead of launching/closing per call.
+    [prodBrowser, devBrowser] = await Promise.all([
+      chromium.launch({ headless: true, args: BROWSER_ARGS }),
+      chromium.launch({ headless: true, args: BROWSER_ARGS }),
+    ]);
     // Mint auth cookies. Per-test credentials (siteTest.credentials.enabled
     // — possibly via copyFromTestId) take precedence over the legacy
     // project.requiresAuth flag so different tests can run as different
@@ -189,6 +206,8 @@ export async function runReport(
         breakpointList: projectBreakpoints,
         checkCancelled,
         onProgress: async () => { completedOps++; await saveProgress(); },
+        prodBrowser,
+        devBrowser,
       });
 
       // --- Additional variants (e.g., light/dark) ---
@@ -213,6 +232,8 @@ export async function runReport(
             initScript: variant.initScript,
             checkCancelled,
             onProgress: async () => { completedOps++; await saveProgress(); },
+            prodBrowser,
+            devBrowser,
           });
         }
       }
@@ -249,6 +270,8 @@ export async function runReport(
           breakpointList: projectBreakpoints,
           checkCancelled,
           onProgress: async () => { completedOps++; await saveProgress(); },
+          prodBrowser,
+          devBrowser,
         });
 
         // --- Variant captures for flows ---
@@ -270,6 +293,8 @@ export async function runReport(
               initScript: variant.initScript,
               checkCancelled,
               onProgress: async () => { completedOps++; await saveProgress(); },
+              prodBrowser,
+              devBrowser,
             });
           }
         }
@@ -336,6 +361,8 @@ export async function runReport(
           breakpointList: projectBreakpoints,
           checkCancelled,
           onProgress: async () => { completedOps++; await saveProgress(); },
+          prodBrowser,
+          devBrowser,
         });
 
         // --- Variant captures for compositions ---
@@ -358,6 +385,8 @@ export async function runReport(
               initScript: variant.initScript,
               checkCancelled,
               onProgress: async () => { completedOps++; await saveProgress(); },
+              prodBrowser,
+              devBrowser,
             });
           }
         }
@@ -434,6 +463,8 @@ export async function runReport(
       await writeJsonFile(reportPath, report);
     }
   } finally {
+    await prodBrowser?.close().catch(() => {});
+    await devBrowser?.close().catch(() => {});
     runningReports.delete(reportId);
     reportProjectMap.delete(reportId);
     if (options?.onComplete) {
@@ -465,49 +496,52 @@ async function captureAndDiff(options: {
   initScript?: string;
   checkCancelled: () => void;
   onProgress: () => Promise<void>;
+  prodBrowser?: Browser;
+  devBrowser?: Browser;
 }): Promise<Record<string, BreakpointResult>> {
   const {
     prodUrl, devUrl, pageId, prefix, screenshotDir, dataBase,
     authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
-    checkCancelled, onProgress,
+    checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
   const breakpoints: Record<string, BreakpointResult> = {};
 
-  // Capture prod screenshots
+  // Capture prod and dev screenshots in parallel
   checkCancelled();
-  const prodResults = await captureScreenshots({
-    url: prodUrl,
-    breakpoints: breakpointList,
-    outputDir: screenshotDir,
-    prefix: `prod-${pageId}${prefix}`,
-    authConfig: authConfig.prod,
-    contextOptions,
-    initScript,
-    onProgress: async () => {
-      checkCancelled();
-      await onProgress();
-    },
-  });
+  const [prodResults, devResults] = await Promise.all([
+    captureScreenshots({
+      url: prodUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `prod-${pageId}${prefix}`,
+      authConfig: authConfig.prod,
+      contextOptions,
+      initScript,
+      browser: prodBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+    }),
+    captureScreenshots({
+      url: devUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `dev-${pageId}${prefix}`,
+      authConfig: authConfig.dev,
+      contextOptions,
+      initScript,
+      browser: devBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+    }),
+  ]);
 
-  // Capture dev screenshots
-  checkCancelled();
-  const devResults = await captureScreenshots({
-    url: devUrl,
-    breakpoints: breakpointList,
-    outputDir: screenshotDir,
-    prefix: `dev-${pageId}${prefix}`,
-    authConfig: authConfig.dev,
-    contextOptions,
-    initScript,
-    onProgress: async () => {
-      checkCancelled();
-      await onProgress();
-    },
-  });
-
-  // Generate diffs for each breakpoint
-  for (const bp of breakpointList) {
+  // Generate diffs for each breakpoint in parallel
+  await Promise.all(breakpointList.map(async (bp) => {
     checkCancelled();
 
     const prodShot = prodResults.find((r) => r.breakpoint === bp);
@@ -548,8 +582,6 @@ async function captureAndDiff(options: {
           );
           bpResult.semanticChanges = semanticResult.changes;
           bpResult.changeSummary = semanticResult.summary;
-          // Keep the higher of pixel vs semantic change counts so a zero-structural-change
-          // semantic result never hides real pixel differences.
           bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
         } catch (err) {
           console.error(`Semantic diff failed for ${prodUrl} at ${bp}px:`, err);
@@ -560,7 +592,7 @@ async function captureAndDiff(options: {
     }
 
     await onProgress();
-  }
+  }));
 
   return breakpoints;
 }
@@ -582,53 +614,56 @@ async function captureAndDiffFlow(options: {
   initScript?: string;
   checkCancelled: () => void;
   onProgress: () => Promise<void>;
+  prodBrowser?: Browser;
+  devBrowser?: Browser;
 }): Promise<Record<string, BreakpointResult>> {
   const {
     flow, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
     authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
-    checkCancelled, onProgress,
+    checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
   const results: Record<string, BreakpointResult> = {};
 
-  // Capture prod flow
+  // Capture prod and dev flows in parallel
   checkCancelled();
-  const prodResults = await executeFlow({
-    flow,
-    baseUrl: prodBaseUrl,
-    breakpoints: breakpointList,
-    outputDir: screenshotDir,
-    prefix: `prod-flow-${flow.id}${prefix}`,
-    authConfig: authConfig.prod,
-    contextOptions,
-    initScript,
-    onProgress: async () => {
-      checkCancelled();
-      await onProgress();
-    },
-  });
+  const [prodResults, devResults] = await Promise.all([
+    executeFlow({
+      flow,
+      baseUrl: prodBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `prod-flow-${flow.id}${prefix}`,
+      authConfig: authConfig.prod,
+      contextOptions,
+      initScript,
+      browser: prodBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+    }),
+    executeFlow({
+      flow,
+      baseUrl: devBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `dev-flow-${flow.id}${prefix}`,
+      authConfig: authConfig.dev,
+      contextOptions,
+      initScript,
+      browser: devBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+    }),
+  ]);
 
-  // Capture dev flow
-  checkCancelled();
-  const devResults = await executeFlow({
-    flow,
-    baseUrl: devBaseUrl,
-    breakpoints: breakpointList,
-    outputDir: screenshotDir,
-    prefix: `dev-flow-${flow.id}${prefix}`,
-    authConfig: authConfig.dev,
-    contextOptions,
-    initScript,
-    onProgress: async () => {
-      checkCancelled();
-      await onProgress();
-    },
-  });
-
-  // Generate diffs for each step that captures a screenshot
+  // Generate diffs for all steps × breakpoints in parallel
   const screenshotSteps = getScreenshotStepIds(flow);
-  for (const step of screenshotSteps) {
-    for (const bp of breakpointList) {
+  await Promise.all(screenshotSteps.flatMap((step) =>
+    breakpointList.map(async (bp) => {
       checkCancelled();
 
       const prodShot = prodResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
@@ -679,8 +714,8 @@ async function captureAndDiffFlow(options: {
       }
 
       await onProgress();
-    }
-  }
+    })
+  ));
 
   return results;
 }
@@ -722,55 +757,58 @@ async function captureAndDiffComposition(options: {
   initScript?: string;
   checkCancelled: () => void;
   onProgress: () => Promise<void>;
+  prodBrowser?: Browser;
+  devBrowser?: Browser;
 }): Promise<Record<string, BreakpointResult>> {
   const {
     project, composition, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
     authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
-    checkCancelled, onProgress,
+    checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
   const results: Record<string, BreakpointResult> = {};
 
-  // Capture prod composition
+  // Capture prod and dev compositions in parallel
   checkCancelled();
-  const prodResults = await executeTestComposition({
-    project,
-    composition,
-    baseUrl: prodBaseUrl,
-    breakpoints: breakpointList,
-    outputDir: screenshotDir,
-    prefix: `prod-comp-${composition.id}${prefix}`,
-    authConfig: authConfig.prod,
-    contextOptions,
-    initScript,
-    onProgress: async () => {
-      checkCancelled();
-      await onProgress();
-    },
-  });
+  const [prodResults, devResults] = await Promise.all([
+    executeTestComposition({
+      project,
+      composition,
+      baseUrl: prodBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `prod-comp-${composition.id}${prefix}`,
+      authConfig: authConfig.prod,
+      contextOptions,
+      initScript,
+      browser: prodBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+    }),
+    executeTestComposition({
+      project,
+      composition,
+      baseUrl: devBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `dev-comp-${composition.id}${prefix}`,
+      authConfig: authConfig.dev,
+      contextOptions,
+      initScript,
+      browser: devBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+    }),
+  ]);
 
-  // Capture dev composition
-  checkCancelled();
-  const devResults = await executeTestComposition({
-    project,
-    composition,
-    baseUrl: devBaseUrl,
-    breakpoints: breakpointList,
-    outputDir: screenshotDir,
-    prefix: `dev-comp-${composition.id}${prefix}`,
-    authConfig: authConfig.dev,
-    contextOptions,
-    initScript,
-    onProgress: async () => {
-      checkCancelled();
-      await onProgress();
-    },
-  });
-
-  // Generate diffs for each step that captures a screenshot
+  // Generate diffs for all steps × breakpoints in parallel
   const screenshotSteps = getCompositionScreenshotSteps(project, composition);
-  for (const step of screenshotSteps) {
-    for (const bp of breakpointList) {
+  await Promise.all(screenshotSteps.flatMap((step) =>
+    breakpointList.map(async (bp) => {
       checkCancelled();
 
       const prodShot = prodResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
@@ -821,8 +859,8 @@ async function captureAndDiffComposition(options: {
       }
 
       await onProgress();
-    }
-  }
+    })
+  ));
 
   return results;
 }

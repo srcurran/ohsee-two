@@ -1,4 +1,4 @@
-import { chromium, type BrowserContextOptions, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
@@ -39,7 +39,7 @@ function stepLabel(step: FlowAction): string {
 }
 
 function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max - 1) + "\u2026" : s;
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
 export interface FlowScreenshotResult {
@@ -58,6 +58,7 @@ export interface FlowScreenshotResult {
  *
  * Maintains a single browser context per breakpoint so that state
  * (form data, navigation, cookies) accumulates across steps.
+ * Breakpoints are executed in parallel.
  */
 export async function executeFlow(options: {
   flow: FlowEntry;
@@ -70,55 +71,58 @@ export async function executeFlow(options: {
   contextOptions?: Partial<BrowserContextOptions>;
   initScript?: string;
   onProgress?: (stepId: string, breakpoint: number) => void | Promise<void>;
+  /** Reuse an existing browser instance instead of launching a new one. */
+  browser?: Browser;
 }): Promise<FlowScreenshotResult[]> {
   const {
     flow, baseUrl, breakpoints, outputDir, prefix,
     authConfig, contextOptions, initScript, onProgress,
+    browser: externalBrowser,
   } = options;
   await ensureDir(outputDir);
 
-  const browser = await chromium.launch({
+  const browser = externalBrowser ?? await chromium.launch({
     headless: true,
     args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"],
   });
 
-  const results: FlowScreenshotResult[] = [];
-
   try {
-    for (const bp of breakpoints) {
-      const context = await browser.newContext({
-        viewport: { width: bp, height: 900 },
-        deviceScaleFactor: 1,
-        reducedMotion: "reduce",
-        ...contextOptions,
-        ...(authConfig
-          ? {
-              storageState: {
-                cookies: [
-                  {
-                    name: authConfig.cookieName,
-                    value: authConfig.cookieValue,
-                    domain: authConfig.domain,
-                    path: "/",
-                    httpOnly: true,
-                    sameSite: "Lax" as const,
-                    secure: authConfig.cookieName.startsWith("__Secure-"),
-                    expires: Math.floor(Date.now() / 1000) + 3600,
-                  },
-                ],
-                origins: [],
-              },
-            }
-          : {}),
-      });
-
-      if (initScript) {
-        await context.addInitScript(initScript);
-      }
-
-      const page = await context.newPage();
-
+    const perBp = await Promise.all(breakpoints.map(async (bp) => {
+      const bpResults: FlowScreenshotResult[] = [];
+      let context;
       try {
+        context = await browser.newContext({
+          viewport: { width: bp, height: 900 },
+          deviceScaleFactor: 1,
+          reducedMotion: "reduce",
+          ...contextOptions,
+          ...(authConfig
+            ? {
+                storageState: {
+                  cookies: [
+                    {
+                      name: authConfig.cookieName,
+                      value: authConfig.cookieValue,
+                      domain: authConfig.domain,
+                      path: "/",
+                      httpOnly: true,
+                      sameSite: "Lax" as const,
+                      secure: authConfig.cookieName.startsWith("__Secure-"),
+                      expires: Math.floor(Date.now() / 1000) + 3600,
+                    },
+                  ],
+                  origins: [],
+                },
+              }
+            : {}),
+        });
+
+        if (initScript) {
+          await context.addInitScript(initScript);
+        }
+
+        const page = await context.newPage();
+
         // Navigate to start path — strip domain if startPath was saved as a full URL
         const startPathNorm = flow.startPath.match(/^https?:\/\//)
           ? new URL(flow.startPath).pathname
@@ -135,36 +139,34 @@ export async function executeFlow(options: {
         for (const step of flow.steps) {
           try {
             if (step.type === "screenshot") {
-              // Legacy standalone screenshot step — always capture
-              await captureStepScreenshot(page, step.id, step.label, bp, outputDir, prefix, results);
+              await captureStepScreenshot(page, step.id, step.label, bp, outputDir, prefix, bpResults);
               await onProgress?.(step.id, bp);
             } else {
-              // Execute the action
               await executeAction(page, step, baseUrl);
-
-              // Capture screenshot after the action (default: yes)
               if (step.captureScreenshot !== false) {
                 const label = stepLabel(step);
-                await captureStepScreenshot(page, step.id, label, bp, outputDir, prefix, results);
+                await captureStepScreenshot(page, step.id, label, bp, outputDir, prefix, bpResults);
                 await onProgress?.(step.id, bp);
               }
             }
           } catch (err) {
             console.error(`Flow "${flow.name}" step "${step.id}" (${step.type}) failed at ${bp}px:`, err);
-            // Continue to next step — partial results are better than none
           }
         }
       } catch (err) {
         console.error(`Flow "${flow.name}" failed at ${bp}px (setup):`, err);
       } finally {
-        await context.close();
+        await context?.close().catch(() => {});
       }
-    }
-  } finally {
-    await browser.close();
-  }
+      return bpResults;
+    }));
 
-  return results;
+    return perBp.flat();
+  } finally {
+    if (!externalBrowser) {
+      await browser.close();
+    }
+  }
 }
 
 /**

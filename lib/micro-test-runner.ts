@@ -1,4 +1,4 @@
-import { chromium, type BrowserContextOptions, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
@@ -114,6 +114,7 @@ function resolveStepScript(
  *
  * Follows the same browser lifecycle patterns as flow-runner:
  * one browser context per breakpoint, state accumulates across steps.
+ * Breakpoints are executed in parallel.
  */
 export async function executeTestComposition(options: {
   project: Project;
@@ -126,55 +127,58 @@ export async function executeTestComposition(options: {
   contextOptions?: Partial<BrowserContextOptions>;
   initScript?: string;
   onProgress?: (stepId: string, breakpoint: number) => void | Promise<void>;
+  /** Reuse an existing browser instance instead of launching a new one. */
+  browser?: Browser;
 }): Promise<MicroTestStepResult[]> {
   const {
     project, composition, baseUrl, breakpoints, outputDir, prefix,
     authConfig, contextOptions, initScript, onProgress,
+    browser: externalBrowser,
   } = options;
   await ensureDir(outputDir);
 
-  const browser = await chromium.launch({
+  const browser = externalBrowser ?? await chromium.launch({
     headless: true,
     args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"],
   });
 
-  const results: MicroTestStepResult[] = [];
-
   try {
-    for (const bp of breakpoints) {
-      const context = await browser.newContext({
-        viewport: { width: bp, height: 900 },
-        deviceScaleFactor: 1,
-        reducedMotion: "reduce",
-        ...contextOptions,
-        ...(authConfig
-          ? {
-              storageState: {
-                cookies: [
-                  {
-                    name: authConfig.cookieName,
-                    value: authConfig.cookieValue,
-                    domain: authConfig.domain,
-                    path: "/",
-                    httpOnly: true,
-                    sameSite: "Lax" as const,
-                    secure: authConfig.cookieName.startsWith("__Secure-"),
-                    expires: Math.floor(Date.now() / 1000) + 3600,
-                  },
-                ],
-                origins: [],
-              },
-            }
-          : {}),
-      });
-
-      if (initScript) {
-        await context.addInitScript(initScript);
-      }
-
-      const page = await context.newPage();
-
+    const perBp = await Promise.all(breakpoints.map(async (bp) => {
+      const bpResults: MicroTestStepResult[] = [];
+      let context;
       try {
+        context = await browser.newContext({
+          viewport: { width: bp, height: 900 },
+          deviceScaleFactor: 1,
+          reducedMotion: "reduce",
+          ...contextOptions,
+          ...(authConfig
+            ? {
+                storageState: {
+                  cookies: [
+                    {
+                      name: authConfig.cookieName,
+                      value: authConfig.cookieValue,
+                      domain: authConfig.domain,
+                      path: "/",
+                      httpOnly: true,
+                      sameSite: "Lax" as const,
+                      secure: authConfig.cookieName.startsWith("__Secure-"),
+                      expires: Math.floor(Date.now() / 1000) + 3600,
+                    },
+                  ],
+                  origins: [],
+                },
+              }
+            : {}),
+        });
+
+        if (initScript) {
+          await context.addInitScript(initScript);
+        }
+
+        const page = await context.newPage();
+
         // Navigate to composition start path
         const startUrl = `${baseUrl.replace(/\/$/, "")}${composition.startPath}`;
         await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
@@ -209,7 +213,7 @@ export async function executeTestComposition(options: {
           if (step.captureScreenshot) {
             try {
               await captureStepScreenshot(
-                page, step.id, resolved.displayName, bp, outputDir, prefix, results,
+                page, step.id, resolved.displayName, bp, outputDir, prefix, bpResults,
               );
             } catch (screenshotErr) {
               console.error(
@@ -223,14 +227,17 @@ export async function executeTestComposition(options: {
       } catch (err) {
         console.error(`Composition "${composition.name}" failed at ${bp}px (setup):`, err);
       } finally {
-        await context.close();
+        await context?.close().catch(() => {});
       }
-    }
-  } finally {
-    await browser.close();
-  }
+      return bpResults;
+    }));
 
-  return results;
+    return perBp.flat();
+  } finally {
+    if (!externalBrowser) {
+      await browser.close();
+    }
+  }
 }
 
 /**
