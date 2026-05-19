@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import type { Project } from "@/lib/types";
 
@@ -11,8 +11,8 @@ export async function GET() {
     const userId = await requireUserId();
     const projects = await readProjectsWithMigration(userId);
     return NextResponse.json(projects);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "projects");
   }
 }
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     await writeJsonFile(userProjectsFile(userId), projects);
 
     return NextResponse.json(project, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "projects");
   }
 }

@@ -2,6 +2,7 @@ import { chromium, type Browser, type BrowserContextOptions, type Page } from "p
 import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
+import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
 import type {
   DomSnapshot,
   Project,
@@ -24,25 +25,13 @@ export interface MicroTestStepResult {
 }
 
 /**
- * Execute a single micro-test script against a Playwright Page.
- *
- * The script string is the function *body* that receives `page` (Playwright Page)
- * and `expect` (Playwright test assertion) as arguments.
- *
- * Security note: this evals user-supplied code — acceptable for a
- * single-user self-hosted tool.
- */
-/**
  * Rewrite absolute page.goto() URLs in a script so they use the given base URL.
  * This allows scripts recorded against one environment (e.g. dev) to run
  * correctly against another (e.g. prod) during report comparisons.
- *
- * Replaces: `page.goto('https://anything.com/path')` → `page.goto('https://baseUrl/path')`
  */
 function rewriteGotoUrls(script: string, baseUrl: string | undefined): string {
   if (!baseUrl) return script;
   const base = baseUrl.replace(/\/$/, "");
-  // Match page.goto('...') or page.goto("...") or page.goto(`...`)
   return script.replace(
     /page\.goto\s*\(\s*(['"`])(https?:\/\/[^'"`]+)\1/g,
     (_match, quote, originalUrl) => {
@@ -57,20 +46,25 @@ function rewriteGotoUrls(script: string, baseUrl: string | undefined): string {
   );
 }
 
+/**
+ * Execute a single micro-test script against a Playwright Page.
+ *
+ * The script string is the function *body* that receives `page` (Playwright Page)
+ * and `expect` (Playwright test assertion) as arguments.
+ *
+ * Security note: this evals user-supplied code — acceptable for a
+ * single-user self-hosted tool.
+ */
 export async function executeMicroTest(
   page: Page,
   script: string,
   timeout = STEP_TIMEOUT,
   baseUrl?: string,
 ): Promise<void> {
-  // Rewrite any hardcoded goto URLs to use the correct base URL
   const rewrittenScript = rewriteGotoUrls(script, baseUrl);
 
-  // Build an async function from the script body, passing `page` as argument.
-  // We also pass common Playwright helpers so scripts can use `expect()`.
   let expectFn: unknown;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = await (Function('return import("@playwright/test")')() as Promise<{ expect: unknown }>);
     expectFn = mod.expect;
   } catch {
@@ -147,31 +141,7 @@ export async function executeTestComposition(options: {
       const bpResults: MicroTestStepResult[] = [];
       let context;
       try {
-        context = await browser.newContext({
-          viewport: { width: bp, height: 900 },
-          deviceScaleFactor: 1,
-          reducedMotion: "reduce",
-          ...contextOptions,
-          ...(authConfig
-            ? {
-                storageState: {
-                  cookies: [
-                    {
-                      name: authConfig.cookieName,
-                      value: authConfig.cookieValue,
-                      domain: authConfig.domain,
-                      path: "/",
-                      httpOnly: true,
-                      sameSite: "Lax" as const,
-                      secure: authConfig.cookieName.startsWith("__Secure-"),
-                      expires: Math.floor(Date.now() / 1000) + 3600,
-                    },
-                  ],
-                  origins: [],
-                },
-              }
-            : {}),
-        });
+        context = await browser.newContext(buildContextOptions(bp, authConfig, contextOptions));
 
         if (initScript) {
           await context.addInitScript(initScript);
@@ -179,7 +149,6 @@ export async function executeTestComposition(options: {
 
         const page = await context.newPage();
 
-        // Navigate to composition start path
         const startUrl = `${baseUrl.replace(/\/$/, "")}${composition.startPath}`;
         await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
         await Promise.race([
@@ -187,7 +156,6 @@ export async function executeTestComposition(options: {
           page.waitForTimeout(5000),
         ]);
 
-        // Execute each composition step
         for (const step of composition.steps) {
           const resolved = resolveStepScript(project, step);
           if (!resolved) {
@@ -206,8 +174,6 @@ export async function executeTestComposition(options: {
               `("${resolved.displayName}") failed at ${bp}px:`,
               err,
             );
-            // Still capture screenshot below — showing page state at failure
-            // is more useful than a blank
           }
 
           if (step.captureScreenshot) {
@@ -264,7 +230,6 @@ export function getCompositionScreenshotSteps(
 
 /**
  * Capture a screenshot for a step, pushing the result to the array.
- * Mirrors the logic from flow-runner.
  */
 async function captureStepScreenshot(
   page: Page,
@@ -275,7 +240,7 @@ async function captureStepScreenshot(
   prefix: string,
   results: MicroTestStepResult[],
 ): Promise<void> {
-  await prepareForScreenshot(page);
+  await prepareForScreenshot(page, 500);
 
   const filePath = path.join(outputDir, `${prefix}-${stepId}-${bp}.png`);
   await page.screenshot({ fullPage: true, path: filePath });
@@ -290,41 +255,4 @@ async function captureStepScreenshot(
   }
 
   results.push({ stepId, label, breakpoint: bp, filePath, url: capturedUrl, domSnapshot });
-}
-
-/**
- * Prepare page for a clean screenshot capture.
- * Mirrors the prep logic from flow-runner / screenshot.ts.
- */
-async function prepareForScreenshot(page: Page): Promise<void> {
-  await page.addStyleTag({
-    content: `*, *::before, *::after {
-      animation: none !important;
-      transition: none !important;
-      scroll-behavior: auto !important;
-    }`,
-  });
-
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0;
-      const distance = 300;
-      const timer = setInterval(() => {
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-        if (totalHeight >= document.body.scrollHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 100);
-      setTimeout(() => {
-        clearInterval(timer);
-        resolve();
-      }, 15000);
-    });
-    window.scrollTo(0, 0);
-  });
-
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(500);
 }

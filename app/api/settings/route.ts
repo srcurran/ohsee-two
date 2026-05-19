@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
 import { userSettingsFile, BREAKPOINTS } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import type { UserSettings } from "@/lib/types";
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -16,8 +16,8 @@ export async function GET() {
       DEFAULT_SETTINGS
     );
     return NextResponse.json(settings);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "settings");
   }
 }
 
@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
     const updated: UserSettings = { ...current, ...body };
     await writeJsonFile(userSettingsFile(userId), updated);
     return NextResponse.json(updated);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "settings");
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readJsonFile } from "@/lib/data";
 import { userReportsDir } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import type { Report } from "@/lib/types";
 import path from "path";
 
@@ -24,7 +24,7 @@ export async function GET(
     }
 
     return NextResponse.json(page);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "report-page");
   }
 }

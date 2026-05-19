@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
 import { userProjectsFile, userReportsDir, BREAKPOINTS } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import { checkProjectUrlsReachable } from "@/lib/url-reachability";
@@ -44,8 +44,8 @@ export async function GET(
     }
     reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return NextResponse.json(reports);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "report");
   }
 }
 
@@ -105,13 +105,6 @@ export async function POST(
 
     return NextResponse.json({ reportId }, { status: 202 });
   } catch (err) {
-    if (err instanceof Error && err.message === "Not authenticated") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    console.error("[reports POST tests] failed:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to start report" },
-      { status: 500 },
-    );
+    return handleApiError(err, "report");
   }
 }

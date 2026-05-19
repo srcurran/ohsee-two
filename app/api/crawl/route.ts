@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { crawlSitemap } from "@/lib/crawl";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
     const paths = await crawlSitemap(url);
     return NextResponse.json({ paths });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "crawl");
   }
 }

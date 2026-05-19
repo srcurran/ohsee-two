@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import type { Project } from "@/lib/types";
 
@@ -18,8 +18,8 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     return NextResponse.json(project);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "project");
   }
 }
 
@@ -39,8 +39,8 @@ export async function PUT(
     projects[index] = { ...projects[index], ...body };
     await writeJsonFile(userProjectsFile(userId), projects);
     return NextResponse.json(projects[index]);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "project");
   }
 }
 
@@ -55,7 +55,7 @@ export async function DELETE(
     const filtered = projects.filter((p) => p.id !== id);
     await writeJsonFile(userProjectsFile(userId), filtered);
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "project");
   }
 }

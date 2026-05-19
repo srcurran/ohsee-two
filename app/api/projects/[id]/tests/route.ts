@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import type { SiteTest } from "@/lib/types";
 
@@ -20,8 +20,8 @@ export async function GET(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
     return NextResponse.json(project.tests || []);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "test");
   }
 }
 
@@ -63,7 +63,7 @@ export async function POST(
     await writeJsonFile(userProjectsFile(userId), projects);
 
     return NextResponse.json(test, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "test");
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 
 /** GET /api/projects/[id]/tests/[testId] — get a single test */
@@ -22,8 +22,8 @@ export async function GET(
       return NextResponse.json({ error: "Test not found" }, { status: 404 });
     }
     return NextResponse.json(test);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "test");
   }
 }
 
@@ -48,8 +48,8 @@ export async function PUT(
     project.tests[testIndex] = { ...project.tests[testIndex], ...body };
     await writeJsonFile(userProjectsFile(userId), projects);
     return NextResponse.json(project.tests[testIndex]);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "test");
   }
 }
 
@@ -72,7 +72,7 @@ export async function DELETE(
     project.tests = project.tests.filter((t) => t.id !== testId);
     await writeJsonFile(userProjectsFile(userId), projects);
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "test");
   }
 }

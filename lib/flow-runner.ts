@@ -2,6 +2,7 @@ import { chromium, type Browser, type BrowserContextOptions, type Page } from "p
 import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
+import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
 import type { DomSnapshot, FlowEntry, FlowAction } from "./types";
 import type { AuthCookieConfig } from "./auth-token";
 
@@ -91,31 +92,7 @@ export async function executeFlow(options: {
       const bpResults: FlowScreenshotResult[] = [];
       let context;
       try {
-        context = await browser.newContext({
-          viewport: { width: bp, height: 900 },
-          deviceScaleFactor: 1,
-          reducedMotion: "reduce",
-          ...contextOptions,
-          ...(authConfig
-            ? {
-                storageState: {
-                  cookies: [
-                    {
-                      name: authConfig.cookieName,
-                      value: authConfig.cookieValue,
-                      domain: authConfig.domain,
-                      path: "/",
-                      httpOnly: true,
-                      sameSite: "Lax" as const,
-                      secure: authConfig.cookieName.startsWith("__Secure-"),
-                      expires: Math.floor(Date.now() / 1000) + 3600,
-                    },
-                  ],
-                  origins: [],
-                },
-              }
-            : {}),
-        });
+        context = await browser.newContext(buildContextOptions(bp, authConfig, contextOptions));
 
         if (initScript) {
           await context.addInitScript(initScript);
@@ -181,7 +158,7 @@ async function captureStepScreenshot(
   prefix: string,
   results: FlowScreenshotResult[],
 ): Promise<void> {
-  await prepareForScreenshot(page);
+  await prepareForScreenshot(page, 500);
 
   const filePath = path.join(outputDir, `${prefix}-${stepId}-${bp}.png`);
   await page.screenshot({ fullPage: true, path: filePath });
@@ -210,10 +187,8 @@ async function executeAction(
 
   switch (step.type) {
     case "click":
-      // Wait for the element to appear before clicking
       await page.waitForSelector(step.selector, { state: "visible", timeout: TIMEOUT });
       await page.click(step.selector, { timeout: TIMEOUT });
-      // Wait for any navigation or network activity triggered by the click
       await Promise.race([
         page.waitForLoadState("networkidle").catch(() => {}),
         page.waitForTimeout(3000),
@@ -221,7 +196,6 @@ async function executeAction(
       break;
 
     case "fill":
-      // Wait for the element to appear before filling
       await page.waitForSelector(step.selector, { state: "visible", timeout: TIMEOUT });
       await page.fill(step.selector, step.value, { timeout: TIMEOUT });
       break;
@@ -235,7 +209,6 @@ async function executeAction(
       break;
 
     case "navigate": {
-      // Strip domain if step.path was saved as a full URL
       const stepPathNorm = step.path.match(/^https?:\/\//)
         ? new URL(step.path).pathname
         : step.path;
@@ -248,46 +221,4 @@ async function executeAction(
       break;
     }
   }
-}
-
-/**
- * Prepare page for a clean screenshot capture.
- * Mirrors the prep logic from screenshot.ts.
- */
-async function prepareForScreenshot(page: Page): Promise<void> {
-  // Kill animations/transitions
-  await page.addStyleTag({
-    content: `*, *::before, *::after {
-      animation: none !important;
-      transition: none !important;
-      scroll-behavior: auto !important;
-    }`,
-  });
-
-  // Auto-scroll to trigger lazy loading
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0;
-      const distance = 300;
-      const timer = setInterval(() => {
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-        if (totalHeight >= document.body.scrollHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 100);
-      setTimeout(() => {
-        clearInterval(timer);
-        resolve();
-      }, 15000);
-    });
-    window.scrollTo(0, 0);
-  });
-
-  // Wait for web fonts
-  await page.evaluate(() => document.fonts.ready);
-
-  // Settle time
-  await page.waitForTimeout(500);
 }

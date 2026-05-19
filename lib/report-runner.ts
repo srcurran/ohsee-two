@@ -849,7 +849,7 @@ async function captureAndDiffComposition(options: {
             );
             bpResult.semanticChanges = semanticResult.changes;
             bpResult.changeSummary = semanticResult.summary;
-            bpResult.changeCount = semanticResult.issueCount;
+            bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
           } catch (err) {
             console.error(`Semantic diff failed for composition "${composition.name}" step "${step.id}" at ${bp}px:`, err);
           }

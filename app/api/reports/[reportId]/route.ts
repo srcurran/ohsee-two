@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
 import { userReportsDir } from "@/lib/constants";
-import { requireUserId } from "@/lib/auth-helpers";
+import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { cancelReport } from "@/lib/report-runner";
 import type { Report } from "@/lib/types";
 import path from "path";
@@ -19,8 +19,8 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     return NextResponse.json(report);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "report");
   }
 }
 
@@ -48,7 +48,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ cancelled: true });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    return handleApiError(err, "report");
   }
 }
