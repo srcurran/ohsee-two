@@ -78,7 +78,7 @@ function ReportPageGridComponent({
         </div>
       )}
 
-      {hasPages && isRunning && (
+      {isRunning && (
         <>
           <div className="page-grid-wrap__scrim" />
           <div className="page-grid-wrap__indicator">
@@ -88,15 +88,8 @@ function ReportPageGridComponent({
         </>
       )}
 
-      {!hasPages && (
+      {!hasPages && !isRunning && (
         <>
-          {isRunning && (
-            <div className="loader-centered">
-              <div className="loader-spinner" />
-              <p className="loader-text">Capturing screenshots...</p>
-            </div>
-          )}
-
           {report.status === "failed" && (
             <p className="loader-text" style={{ textAlign: "center" }}>
               No pages were processed before the report failed.

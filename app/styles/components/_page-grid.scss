@@ -15,7 +15,7 @@
 .page-grid-wrap__scrim {
   position: absolute;
   inset: 0;
-  background: color-mix(in srgb, white 10%, transparent);
+  background: color-mix(in srgb, white 50%, transparent);
   z-index: 1;
   pointer-events: none;
 }
