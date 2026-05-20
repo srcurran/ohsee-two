@@ -757,6 +757,12 @@ function resolveCredentialsEnabled(project: Project, siteTest?: SiteTest): boole
 /**
  * Capture prod + dev screenshots for a TestComposition, then generate diffs.
  * Mirrors captureAndDiffFlow but uses the micro-test runner.
+ *
+ * Streaming: uses `onStepCaptured` callbacks from both the prod and dev
+ * composition runs to diff each step as soon as all breakpoints for that
+ * step are available on BOTH sides — rather than waiting for the entire
+ * composition to finish. This gets the first page into the report much
+ * faster while later steps are still capturing.
  */
 async function captureAndDiffComposition(options: {
   project: Project;
@@ -785,61 +791,35 @@ async function captureAndDiffComposition(options: {
 
   const results: Record<string, BreakpointResult> = {};
 
-  // Capture prod and dev compositions in parallel
-  checkCancelled();
-  const [prodResults, devResults] = await Promise.all([
-    executeTestComposition({
-      project,
-      composition,
-      baseUrl: prodBaseUrl,
-      breakpoints: breakpointList,
-      outputDir: screenshotDir,
-      prefix: `prod-comp-${composition.id}${prefix}`,
-      authConfig: authConfig.prod,
-      contextOptions,
-      initScript,
-      credentials,
-      browser: prodBrowser,
-      onProgress: async () => {
-        checkCancelled();
-        await onProgress();
-      },
-    }),
-    executeTestComposition({
-      project,
-      composition,
-      baseUrl: devBaseUrl,
-      breakpoints: breakpointList,
-      outputDir: screenshotDir,
-      prefix: `dev-comp-${composition.id}${prefix}`,
-      authConfig: authConfig.dev,
-      contextOptions,
-      initScript,
-      credentials,
-      browser: devBrowser,
-      onProgress: async () => {
-        checkCancelled();
-        await onProgress();
-      },
-    }),
-  ]);
+  // ── Streaming diff infrastructure ──────────────────────────────────
+  // Collect captures from both sides as they arrive. When all breakpoints
+  // for a step are ready on prod AND dev, kick off the diff immediately.
+  type ShotMap = Map<string, Map<number, import("./micro-test-runner").MicroTestStepResult>>;
+  const prodMap: ShotMap = new Map();
+  const devMap: ShotMap = new Map();
+  const diffedSteps = new Set<string>();
+  // Serialise diff+flush so concurrent callbacks don't race on the
+  // report.json write.
+  let diffChain = Promise.resolve();
 
-  // Generate diffs step-by-step (breakpoints in parallel within each
-  // step) so the caller can flush pages to disk incrementally.
   const screenshotSteps = getCompositionScreenshotSteps(project, composition);
-  for (const step of screenshotSteps) {
+  const bpCount = breakpointList.length;
+
+  /** Diff a single step (all breakpoints in parallel). Returns the
+   *  per-breakpoint results and calls `onStepDiffed` for flushing. */
+  const diffStep = async (stepId: string) => {
     const stepResults: Record<string, BreakpointResult> = {};
 
     await Promise.all(breakpointList.map(async (bp) => {
       checkCancelled();
 
-      const prodShot = prodResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
-      const devShot = devResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
+      const prodShot = prodMap.get(stepId)?.get(bp);
+      const devShot = devMap.get(stepId)?.get(bp);
 
       if (prodShot && devShot) {
-        const diffPath = path.join(screenshotDir, `diff-comp-${composition.id}-${step.id}${prefix}-${bp}.png`);
-        const alignedProdPath = path.join(screenshotDir, `aligned-prod-comp-${composition.id}-${step.id}${prefix}-${bp}.png`);
-        const alignedDevPath = path.join(screenshotDir, `aligned-dev-comp-${composition.id}-${step.id}${prefix}-${bp}.png`);
+        const diffPath = path.join(screenshotDir, `diff-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
+        const alignedProdPath = path.join(screenshotDir, `aligned-prod-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
+        const alignedDevPath = path.join(screenshotDir, `aligned-dev-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
 
         const diffResult = await generateDiff(
           prodShot.filePath,
@@ -873,19 +853,96 @@ async function captureAndDiffComposition(options: {
             bpResult.changeSummary = semanticResult.summary;
             bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
           } catch (err) {
-            console.error(`Semantic diff failed for composition "${composition.name}" step "${step.id}" at ${bp}px:`, err);
+            console.error(`Semantic diff failed for composition "${composition.name}" step "${stepId}" at ${bp}px:`, err);
           }
         }
 
         stepResults[String(bp)] = bpResult;
-        results[`${step.id}-${bp}`] = bpResult;
+        results[`${stepId}-${bp}`] = bpResult;
       }
 
       await onProgress();
     }));
 
-    if (onStepDiffed) await onStepDiffed(step.id, stepResults);
+    if (onStepDiffed) await onStepDiffed(stepId, stepResults);
+  };
+
+  /** Called after each screenshot capture. When a step has all
+   *  breakpoints on both sides, queue its diff. */
+  const tryDiffStep = (stepId: string) => {
+    if (diffedSteps.has(stepId)) return;
+    const pMap = prodMap.get(stepId);
+    const dMap = devMap.get(stepId);
+    if (!pMap || !dMap) return;
+    if (pMap.size < bpCount || dMap.size < bpCount) return;
+    // All breakpoints ready on both sides — diff now.
+    diffedSteps.add(stepId);
+    // Chain so diffs don't race on report.json writes.
+    const p = diffChain.then(() => diffStep(stepId));
+    diffChain = p.catch(() => {});
+  };
+
+  const recordCapture = (map: ShotMap, result: import("./micro-test-runner").MicroTestStepResult) => {
+    let bpMap = map.get(result.stepId);
+    if (!bpMap) { bpMap = new Map(); map.set(result.stepId, bpMap); }
+    bpMap.set(result.breakpoint, result);
+    tryDiffStep(result.stepId);
+  };
+
+  // ── Run prod and dev in parallel, streaming captures ───────────────
+  checkCancelled();
+  await Promise.all([
+    executeTestComposition({
+      project,
+      composition,
+      baseUrl: prodBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `prod-comp-${composition.id}${prefix}`,
+      authConfig: authConfig.prod,
+      contextOptions,
+      initScript,
+      credentials,
+      browser: prodBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+      onStepCaptured: (result) => recordCapture(prodMap, result),
+    }),
+    executeTestComposition({
+      project,
+      composition,
+      baseUrl: devBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `dev-comp-${composition.id}${prefix}`,
+      authConfig: authConfig.dev,
+      contextOptions,
+      initScript,
+      credentials,
+      browser: devBrowser,
+      onProgress: async () => {
+        checkCancelled();
+        await onProgress();
+      },
+      onStepCaptured: (result) => recordCapture(devMap, result),
+    }),
+  ]);
+
+  // ── Cleanup: diff any steps that weren't caught by streaming ───────
+  // (e.g. if a breakpoint failed on one side, the step wouldn't have
+  //  triggered via tryDiffStep — diff what we have.)
+  for (const step of screenshotSteps) {
+    if (!diffedSteps.has(step.id)) {
+      diffedSteps.add(step.id);
+      const p = diffChain.then(() => diffStep(step.id));
+      diffChain = p.catch(() => {});
+    }
   }
+
+  // Wait for all queued diffs to finish.
+  await diffChain;
 
   return results;
 }

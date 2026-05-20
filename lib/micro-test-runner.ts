@@ -165,11 +165,15 @@ export async function executeTestComposition(options: {
   browser?: Browser;
   /** Vault credentials for $EMAIL$ / $PASSWORD$ / $OTP$ interpolation. */
   credentials?: ScriptCredentials;
+  /** Fires after each step screenshot is captured. Used by the report
+   *  runner to diff steps incrementally while captures are still in
+   *  progress on other breakpoints/environments. */
+  onStepCaptured?: (result: MicroTestStepResult) => void;
 }): Promise<MicroTestStepResult[]> {
   const {
     project, composition, baseUrl, breakpoints, outputDir, prefix,
     authConfig, contextOptions, initScript, onProgress,
-    browser: externalBrowser, credentials,
+    browser: externalBrowser, credentials, onStepCaptured,
   } = options;
   await ensureDir(outputDir);
 
@@ -228,6 +232,9 @@ export async function executeTestComposition(options: {
               await captureStepScreenshot(
                 page, step.id, resolved.displayName, bp, outputDir, prefix, bpResults,
               );
+              // Notify caller so it can start diffing this step's
+              // breakpoint while other captures are still in flight.
+              onStepCaptured?.(bpResults[bpResults.length - 1]);
             } catch (screenshotErr) {
               console.error(
                 `Screenshot capture failed for step "${step.id}" at ${bp}px:`,
