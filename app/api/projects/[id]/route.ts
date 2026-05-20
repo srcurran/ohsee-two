@@ -3,7 +3,6 @@ import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
 import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
-import type { Project } from "@/lib/types";
 
 export async function GET(
   _request: Request,

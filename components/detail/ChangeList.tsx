@@ -94,7 +94,7 @@ interface ChangeListProps {
 // suppress the trailing click on whichever pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
 
-export default function ChangeList({ changes, summary, onChangeClick }: ChangeListProps) {
+export default function ChangeList({ changes, onChangeClick }: ChangeListProps) {
   const [activeFilter, setActiveFilter] = useState<ChangeCategory | "all">("all");
   const filtersRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -103,15 +103,6 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     startScroll: number;
     moved: boolean;
   } | null>(null);
-
-  if (!changes || changes.length === 0) {
-    return (
-      <div className="change-notice">
-        <span className="change-notice__icon">✓</span>
-        <span>No visual regressions detected</span>
-      </div>
-    );
-  }
 
   const allGroups = useMemo(() => groupBySelector(changes), [changes]);
 
@@ -138,6 +129,17 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     [activeFilter, changes],
   );
   const groups = useMemo(() => groupBySelector(filtered), [filtered]);
+
+  // Early return must follow every hook above so hook order stays stable
+  // across renders (changes can go empty ⇄ non-empty).
+  if (!changes || changes.length === 0) {
+    return (
+      <div className="change-notice">
+        <span className="change-notice__icon">✓</span>
+        <span>No visual regressions detected</span>
+      </div>
+    );
+  }
 
   // Drag-to-scroll the pill row horizontally. We use Pointer Events but
   // intentionally do NOT call setPointerCapture on pointerdown — capturing

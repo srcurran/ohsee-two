@@ -94,19 +94,18 @@ export default function PageDetailPanel({
     onClose: handleClose,
   });
 
-  if (!currentPage) return null;
-
-  const activeBpData =
-    activeVariant && currentPage.variants?.[activeVariant]
-      ? currentPage.variants[activeVariant]
-      : currentPage.breakpoints;
-  const bpResult = activeBpData[String(activeBp)];
-
-  const pageName = currentPage.stepLabel
-    ? currentPage.stepLabel
-    : currentPage.path === "/"
-      ? "index"
-      : currentPage.path.replace(/^\//, "");
+  // `activeBpData` feeds the memoized tree walks below, so it must be
+  // computed before the early return — fall back to an empty map when
+  // there's no page yet. Memoized so it stays a stable dependency.
+  const activeBpData = useMemo(
+    () =>
+      !currentPage
+        ? {}
+        : activeVariant && currentPage.variants?.[activeVariant]
+          ? currentPage.variants[activeVariant]
+          : currentPage.breakpoints,
+    [currentPage, activeVariant],
+  );
 
   // These walk the full report / page tree — memoize so they don't re-run
   // on every peek/hover state change inside the panel.
@@ -126,6 +125,17 @@ export default function PageDetailPanel({
     [report],
   );
   const reportVariants = useMemo(() => collectReportVariants(report), [report]);
+
+  // Early return must follow every hook above so hook order stays stable.
+  if (!currentPage) return null;
+
+  const bpResult = activeBpData[String(activeBp)];
+
+  const pageName = currentPage.stepLabel
+    ? currentPage.stepLabel
+    : currentPage.path === "/"
+      ? "index"
+      : currentPage.path.replace(/^\//, "");
 
   const badgeMod = !bpResult?.prodScreenshot
     ? "badge--neutral"

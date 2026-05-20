@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
-import { userProjectsFile, userReportsDir, BREAKPOINTS } from "@/lib/constants";
+import { userReportsDir, BREAKPOINTS } from "@/lib/constants";
 import { requireUserId, handleApiError } from "@/lib/auth-helpers";
 import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
