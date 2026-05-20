@@ -1,11 +1,12 @@
 "use client";
 
 import { BREAKPOINTS } from "@/lib/constants";
+import type { BpChangeStats } from "@/components/index/utils/report";
 
 interface Props {
   active: number;
   onChange: (bp: number) => void;
-  changeCounts?: Record<string, number>;
+  changeCounts?: Record<string, BpChangeStats>;
   breakpoints?: number[];
   align?: "center" | "start";
 }
@@ -17,10 +18,9 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
       <div className={`tab-bar__list tab-bar__list--${align}`}>
         {bps.map((bp) => {
           const isActive = active === bp;
-          const count = changeCounts?.[String(bp)];
-          const hasData = count !== undefined;
-          const hasChanges = hasData && count > 0;
-          const noScreenshot = hasData && count < 0;
+          const stats = changeCounts?.[String(bp)];
+          const hasData = stats !== undefined;
+          const hasChanges = hasData && stats.changed > 0;
 
           return (
             <button
@@ -28,13 +28,11 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
               onClick={() => onChange(bp)}
               className={`tab ${isActive ? "tab--active" : ""}`}
             >
-              {bp}px
+              <span className="tab__label">{bp}px</span>
               {hasData && (
-                <span
-                  className={`status-dot ${
-                    noScreenshot ? "status-dot--disabled" : hasChanges ? "status-dot--warning" : "status-dot--success"
-                  }`}
-                />
+                <span className={`tab__stats ${hasChanges ? "tab__stats--warning" : "tab__stats--success"}`}>
+                  {stats.changed}/{stats.total}
+                </span>
               )}
               {isActive && <span className="tab__indicator" />}
             </button>

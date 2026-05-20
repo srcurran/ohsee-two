@@ -41,6 +41,28 @@
     font-weight: var(--weight-semibold);
   }
 
+  &__label {
+    /* keep px text inline with the stats badge */
+  }
+
+  &__stats {
+    font-size: var(--font-size-xs);
+    font-weight: var(--weight-semibold);
+    padding: var(--space-0-5) var(--space-1-5);
+    border-radius: var(--radius-full);
+    line-height: 1;
+
+    &--success {
+      background: color-mix(in srgb, var(--status-success-500) 15%, transparent);
+      color: var(--status-success-500);
+    }
+
+    &--warning {
+      background: color-mix(in srgb, var(--status-error-500) 15%, transparent);
+      color: var(--status-error-500);
+    }
+  }
+
   &__indicator {
     position: absolute;
     bottom: -1px;

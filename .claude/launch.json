@@ -6,9 +6,9 @@
       "runtimeExecutable": "sh",
       "runtimeArgs": [
         "-c",
-        "OHSEE_LOCAL_USER_ID=local npx next dev --port 4002"
+        "OHSEE_LOCAL_USER_ID=local OHSEE_DATA_DIR=$HOME/.ohsee/data npx next dev --port 4003"
       ],
-      "port": 4002
+      "port": 4003
     },
     {
       "name": "stable",

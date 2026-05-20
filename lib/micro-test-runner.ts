@@ -176,6 +176,11 @@ export async function executeTestComposition(options: {
             );
           }
 
+          await Promise.race([
+            page.waitForLoadState("networkidle"),
+            page.waitForTimeout(3000),
+          ]);
+
           if (step.captureScreenshot) {
             try {
               await captureStepScreenshot(

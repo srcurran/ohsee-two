@@ -9,6 +9,7 @@ import { memo, useMemo } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
 import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp, groupPagesByFlow } from "@/components/index/utils/report";
+import { topLevelSelector } from "@/lib/change-identity";
 
 interface ReportPageGridProps {
   report: Report;
@@ -32,7 +33,9 @@ function ReportPageGridComponent({
 
   const renderPageCard = (page: ReportPage, index: number) => {
     const bpResult = getPageBp(page, String(activeBp), activeVariant);
-    const changeCount = bpResult?.semanticChanges?.length ?? 0;
+    const changeCount = bpResult?.semanticChanges
+      ? new Set(bpResult.semanticChanges.map((c) => topLevelSelector(c.selector))).size
+      : 0;
     const hasScreenshot = !!bpResult?.prodScreenshot;
     const diffSrc = bpResult?.diffScreenshot
       ? `/api/screenshots/${bpResult.diffScreenshot}`

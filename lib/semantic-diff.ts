@@ -534,7 +534,9 @@ function parseCoordDelta(
  * Aggressively deduplicates layout changes:
  * 1. If a parent shifted, suppress all children that shifted by a similar amount
  * 2. If a parent resized, suppress children that only shifted (not resized)
- * 3. Collapse remaining sibling shifts into grouped entries
+ * 3. If spacing changed on an element, suppress its position shift / size change
+ * 4. Collapse DOM-moved elements under same parent
+ * 5. Collapse remaining sibling shifts into grouped entries
  */
 function deduplicateChanges(changes: SemanticChange[]): SemanticChange[] {
   const suppressed = new Set<string>();
@@ -600,9 +602,30 @@ function deduplicateChanges(changes: SemanticChange[]): SemanticChange[] {
     }
   }
 
+  // Pass 3: Within the same element, suppress layout shifts/resizes that
+  // are explained by spacing changes (margin/padding). If an element's
+  // margins changed, the resulting position shift and size change are
+  // redundant — the spacing entries already tell the story.
+  const bySelector = new Map<string, SemanticChange[]>();
+  for (const c of sorted) {
+    if (suppressed.has(c.id)) continue;
+    const group = bySelector.get(c.selector) || [];
+    group.push(c);
+    bySelector.set(c.selector, group);
+  }
+  for (const group of bySelector.values()) {
+    const hasSpacing = group.some((c) => c.category === "spacing");
+    if (!hasSpacing) continue;
+    for (const c of group) {
+      if (c.category === "layout" && (c.details.property === "position" || c.details.property === "dimensions")) {
+        suppressed.add(c.id);
+      }
+    }
+  }
+
   const remaining = sorted.filter((c) => !suppressed.has(c.id));
 
-  // Pass 3: Collapse DOM-moved elements under same parent
+  // Pass 4: Collapse DOM-moved elements under same parent
   const moved = remaining.filter(
     (c) => c.category === "layout" && c.details.property === "dom-position"
   );
@@ -631,7 +654,7 @@ function deduplicateChanges(changes: SemanticChange[]): SemanticChange[] {
     }
   }
 
-  // Pass 4: Collapse groups of sibling position shifts
+  // Pass 5: Collapse groups of sibling position shifts
   return collapseRepeatedShifts([...notMoved, ...collapsedMoves]);
 }
 

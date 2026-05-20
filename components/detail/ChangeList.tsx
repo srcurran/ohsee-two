@@ -3,61 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
-
-/** Semantic landmark elements — these usually delineate page regions
- *  worth grouping by. Used to escape the "everything-is-#root" trap on
- *  React-like apps where the topmost selector segment is meaningless. */
-const SEMANTIC_TAGS = new Set([
-  "header", "main", "footer", "nav", "section", "article", "aside",
-]);
-
-/** Generic root wrappers worth skipping when no semantic landmark is
- *  available. Lowercased for cheap comparison. */
-const GENERIC_WRAPPERS = new Set([
-  "html", "body", "#root", "#__next", "#app",
-]);
-
-/** Pull the leading tag/id/class token out of a selector segment so we
- *  can compare against SEMANTIC_TAGS / GENERIC_WRAPPERS without worrying
- *  about pseudo-class / nth-of-type suffixes. */
-function tagFromSegment(seg: string): string {
-  const trimmed = seg.trim();
-  // Bare leading `>` shows up when selectors have been rendered as
-  // relative paths — strip it before tag extraction.
-  const naked = trimmed.startsWith(">") ? trimmed.slice(1).trim() : trimmed;
-  const match = naked.match(/^[a-zA-Z][\w-]*|^#[\w-]+|^\.[\w-]+/);
-  return match ? match[0].toLowerCase() : naked.toLowerCase();
-}
-
-/**
- * Group key — pick a meaningful ancestor so changes in different page
- * regions land in different buckets.
- *
- *   1. Prefer the deepest semantic landmark (header/main/footer/...).
- *      This keeps changes in `<header>` separate from `<main>` even
- *      when both share `#root` as the outermost selector segment.
- *   2. Fall back to the first segment that isn't a generic root
- *      wrapper (#root, body, html, #__next, #app).
- *   3. As a last resort, use the original outermost segment so
- *      grouping is at worst no-op for unstructured pages.
- */
-function topLevelSelector(sel: string): string {
-  const parts = sel.split(" > ");
-  if (parts.length === 0) return sel;
-
-  let lastSemantic = -1;
-  for (let i = 0; i < parts.length; i++) {
-    if (SEMANTIC_TAGS.has(tagFromSegment(parts[i]))) lastSemantic = i;
-  }
-  if (lastSemantic >= 0) {
-    return parts.slice(0, lastSemantic + 1).join(" > ");
-  }
-
-  for (const seg of parts) {
-    if (!GENERIC_WRAPPERS.has(tagFromSegment(seg))) return seg;
-  }
-  return parts[0];
-}
+import { topLevelSelector } from "@/lib/change-identity";
 
 /**
  * Trailing portion of `child` after stripping the parent prefix. Empty string
@@ -72,6 +18,37 @@ function relativeSelector(parentSel: string, childSel: string): string {
 }
 
 const SEVERITY_RANK: Record<ChangeSeverity, number> = { error: 0, warning: 1, info: 2 };
+
+const OPAQUE_ID = /^#(?:w-node-|wf-|node-|el-|block-)[a-f0-9-]+$/i;
+
+function isOpaqueSelector(sel: string): boolean {
+  return OPAQUE_ID.test(sel) || /^div(:nth-of-type\(\d+\))?$/.test(sel);
+}
+
+function groupLabel(group: SelectorGroup): string {
+  const sel = group.selector;
+  const parts = sel.split(" > ");
+  const meaningful = parts.filter((p) => !isOpaqueSelector(p.trim()));
+  if (meaningful.length > 0) {
+    return meaningful.slice(-2).join(" > ");
+  }
+
+  const tags = new Set(group.changes.map((c) => c.tag));
+  const textChange = group.changes.find(
+    (c) => c.category === "content" || (c.category === "structural" && c.description.includes('"')),
+  );
+  if (textChange) {
+    const quoted = textChange.description.match(/"([^"]{1,30})"/);
+    if (quoted) return `<${textChange.tag}> "${quoted[1]}"`;
+  }
+
+  const categories = [...new Set(group.changes.map((c) => {
+    const cfg = CATEGORY_CONFIG[c.category];
+    return cfg?.label ?? c.category;
+  }))];
+  const tagList = [...tags].map((t) => `<${t}>`).join(", ");
+  return `${tagList} — ${categories.join(", ")}`;
+}
 
 interface SelectorGroup {
   key: string;
@@ -136,22 +113,22 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
     );
   }
 
-  // Every category is shown so the user sees the full detection surface;
-  // counts of 0 render as disabled pills.
-  // Memoized: re-runs only when the underlying summary changes, not on
-  // every filter-pill click or pointer event during drag.
-  const { sortedCategories, categoryCounts } = useMemo(() => {
+  const allGroups = useMemo(() => groupBySelector(changes), [changes]);
+
+  // Count by group (unique affected elements) rather than individual
+  // property changes — "margin-left + margin-right + shift + resize" on
+  // one element is 1 change, not 4.
+  const { sortedCategories, categoryCounts, totalGroupCount } = useMemo(() => {
     const definedOrder = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
     const counts: Record<ChangeCategory, number> = {} as Record<ChangeCategory, number>;
-    for (const cat of definedOrder) {
-      counts[cat] = summary?.[cat] ?? 0;
+    for (const cat of definedOrder) counts[cat] = 0;
+    for (const group of allGroups) {
+      const cats = new Set(group.changes.map((c) => c.category));
+      for (const cat of cats) counts[cat] = (counts[cat] || 0) + 1;
     }
-    // Primary sort: count desc (most-frequent issue first). Secondary
-    // sort: CATEGORY_CONFIG declaration order, preserved by Array.sort's
-    // stable ordering for equal keys.
     const sorted = [...definedOrder].sort((a, b) => counts[b] - counts[a]);
-    return { sortedCategories: sorted, categoryCounts: counts };
-  }, [summary]);
+    return { sortedCategories: sorted, categoryCounts: counts, totalGroupCount: allGroups.length };
+  }, [allGroups]);
 
   const filtered = useMemo(
     () =>
@@ -243,7 +220,7 @@ export default function ChangeList({ changes, summary, onChangeClick }: ChangeLi
             onClick={() => setActiveFilter("all")}
             className={`pill ${activeFilter === "all" ? "pill--active" : ""}`}
           >
-            All ({changes.length})
+            All ({totalGroupCount})
           </button>
           {sortedCategories.map((cat) => {
             const cfg = CATEGORY_CONFIG[cat];
@@ -298,25 +275,35 @@ function ChangeGroup({
   group: SelectorGroup;
   onChangeClick?: (id: string) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(true);
   const severityMod = SEVERITY_CSS_MODIFIERS[group.severity] || SEVERITY_CSS_MODIFIERS.info;
   return (
-    <div className={`change-group change-group--${severityMod}`}>
-      <div className="change-group__header">
+    <div className={`change-group change-group--${severityMod}${collapsed ? " change-group--collapsed" : ""}`}>
+      <button
+        className="change-group__header"
+        onClick={() => setCollapsed((c) => !c)}
+        type="button"
+      >
+        <span className={`change-group__chevron${collapsed ? "" : " change-group__chevron--open"}`}>
+          ›
+        </span>
         <span className="change-group__selector" title={group.selector}>
-          {group.selector}
+          {groupLabel(group)}
         </span>
         <span className="change-group__count">{group.changes.length}</span>
-      </div>
-      <div className="change-group__items">
-        {group.changes.map((change) => (
-          <ChangeEntry
-            key={change.id}
-            change={change}
-            onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
-            parentSelector={group.selector}
-          />
-        ))}
-      </div>
+      </button>
+      {!collapsed && (
+        <div className="change-group__items">
+          {group.changes.map((change) => (
+            <ChangeEntry
+              key={change.id}
+              change={change}
+              onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
+              parentSelector={group.selector}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

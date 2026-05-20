@@ -1,4 +1,5 @@
 import type { Report, ReportPage, BreakpointResult } from "@/lib/types";
+import type { BpChangeStats } from "@/components/index/utils/report";
 
 /** Human-readable label for a page: explicit step label > index > path. */
 export function formatPageName(page: ReportPage): string {
@@ -18,16 +19,20 @@ export function getActiveBpData(
     : page.breakpoints;
 }
 
-/** Per-breakpoint change count: -1 sentinel survives so the tab can render a
- * failure dot, otherwise we count semanticChanges (not the raw pixel count). */
+/** Per-breakpoint change stats for a single page. Breakpoints without valid
+ * data (changeCount < 0) are omitted so the tab shows no badge. */
 export function computeBpChangeCounts(
   data: Record<string, BreakpointResult>,
-): Record<string, number> {
-  const out: Record<string, number> = {};
+): Record<string, BpChangeStats> {
+  const stats: Record<string, BpChangeStats> = {};
   for (const [key, val] of Object.entries(data)) {
-    out[key] = val.changeCount < 0 ? -1 : (val.semanticChanges?.length ?? 0);
+    if (val.changeCount < 0) continue;
+    stats[key] = {
+      changed: (val.semanticChanges?.length ?? 0) > 0 ? 1 : 0,
+      total: 1,
+    };
   }
-  return out;
+  return stats;
 }
 
 /** Union of variant ids across all pages of a report (order: first-seen). */

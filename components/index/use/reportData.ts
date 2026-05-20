@@ -84,6 +84,14 @@ export function useReportData({
         setReport((prev) => {
           if (prev?.status === "running" && r.status !== "running") {
             refreshProjects();
+            // Refresh the sibling-reports list so the dropdown dot
+            // and timestamp stay in sync with the header.
+            const reportsUrl = r.siteTestId
+              ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
+              : `/api/projects/${r.projectId}/reports`;
+            fetch(reportsUrl)
+              .then((allRes) => (allRes.ok ? allRes.json() : null))
+              .then((all) => { if (all) setAllReports(all); });
           }
           return r;
         });

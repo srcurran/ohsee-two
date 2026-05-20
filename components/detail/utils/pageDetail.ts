@@ -7,6 +7,7 @@ import type {
   Report,
   ReportPage,
 } from "@/lib/types";
+import type { BpChangeStats } from "@/components/index/utils/report";
 
 // Equal gutters all sides.
 export const PANEL = { top: 28, right: 28, bottom: 28, left: 28 };
@@ -67,14 +68,18 @@ export function collectReportVariants(report: Report): string[] {
   return [...variantIds];
 }
 
-/** Per-breakpoint change counts for the active variant. `-1` is the
- * "no screenshot" sentinel used by BreakpointTabs to dim the pill. */
+/** Per-breakpoint change stats for a single page. Breakpoints without a
+ * prod screenshot are omitted so the tab shows no badge. */
 export function computeBpChangeCounts(
   activeBpData: Record<string, BreakpointResult>,
-): Record<string, number> {
-  const counts: Record<string, number> = {};
+): Record<string, BpChangeStats> {
+  const stats: Record<string, BpChangeStats> = {};
   for (const [key, val] of Object.entries(activeBpData)) {
-    counts[key] = val.prodScreenshot ? (val.semanticChanges?.length ?? 0) : -1;
+    if (!val.prodScreenshot) continue;
+    stats[key] = {
+      changed: (val.semanticChanges?.length ?? 0) > 0 ? 1 : 0,
+      total: 1,
+    };
   }
-  return counts;
+  return stats;
 }

@@ -2,7 +2,7 @@
  * be reused by sub-components (page grid, header) without circular imports
  * back through the shell. */
 
-import type { Report, ReportPage } from "@/lib/types";
+import type { Report, ReportPage, BreakpointResult } from "@/lib/types";
 
 /** Host name (sans `www.`) from a URL, with raw fallback for bad inputs. */
 export function getDomain(url: string): string {
@@ -57,23 +57,41 @@ export function pickActiveBp(
   return best;
 }
 
-/** Sum of semantic-change counts per breakpoint, honoring the active
- * variant when one is selected. */
+export interface BpChangeStats {
+  changed: number;
+  total: number;
+}
+
+/** Per-breakpoint change stats: how many pages have changes vs total pages. */
 export function computeBpChangeCounts(
-  report: Report,
-  activeVariant: string | null,
-): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const page of report.pages) {
-    const bpData =
-      activeVariant && page.variants?.[activeVariant]
-        ? page.variants[activeVariant]
-        : page.breakpoints;
-    for (const [bp, result] of Object.entries(bpData)) {
-      counts[bp] = (counts[bp] || 0) + (result.semanticChanges?.length ?? 0);
+  reportOrBpData: Report | Record<string, BreakpointResult>,
+  activeVariant?: string | null,
+): Record<string, BpChangeStats> {
+  const stats: Record<string, BpChangeStats> = {};
+
+  if ("pages" in reportOrBpData && Array.isArray((reportOrBpData as Report).pages)) {
+    const report = reportOrBpData as Report;
+    for (const page of report.pages) {
+      const bpData =
+        activeVariant && page.variants?.[activeVariant]
+          ? page.variants[activeVariant]
+          : page.breakpoints;
+      for (const [bp, result] of Object.entries(bpData)) {
+        if (!stats[bp]) stats[bp] = { changed: 0, total: 0 };
+        stats[bp].total++;
+        if ((result.semanticChanges?.length ?? 0) > 0) stats[bp].changed++;
+      }
+    }
+  } else {
+    for (const [bp, result] of Object.entries(reportOrBpData)) {
+      stats[bp] = {
+        changed: (result.semanticChanges?.length ?? 0) > 0 ? 1 : 0,
+        total: 1,
+      };
     }
   }
-  return counts;
+
+  return stats;
 }
 
 /** Per-page breakpoint result — falls through the variant map when one is
