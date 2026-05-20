@@ -44,8 +44,9 @@ export function CredentialsSection({
   }, []);
 
   useEffect(() => {
-    if (vaultEntries === null && isElectronRuntime()) refreshVault();
-  }, [vaultEntries, refreshVault]);
+    if (isElectronRuntime()) refreshVault();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="credentials-section">

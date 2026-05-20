@@ -123,6 +123,7 @@ export function AddEditStepView({
   return (
     <ScriptStepEditor
       editing={editing}
+      defaultUrl={projectUrls[0]}
       onSave={(name, script) => {
         if (editing) {
           onUpdate(editing.id, { name, script });

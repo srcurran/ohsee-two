@@ -7,6 +7,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import type { TestStep } from "@/lib/types";
+import CodegenRecorder from "@/components/settings/CodegenRecorder";
 
 /**
  * Inline Playwright-script step editor. CodeMirror setup lifted from the
@@ -19,6 +20,7 @@ export default function ScriptStepEditor({
   onSave,
   onCancel,
   primaryLabel,
+  defaultUrl,
 }: {
   editing: TestStep | null;
   onSave: (name: string, script: string) => void;
@@ -26,6 +28,8 @@ export default function ScriptStepEditor({
   /** Optional override for the primary button (defaults to "Save" when
    *  editing, "Add step" when creating). */
   primaryLabel?: string;
+  /** Project URL for the Playwright codegen recorder (Electron only). */
+  defaultUrl?: string;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -83,11 +87,27 @@ export default function ScriptStepEditor({
           autoFocus
         />
       </label>
-      <p className="step-editor__hint">
-        Your script receives <code className="code-inline code-inline--xs">page</code>{" "}
-        (Playwright Page) and <code className="code-inline code-inline--xs">expect</code>{" "}
-        as arguments.
-      </p>
+      <div className="step-editor__hint-row">
+        <p className="step-editor__hint">
+          Your script receives <code className="code-inline code-inline--xs">page</code>{" "}
+          (Playwright Page) and <code className="code-inline code-inline--xs">expect</code>{" "}
+          as arguments.
+        </p>
+        {defaultUrl && (
+          <CodegenRecorder
+            defaultUrl={defaultUrl}
+            label="Record"
+            onScriptCaptured={(script) => {
+              const view = viewRef.current;
+              if (view) {
+                view.dispatch({
+                  changes: { from: 0, to: view.state.doc.length, insert: script },
+                });
+              }
+            }}
+          />
+        )}
+      </div>
       <div ref={editorRef} className="code-editor" />
       <div className="step-editor__actions">
         <button type="button" className="btn btn--text" onClick={onCancel}>Cancel</button>

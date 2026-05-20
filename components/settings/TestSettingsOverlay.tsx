@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
@@ -72,7 +72,9 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     scheduleSave: data.scheduleSave,
   });
 
-  beforeExitRef.current = data.cancelAndFlushIfPending;
+  useEffect(() => {
+    beforeExitRef.current = data.cancelAndFlushIfPending;
+  }, [data.cancelAndFlushIfPending]);
 
   const commitName = () => {
     setEditingName(false);
