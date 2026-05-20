@@ -130,5 +130,13 @@
   .wizard__footer-actions {
     display: flex;
     gap: var(--space-3);
+
+    /* Size the Previous button to match .btn--primary so the two
+       buttons sit as a visually balanced pair. */
+    .wizard__btn-prev {
+      border-radius: var(--radius-lg);
+      padding-inline: var(--space-8);
+      font-size: var(--font-size-lg);
+    }
   }
 }

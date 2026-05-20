@@ -33,7 +33,8 @@
 .report {
   position: relative;
   min-height: 100%;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   .report__sticky {
     position: sticky;
@@ -148,13 +149,11 @@
   }
 
   .report__grid-wrap {
+    position: relative;
     padding: var(--space-6);
+    flex: 1;
 
     .report__flow-section {
-      margin-top: var(--space-8);
-
-      &:first-child { margin-top: 0; }
-
       .report__flow-header {
         display: flex;
         align-items: center;

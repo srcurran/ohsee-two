@@ -1,24 +1,36 @@
 /* ReportPageGrid — responsive grid wrapping report page tiles. */
 
 .page-grid-wrap {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 
   &--running {
     pointer-events: none;
   }
+}
 
-  .page-grid-wrap__scrim {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
-    background: color-mix(in srgb, var(--surface-body) 60%, transparent);
-    z-index: 1;
-    border-radius: var(--radius-lg);
-  }
+/* Scrim + indicator — siblings of .page-grid-wrap inside
+   .report__grid-wrap, positioned absolutely against that container. */
+.page-grid-wrap__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, white 10%, transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.page-grid-wrap__indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  pointer-events: none;
 }
 
 .page-grid {

@@ -509,10 +509,9 @@
     0px 4px 20px rgba(0, 0, 0, 0.20);
   /* State shadows — heavier in dark so the glow registers */
   --state-hover:
-    0px 0px 16px rgba(0, 0, 0, 0.50),
-    0px 0px 8px  rgba(0, 0, 0, 0.40),
-    0px 0px 4px  rgba(0, 0, 0, 0.30),
-    0px 0px 2px  rgba(0, 0, 0, 0.40);
+    0px 0px 8px rgba(0, 0, 0, 0.30),
+    0px 0px 4px rgba(0, 0, 0, 0.20),
+    0px 0px 2px rgba(0, 0, 0, 0.25);
   --state-focus:
     0px 0px 16px rgba(0, 0, 0, 0.50),
     0px 0px 8px  rgba(0, 0, 0, 0.40),

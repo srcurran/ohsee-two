@@ -117,6 +117,16 @@ export async function runReport(
     ? []  // unified steps supersede legacy flows
     : siteTest?.flows ?? project.flows ?? [];
 
+  // Map step IDs → their position in the user's step list so we can
+  // restore the interleaved order after all loops finish. URL pages and
+  // composition steps run in separate loops, which scrambles the ordering.
+  const stepOrder = new Map<string, number>();
+  if (siteTest?.steps) {
+    for (let i = 0; i < siteTest.steps.length; i++) {
+      stepOrder.set(siteTest.steps[i].id, i);
+    }
+  }
+
   // Use test-level variants if set, then fall back to project-level (legacy)
   const testVariants = siteTest?.variants ?? project.variants ?? [];
   // Total ops: per page = breakpoints × (prod + dev + diff) × (1 default + N variants)
@@ -419,6 +429,16 @@ export async function runReport(
           }
         }
       }
+    }
+
+    // Restore the user's step ordering — URL pages and compositions run
+    // in separate loops so their results may be interleaved incorrectly.
+    if (stepOrder.size > 0) {
+      reportPages.sort((a, b) => {
+        const ai = stepOrder.get(a.pageId) ?? Infinity;
+        const bi = stepOrder.get(b.pageId) ?? Infinity;
+        return ai - bi;
+      });
     }
 
     report.pages = reportPages;

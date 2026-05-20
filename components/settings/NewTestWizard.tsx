@@ -88,9 +88,6 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
   const projectUrls = project ? [project.prodUrl, project.devUrl] : [];
   const pathResolved = pathInput.trim() ? resolveProjectPath(pathInput, projectUrls) : null;
 
-  // Other (non-archived) tests we can copy credentials from.
-  const otherTests: SiteTest[] = (project?.tests || []).filter((t) => !t.archived);
-
   const addPath = () => {
     if (!pathResolved?.ok) return;
     setSteps((cur) => [
@@ -187,6 +184,9 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
           label="What should this test be called?"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && name.trim()) setStep(2);
+          }}
           placeholder="Onboarding"
           autoFocus
         />
@@ -343,7 +343,6 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
 
   // ── Step 4: Credentials + Run test ─────────────────────────────────────
   const credEnabled = credentials?.enabled === true;
-  const copyFromId = credentials?.copyFromTestId ?? "";
   return (
     <Wizard
       title="New test"
@@ -369,32 +368,6 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
           />
           <span>Mint a session cookie before each capture (require auth)</span>
         </label>
-
-        <div className="credentials-section__row">
-          <label className="credentials-section__label">Copy from other settings…</label>
-          <select
-            className="input input--compact"
-            value={copyFromId}
-            onChange={(e) =>
-              setCredentials({
-                ...credentials,
-                copyFromTestId: e.target.value || undefined,
-              })
-            }
-            disabled={otherTests.length === 0}
-          >
-            <option value="">Don&apos;t copy</option>
-            {otherTests.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {!credEnabled && !copyFromId && (
-          <p className="credentials-section__hint">
-            No credentials configured — runs use the project default.
-          </p>
-        )}
 
         {/* Vault entry list + add button — users can add credentials to
          * the local Keychain vault without leaving the wizard. Only

@@ -72,7 +72,7 @@ export default function Wizard({
           <div className="wizard__footer-actions">
             <button
               type="button"
-              className="btn btn--outline"
+              className="btn btn--outline wizard__btn-prev"
               onClick={onPrev}
               disabled={!showPrev || busy}
             >

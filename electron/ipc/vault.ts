@@ -8,6 +8,7 @@ type StoredEntry = {
   createdAt: string;
   encryptedSecret: string;
   encryptedTotpSeed?: string;
+  encryptedStaticOtp?: string;
 };
 
 type VaultFile = {
@@ -25,6 +26,7 @@ type VaultEntryMeta = {
 type VaultEntry = VaultEntryMeta & {
   secret: string;
   totpSeed?: string;
+  staticOtp?: string;
 };
 
 const EMPTY: VaultFile = { version: 1, entries: {} };
@@ -86,7 +88,7 @@ export function registerVaultHandlers(): void {
       key,
       label: entry.label,
       createdAt: entry.createdAt,
-      hasTotp: !!entry.encryptedTotpSeed,
+      hasTotp: !!(entry.encryptedTotpSeed || entry.encryptedStaticOtp),
     }));
   });
 
@@ -99,15 +101,16 @@ export function registerVaultHandlers(): void {
       key,
       label: entry.label,
       createdAt: entry.createdAt,
-      hasTotp: !!entry.encryptedTotpSeed,
+      hasTotp: !!(entry.encryptedTotpSeed || entry.encryptedStaticOtp),
       secret: decrypt(entry.encryptedSecret),
       totpSeed: entry.encryptedTotpSeed ? decrypt(entry.encryptedTotpSeed) : undefined,
+      staticOtp: entry.encryptedStaticOtp ? decrypt(entry.encryptedStaticOtp) : undefined,
     };
   });
 
   ipcMain.handle(
     "vault:set",
-    async (_event, key: string, payload: { label: string; secret: string; totpSeed?: string }) => {
+    async (_event, key: string, payload: { label: string; secret: string; totpSeed?: string; staticOtp?: string }) => {
       assertSafeStorage();
       if (!key || typeof key !== "string") throw new Error("Invalid key");
       if (typeof payload?.secret !== "string") throw new Error("Invalid secret");
@@ -121,6 +124,7 @@ export function registerVaultHandlers(): void {
         createdAt: existing?.createdAt ?? new Date().toISOString(),
         encryptedSecret: encrypt(payload.secret),
         ...(normalizedSeed ? { encryptedTotpSeed: encrypt(normalizedSeed) } : {}),
+        ...(payload.staticOtp ? { encryptedStaticOtp: encrypt(payload.staticOtp) } : {}),
       };
       await saveVault(vault);
     },
@@ -137,8 +141,11 @@ export function registerVaultHandlers(): void {
     const vault = await loadVault();
     const entry = vault.entries[key];
     if (!entry) throw new Error(`Vault entry not found: ${key}`);
-    if (!entry.encryptedTotpSeed) throw new Error(`No TOTP seed for entry: ${key}`);
 
+    // Static OTP takes priority — return the stored code as-is.
+    if (entry.encryptedStaticOtp) return decrypt(entry.encryptedStaticOtp);
+
+    if (!entry.encryptedTotpSeed) throw new Error(`No OTP configured for entry: ${key}`);
     const seed = decrypt(entry.encryptedTotpSeed);
     const totp = new TOTP({ secret: Secret.fromBase32(seed), digits: 6, period: 30 });
     return totp.generate();

@@ -29,7 +29,9 @@ export function CredentialEditor({
   const [key, setKey] = useState(existing?.key ?? "");
   const [label, setLabel] = useState(existing?.label ?? "");
   const [secret, setSecret] = useState("");
+  const [otpMode, setOtpMode] = useState<"none" | "totp" | "static">("none");
   const [totpSeed, setTotpSeed] = useState("");
+  const [staticOtp, setStaticOtp] = useState("");
   const [saving, setSaving] = useState(false);
   const isEditing = !!existing;
 
@@ -44,7 +46,8 @@ export function CredentialEditor({
       await ohsee.vault.set(key.trim(), {
         label: label.trim() || key.trim(),
         secret,
-        totpSeed: totpSeed.trim() || undefined,
+        totpSeed: otpMode === "totp" && totpSeed.trim() ? totpSeed.trim() : undefined,
+        staticOtp: otpMode === "static" && staticOtp.trim() ? staticOtp.trim() : undefined,
       });
       onSaved(key.trim());
     } catch (err) {
@@ -101,20 +104,54 @@ export function CredentialEditor({
         </div>
 
         <div className="field" style={{ marginBottom: "var(--space-5)" }}>
-          <label className="field__label field__label--sm" style={{ fontWeight: "var(--weight-bold)" }}>
-            TOTP seed (optional)
+          <label className="field__label field__label--sm" style={{ fontWeight: "var(--weight-bold)", marginBottom: "var(--space-1)" }}>
+            OTP (optional)
           </label>
-          <input
-            type="password"
-            value={totpSeed}
-            onChange={(e) => setTotpSeed(e.target.value)}
-            placeholder="Base32 seed or otpauth:// URI"
-            className="input input--compact input--code"
-            style={{ background: "var(--neutral-light-200)" }}
-          />
-          <p className="field__hint" style={{ fontSize: "var(--font-size-xs)" }}>
-            For 2FA-protected accounts. Paste the base32 secret shown when you enrolled the authenticator.
-          </p>
+
+          <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-2)" }}>
+            {(["none", "totp", "static"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setOtpMode(mode)}
+                className={`btn btn--xs ${otpMode === mode ? "btn--primary-sm" : "btn--ghost"}`}
+              >
+                {mode === "none" ? "None" : mode === "totp" ? "TOTP seed" : "Static code"}
+              </button>
+            ))}
+          </div>
+
+          {otpMode === "totp" && (
+            <>
+              <input
+                type="password"
+                value={totpSeed}
+                onChange={(e) => setTotpSeed(e.target.value)}
+                placeholder="Base32 seed or otpauth:// URI"
+                className="input input--compact input--code"
+                style={{ background: "var(--neutral-light-200)" }}
+              />
+              <p className="field__hint" style={{ fontSize: "var(--font-size-xs)" }}>
+                Paste the base32 secret shown when you enrolled the authenticator.
+              </p>
+            </>
+          )}
+
+          {otpMode === "static" && (
+            <>
+              <input
+                type="text"
+                value={staticOtp}
+                onChange={(e) => setStaticOtp(e.target.value)}
+                placeholder="123456"
+                className="input input--compact input--code"
+                style={{ background: "var(--neutral-light-200)" }}
+              />
+              <p className="field__hint" style={{ fontSize: "var(--font-size-xs)" }}>
+                A fixed OTP code that doesn't rotate (e.g. a test/staging bypass code).
+              </p>
+            </>
+          )}
         </div>
 
         <div className="modal__actions modal__actions--sm">

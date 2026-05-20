@@ -36,7 +36,7 @@ const vault = {
     ipcRenderer.invoke("vault:list"),
   get: (key: string) =>
     ipcRenderer.invoke("vault:get", key),
-  set: (key: string, payload: { label: string; secret: string; totpSeed?: string }) =>
+  set: (key: string, payload: { label: string; secret: string; totpSeed?: string; staticOtp?: string }) =>
     ipcRenderer.invoke("vault:set", key, payload),
   delete: (key: string) =>
     ipcRenderer.invoke("vault:delete", key),

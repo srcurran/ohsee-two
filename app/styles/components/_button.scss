@@ -72,18 +72,12 @@
   }
 
   &--outline {
-    background: transparent;
+    background: var(--surface-body);
     border: 1px solid var(--btn-outline-border);
     color: var(--btn-outline-color);
     padding-inline: var(--space-6);
     font-weight: var(--weight-regular);
     @include hover-lift;
-
-    /* Transparent base — brightness has nothing to dim, add an
-     * explicit tinted bg for the hover. */
-    &:hover:not(:disabled) {
-      background: var(--btn-outline-background-hover);
-    }
   }
 
   &--outline-soft {

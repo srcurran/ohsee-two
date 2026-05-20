@@ -106,19 +106,3 @@ export function getPageBp(
   }
   return page.breakpoints[bp];
 }
-
-/** Splits the report's pages into the regular grid and the per-flow
- * sections. Flow grouping preserves first-seen order via the Map. */
-export function groupPagesByFlow(report: Report) {
-  const regularPages = report.pages.filter((p) => !p.flowId);
-  const flowPages = report.pages.filter((p) => p.flowId);
-
-  const flowGroups = new Map<string, ReportPage[]>();
-  for (const fp of flowPages) {
-    const group = flowGroups.get(fp.flowId!) || [];
-    group.push(fp);
-    flowGroups.set(fp.flowId!, group);
-  }
-
-  return { regularPages, flowGroups };
-}

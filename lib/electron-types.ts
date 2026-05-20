@@ -63,13 +63,16 @@ export type VaultEntryMeta = {
 export type VaultEntry = VaultEntryMeta & {
   secret: string;
   totpSeed?: string;
+  staticOtp?: string;
 };
 
 export type OhseeVault = {
   list(): Promise<VaultEntryMeta[]>;
   get(key: string): Promise<VaultEntry>;
-  set(key: string, value: { label: string; secret: string; totpSeed?: string }): Promise<void>;
+  set(key: string, value: { label: string; secret: string; totpSeed?: string; staticOtp?: string }): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Returns a 6-digit OTP code — generated from seed (TOTP) or the stored
+   *  static code, whichever is configured. */
   totp(key: string): Promise<string>;
 };
 

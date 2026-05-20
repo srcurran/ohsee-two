@@ -128,6 +128,17 @@ interface SidebarTestRowProps {
   onOpenSettings: () => void;
 }
 
+/** Staleness opacity: 100 % within the first hour, linearly fading to
+ * 10 % at one week old. Returns 1 for unknown timestamps. */
+function dotOpacity(isoDate: string | undefined | null): number {
+  if (!isoDate) return 1;
+  const hoursAgo = (Date.now() - new Date(isoDate).getTime()) / 3_600_000;
+  if (hoursAgo <= 1) return 1;
+  const TWO_WEEKS_HOURS = 336;
+  const t = Math.min((hoursAgo - 1) / (TWO_WEEKS_HOURS - 1), 1);
+  return 1 - t * 0.8; // 1.0 → 0.20
+}
+
 function SidebarTestRow({
   twr: { test, latestReport },
   active,
@@ -135,18 +146,23 @@ function SidebarTestRow({
   onOpenSettings,
 }: SidebarTestRowProps) {
   const dotMod = latestReport ? reportDotModifier(latestReport) : "inactive";
+  const lastRanAt = latestReport?.createdAt ?? test.lastRunAt;
   const timeAgo = latestReport
     ? formatRelativeTimeShort(latestReport.createdAt)
     : test.lastRunAt
       ? formatRelativeTimeShort(test.lastRunAt)
       : null;
+  const opacity = dotOpacity(lastRanAt);
 
   return (
     <div
       onClick={onClick}
       className={`sidebar__test ${active ? "sidebar__test--active" : ""}`}
     >
-      <span className={`status-dot status-dot--${dotMod}`} />
+      <span
+        className={`status-dot status-dot--${dotMod}`}
+        style={opacity < 1 ? { opacity } : undefined}
+      />
       <span className="sidebar__test-label">{test.name}</span>
       {timeAgo && <span className="sidebar__test-time">{timeAgo}</span>}
       <button
