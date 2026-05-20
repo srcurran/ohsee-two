@@ -348,8 +348,13 @@ export async function runReport(
         const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
         const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
 
-        // --- Default variant ---
-        const compBreakpoints = await captureAndDiffComposition({
+        // Map stepId → index in reportPages so variant results can
+        // update the page that was already flushed during the default pass.
+        const screenshotSteps = getCompositionScreenshotSteps(project, composition);
+        const stepPageIndex = new Map<string, number>();
+
+        // --- Default variant (flushes pages per-step via callback) ---
+        await captureAndDiffComposition({
           project,
           composition,
           prodBaseUrl: normProd,
@@ -361,17 +366,30 @@ export async function runReport(
           breakpointList: projectBreakpoints,
           checkCancelled,
           onProgress: async () => { completedOps++; await saveProgress(); },
+          onStepDiffed: async (stepId, stepResults) => {
+            const stepMeta = screenshotSteps.find((s) => s.id === stepId);
+            const page: ReportPage = {
+              id: uuidv4(),
+              pageId: stepId,
+              path: `${composition.name} > ${stepMeta?.label ?? stepId}`,
+              breakpoints: stepResults,
+              flowId: composition.id,
+              stepLabel: stepMeta?.label ?? stepId,
+            };
+            stepPageIndex.set(stepId, reportPages.length);
+            reportPages.push(page);
+            report.pages = reportPages;
+            await writeJsonFile(reportPath, report);
+          },
           prodBrowser,
           devBrowser,
         });
 
         // --- Variant captures for compositions ---
-        let compVariants: Record<string, typeof compBreakpoints> | undefined;
         if (testVariants && testVariants.length > 0) {
-          compVariants = {};
           for (const variant of testVariants) {
             checkCancelled();
-            compVariants[variant.id] = await captureAndDiffComposition({
+            await captureAndDiffComposition({
               project,
               composition,
               prodBaseUrl: normProd,
@@ -385,50 +403,21 @@ export async function runReport(
               initScript: variant.initScript,
               checkCancelled,
               onProgress: async () => { completedOps++; await saveProgress(); },
+              onStepDiffed: async (stepId, stepResults) => {
+                const idx = stepPageIndex.get(stepId);
+                if (idx !== undefined) {
+                  const page = reportPages[idx];
+                  if (!page.variants) page.variants = {};
+                  page.variants[variant.id] = stepResults;
+                  report.pages = reportPages;
+                  await writeJsonFile(reportPath, report);
+                }
+              },
               prodBrowser,
               devBrowser,
             });
           }
         }
-
-        // Convert composition results into ReportPages
-        const screenshotSteps = getCompositionScreenshotSteps(project, composition);
-        for (const step of screenshotSteps) {
-          const stepBreakpoints: Record<string, BreakpointResult> = {};
-          for (const bp of projectBreakpoints) {
-            const key = `${step.id}-${bp}`;
-            if (compBreakpoints[key]) {
-              stepBreakpoints[String(bp)] = compBreakpoints[key];
-            }
-          }
-
-          let stepVariants: Record<string, Record<string, BreakpointResult>> | undefined;
-          if (compVariants) {
-            stepVariants = {};
-            for (const [variantId, variantResults] of Object.entries(compVariants)) {
-              stepVariants[variantId] = {};
-              for (const bp of projectBreakpoints) {
-                const key = `${step.id}-${bp}`;
-                if (variantResults[key]) {
-                  stepVariants[variantId][String(bp)] = variantResults[key];
-                }
-              }
-            }
-          }
-
-          reportPages.push({
-            id: uuidv4(),
-            pageId: step.id,
-            path: `${composition.name} > ${step.label}`,
-            breakpoints: stepBreakpoints,
-            ...(stepVariants ? { variants: stepVariants } : {}),
-            flowId: composition.id,
-            stepLabel: step.label,
-          });
-        }
-
-        report.pages = reportPages;
-        await writeJsonFile(reportPath, report);
       }
     }
 
@@ -757,13 +746,14 @@ async function captureAndDiffComposition(options: {
   initScript?: string;
   checkCancelled: () => void;
   onProgress: () => Promise<void>;
+  onStepDiffed?: (stepId: string, stepResults: Record<string, BreakpointResult>) => Promise<void>;
   prodBrowser?: Browser;
   devBrowser?: Browser;
 }): Promise<Record<string, BreakpointResult>> {
   const {
     project, composition, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
     authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
-    checkCancelled, onProgress, prodBrowser, devBrowser,
+    checkCancelled, onProgress, onStepDiffed, prodBrowser, devBrowser,
   } = options;
 
   const results: Record<string, BreakpointResult> = {};
@@ -805,10 +795,13 @@ async function captureAndDiffComposition(options: {
     }),
   ]);
 
-  // Generate diffs for all steps × breakpoints in parallel
+  // Generate diffs step-by-step (breakpoints in parallel within each
+  // step) so the caller can flush pages to disk incrementally.
   const screenshotSteps = getCompositionScreenshotSteps(project, composition);
-  await Promise.all(screenshotSteps.flatMap((step) =>
-    breakpointList.map(async (bp) => {
+  for (const step of screenshotSteps) {
+    const stepResults: Record<string, BreakpointResult> = {};
+
+    await Promise.all(breakpointList.map(async (bp) => {
       checkCancelled();
 
       const prodShot = prodResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
@@ -855,12 +848,15 @@ async function captureAndDiffComposition(options: {
           }
         }
 
+        stepResults[String(bp)] = bpResult;
         results[`${step.id}-${bp}`] = bpResult;
       }
 
       await onProgress();
-    })
-  ));
+    }));
+
+    if (onStepDiffed) await onStepDiffed(step.id, stepResults);
+  }
 
   return results;
 }

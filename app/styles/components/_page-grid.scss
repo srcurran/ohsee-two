@@ -1,5 +1,26 @@
 /* ReportPageGrid — responsive grid wrapping report page tiles. */
 
+.page-grid-wrap {
+  position: relative;
+
+  &--running {
+    pointer-events: none;
+  }
+
+  .page-grid-wrap__scrim {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    background: color-mix(in srgb, var(--surface-body) 60%, transparent);
+    z-index: 1;
+    border-radius: var(--radius-lg);
+  }
+}
+
 .page-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -16,4 +37,10 @@
     grid-template-columns: 1fr;
     gap: var(--space-4);
   }
+}
+
+.loader-spinner--sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
 }

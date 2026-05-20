@@ -72,48 +72,66 @@ function ReportPageGridComponent({
     );
   };
 
+  const isRunning = report.status === "running";
+  const hasPages = report.pages.length > 0;
+
   return (
     <>
-      {regularPages.length > 0 && (
-        <div className="page-grid">
-          {regularPages.map((page, i) => renderPageCard(page, i))}
-        </div>
-      )}
-
-      {Array.from(flowGroups.entries()).map(([flowId, pages]) => {
-        const flowName = pages[0]?.path.split(" > ")[0] || "Flow";
-        return (
-          <div key={flowId} className="report__flow-section">
-            <div className="report__flow-header">
-              <span className="badge badge--flow">Flow</span>
-              <h3 className="report__flow-title">{flowName}</h3>
-            </div>
+      {hasPages && (
+        <div className={`page-grid-wrap${isRunning ? " page-grid-wrap--running" : ""}`}>
+          {regularPages.length > 0 && (
             <div className="page-grid">
-              {pages.map((page, i) =>
-                renderPageCard(page, regularPages.length + i),
-              )}
+              {regularPages.map((page, i) => renderPageCard(page, i))}
             </div>
-          </div>
-        );
-      })}
+          )}
 
-      {report.pages.length === 0 && report.status === "running" && (
-        <div className="loader-centered">
-          <div className="loader-spinner" />
-          <p className="loader-text">Capturing screenshots...</p>
+          {Array.from(flowGroups.entries()).map(([flowId, pages]) => {
+            const flowName = pages[0]?.path.split(" > ")[0] || "Flow";
+            return (
+              <div key={flowId} className="report__flow-section">
+                <div className="report__flow-header">
+                  <span className="badge badge--flow">Flow</span>
+                  <h3 className="report__flow-title">{flowName}</h3>
+                </div>
+                <div className="page-grid">
+                  {pages.map((page, i) =>
+                    renderPageCard(page, regularPages.length + i),
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {isRunning && (
+            <div className="page-grid-wrap__scrim">
+              <div className="loader-spinner loader-spinner--sm" />
+              <p className="loader-text">Capturing...</p>
+            </div>
+          )}
         </div>
       )}
 
-      {report.pages.length === 0 && report.status === "failed" && (
-        <p className="loader-text" style={{ textAlign: "center" }}>
-          No pages were processed before the report failed.
-        </p>
-      )}
+      {!hasPages && (
+        <>
+          {isRunning && (
+            <div className="loader-centered">
+              <div className="loader-spinner" />
+              <p className="loader-text">Capturing screenshots...</p>
+            </div>
+          )}
 
-      {report.pages.length === 0 && report.status === "completed" && (
-        <p className="loader-text" style={{ textAlign: "center" }}>
-          No pages in this report.
-        </p>
+          {report.status === "failed" && (
+            <p className="loader-text" style={{ textAlign: "center" }}>
+              No pages were processed before the report failed.
+            </p>
+          )}
+
+          {report.status === "completed" && (
+            <p className="loader-text" style={{ textAlign: "center" }}>
+              No pages in this report.
+            </p>
+          )}
+        </>
       )}
     </>
   );
