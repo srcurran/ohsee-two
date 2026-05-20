@@ -76,7 +76,7 @@ function ReportPageInner() {
           className="icon-btn icon-btn--sm"
           title="Project settings"
         >
-          <Icon name="project-menu" size={16} />
+          <Icon name="project-menu" size={20} />
         </button>
       </>
     );

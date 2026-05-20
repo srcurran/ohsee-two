@@ -44,7 +44,7 @@ export function ReportHeader({
         {report.status !== "running" ? (
           <button onClick={onRun} className="run-pill">
             Run now
-            <Icon name="play" size={16} className="run-pill__icon" />
+            <Icon name="play" size={20} className="run-pill__icon" />
           </button>
         ) : (
           <div className="progress">
@@ -87,7 +87,7 @@ export function ReportHeader({
             className="icon-btn"
             title={settingsTitle}
           >
-            <Icon name="project-menu" size={16} />
+            <Icon name="project-menu" size={20} />
           </button>
           {showReportNav && (
             <>
