@@ -423,6 +423,23 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
                         background: selected ? "var(--tint-4)" : "transparent",
                       }}
                     >
+                      <span
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          border: `2px solid ${selected ? "var(--brand-500)" : "var(--neutral-dark-300)"}`,
+                          background: selected ? "var(--brand-500)" : "transparent",
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {selected && (
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }} />
+                        )}
+                      </span>
                       <span style={{ flex: 1, fontSize: "var(--font-size-md)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
                       <code style={{ fontSize: "var(--font-size-sm)", color: "var(--neutral-dark-500)", flexShrink: 0 }}>{entry.key}{entry.hasTotp ? " · 2FA" : ""}</code>
                       <button
@@ -465,6 +482,21 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
             {credentials?.vaultEntryId && (
               <p className="credentials-section__hint">
                 Selected credential will be used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>, <code>$OTP$</code> in scripts.
+              </p>
+            )}
+
+            {!credentials?.vaultEntryId &&
+              steps.some(
+                (s) =>
+                  s.type === "microtest" &&
+                  s.script &&
+                  /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
+              ) && (
+              <p
+                className="credentials-section__hint"
+                style={{ color: "var(--status-warning-500)" }}
+              >
+                Your scripts use <code>$EMAIL$</code>, <code>$PASSWORD$</code>, or <code>$OTP$</code> but no vault credential is selected — click one above to bind it.
               </p>
             )}
 

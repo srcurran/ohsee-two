@@ -16,11 +16,14 @@ import {
 interface CredentialsSectionProps {
   credentials: TestCredentials | undefined;
   onChange: (next: TestCredentials | undefined) => void;
+  /** True when any script step contains $EMAIL$, $PASSWORD$, or $OTP$ */
+  hasTemplateVars?: boolean;
 }
 
 export function CredentialsSection({
   credentials,
   onChange,
+  hasTemplateVars,
 }: CredentialsSectionProps) {
   const enabled = credentials?.enabled === true;
 
@@ -121,6 +124,23 @@ export function CredentialsSection({
                       background: selected ? "var(--tint-4)" : "transparent",
                     }}
                   >
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        border: `2px solid ${selected ? "var(--brand-500)" : "var(--neutral-dark-300)"}`,
+                        background: selected ? "var(--brand-500)" : "transparent",
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {selected && (
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }} />
+                      )}
+                    </span>
                     <span style={{ flex: 1, fontSize: "var(--font-size-md)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
                     <code
                       style={{
@@ -172,6 +192,15 @@ export function CredentialsSection({
           {credentials?.vaultEntryId && (
             <p className="credentials-section__hint">
               Selected credential will be used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>, <code>$OTP$</code> in scripts.
+            </p>
+          )}
+
+          {hasTemplateVars && !credentials?.vaultEntryId && (
+            <p
+              className="credentials-section__hint"
+              style={{ color: "var(--status-warning-500)" }}
+            >
+              Your scripts use <code>$EMAIL$</code>, <code>$PASSWORD$</code>, or <code>$OTP$</code> but no vault credential is selected — click one above to bind it.
             </p>
           )}
 

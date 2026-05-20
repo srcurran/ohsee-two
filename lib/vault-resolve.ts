@@ -17,7 +17,17 @@ export type { ScriptCredentials };
 export async function resolveScriptCredentials(
   siteTest?: SiteTest | null,
 ): Promise<ScriptCredentials | undefined> {
-  if (!siteTest?.credentials?.vaultEntryId) return undefined;
+  if (!siteTest?.credentials?.vaultEntryId) {
+    if (siteTest?.steps?.some(
+      (s) => s.type === "microtest" && s.script && /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
+    )) {
+      console.warn(
+        "resolveScriptCredentials: test has scripts with $EMAIL$/$PASSWORD$/$OTP$ " +
+        "but no vaultEntryId is set on credentials. Select a vault entry in test settings.",
+      );
+    }
+    return undefined;
+  }
 
   const ohsee = getOhsee();
   if (!ohsee) return undefined;

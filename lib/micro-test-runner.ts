@@ -95,6 +95,12 @@ export async function executeMicroTest(
   let processed = rewriteGotoUrls(script, baseUrl);
   if (credentials) {
     processed = interpolateCredentials(processed, credentials);
+  } else if (/\$(EMAIL|PASSWORD|OTP)\$/.test(processed)) {
+    console.warn(
+      "⚠ Script contains $EMAIL$/$PASSWORD$/$OTP$ template variables " +
+      "but no vault credentials were provided. The literal strings will " +
+      "be typed as-is. Select a vault credential in test settings to fix this.",
+    );
   }
 
   let expectFn: unknown;

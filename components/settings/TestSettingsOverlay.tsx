@@ -288,6 +288,12 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                       data.setCredentials(next);
                       data.scheduleSave();
                     }}
+                    hasTemplateVars={data.steps.some(
+                      (s) =>
+                        s.type === "microtest" &&
+                        s.script &&
+                        /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
+                    )}
                   />
                 </Accordion>
 
