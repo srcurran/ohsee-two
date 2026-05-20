@@ -16,7 +16,7 @@
   background: var(--page-tile-background);
   padding: var(--space-2);
   text-align: left;
-  box-shadow: var(--elevation-sm);
+  box-shadow: var(--elevation-card);
   transition:
     box-shadow var(--duration-fast) var(--ease-standard),
     transform var(--duration-fast) var(--ease-standard);

@@ -128,6 +128,11 @@
    * with heavier alphas so the shadow stays visible against #1e1e1e. */
   --elevation-sm:
     0px 3px 16px rgba(0, 0, 0, 0.05);
+  /* Tighter, more visible shadow for standalone cards (page tiles).
+     Two layers: a crisp near-edge + a soft ambient. */
+  --elevation-card:
+    0px 1px 3px rgba(0, 0, 0, 0.08),
+    0px 2px 8px rgba(0, 0, 0, 0.06);
   --elevation-md:
     0px 4px 20px rgba(0, 0, 0, 0.05),
     0px 3px 16px rgba(0, 0, 0, 0.05);
