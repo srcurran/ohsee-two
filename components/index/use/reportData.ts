@@ -7,9 +7,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildRunErrorDetails } from "@/components/settings/run-error-details";
 import type { ErrorModalDetails } from "@/components/utility/ErrorModal";
-import { trackReportCompletion } from "@/lib/electron";
+import { getOhsee, trackReportCompletion } from "@/lib/electron";
 import type { Project, Report, SiteTest } from "@/lib/types";
 import { getDomain } from "@/components/index/utils/report";
+import { resolveScriptCredentials } from "@/lib/vault-resolve";
 
 interface UseReportDataArgs {
   reportId: string;
@@ -105,10 +106,20 @@ export function useReportData({
   const runNow = async () => {
     if (!project) return;
     setRunError(null);
+
+    // Resolve vault credentials for $EMAIL$ / $PASSWORD$ / $OTP$
+    // interpolation in Playwright script steps.
+    const scriptCredentials = await resolveScriptCredentials(siteTest);
+
     const url = report?.siteTestId
       ? `/api/projects/${project.id}/tests/${report.siteTestId}/reports`
       : `/api/projects/${project.id}/reports`;
-    const res = await fetch(url, { method: "POST" });
+    const fetchOpts: RequestInit = { method: "POST" };
+    if (scriptCredentials) {
+      fetchOpts.headers = { "Content-Type": "application/json" };
+      fetchOpts.body = JSON.stringify({ scriptCredentials });
+    }
+    const res = await fetch(url, fetchOpts);
     if (res.ok) {
       const { reportId: newReportId } = await res.json();
       trackReportCompletion(

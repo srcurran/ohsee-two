@@ -77,6 +77,21 @@ export interface TestCredentials {
   vaultEntryId?: string;
 }
 
+/**
+ * Resolved vault credentials for Playwright script interpolation.
+ * The client fetches these from the vault before starting a run and
+ * sends them to the runner in the POST body. The runner replaces
+ * $EMAIL$, $PASSWORD$, $OTP$ template variables in scripts with
+ * these values. TOTP codes are generated fresh at execution time
+ * from the seed.
+ */
+export interface ScriptCredentials {
+  email: string;
+  password: string;
+  totpSeed?: string;
+  staticOtp?: string;
+}
+
 export interface Project {
   id: string;
   /** Display name for the project (falls back to domain if omitted) */

@@ -10,6 +10,7 @@ import { CredentialEditor, type VaultEntryMeta } from "@/components/settings/Cre
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";
 import { getOhsee, isElectronRuntime, trackReportCompletion } from "@/lib/electron";
+import { resolveScriptCredentials } from "@/lib/vault-resolve";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, TestStep, TestCredentials } from "@/lib/types";
 
@@ -149,10 +150,19 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
 
       refreshProjects();
 
-      // Kick off a run for this specific test.
-      const runRes = await fetch(`/api/projects/${projectId}/tests/${test.id}/reports`, {
-        method: "POST",
-      });
+      // Kick off a run for this specific test. Resolve vault
+      // credentials for $EMAIL$ / $PASSWORD$ / $OTP$ interpolation.
+      const savedTest = latestTests.find((t: { id: string }) => t.id === test.id);
+      const scriptCreds = await resolveScriptCredentials(savedTest);
+      const runFetchOpts: RequestInit = { method: "POST" };
+      if (scriptCreds) {
+        runFetchOpts.headers = { "Content-Type": "application/json" };
+        runFetchOpts.body = JSON.stringify({ scriptCredentials: scriptCreds });
+      }
+      const runRes = await fetch(
+        `/api/projects/${projectId}/tests/${test.id}/reports`,
+        runFetchOpts,
+      );
       if (runRes.ok) {
         const { reportId } = await runRes.json();
         trackReportCompletion(reportId, name || "Test");
@@ -391,13 +401,39 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
               </p>
             ) : (
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                {vaultEntries.map((entry) => (
-                  <li key={entry.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "var(--space-1) 0" }}>
-                    <span style={{ fontSize: "var(--font-size-md)" }}>{entry.label}</span>
-                    <code style={{ fontSize: "var(--font-size-sm)", color: "var(--neutral-dark-500)" }}>{entry.key}{entry.hasTotp ? " · 2FA" : ""}</code>
-                  </li>
-                ))}
+                {vaultEntries.map((entry) => {
+                  const selected = credentials?.vaultEntryId === entry.key;
+                  return (
+                    <li
+                      key={entry.key}
+                      onClick={() =>
+                        setCredentials({
+                          ...credentials,
+                          vaultEntryId: selected ? undefined : entry.key,
+                        })
+                      }
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        padding: "var(--space-1-5) var(--space-2)",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: "pointer",
+                        background: selected ? "var(--tint-4)" : "transparent",
+                      }}
+                    >
+                      <span style={{ fontSize: "var(--font-size-md)" }}>{entry.label}</span>
+                      <code style={{ fontSize: "var(--font-size-sm)", color: "var(--neutral-dark-500)" }}>{entry.key}{entry.hasTotp ? " · 2FA" : ""}</code>
+                    </li>
+                  );
+                })}
               </ul>
+            )}
+
+            {credentials?.vaultEntryId && (
+              <p className="credentials-section__hint">
+                Selected credential will be used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>, <code>$OTP$</code> in scripts.
+              </p>
             )}
 
             <div>

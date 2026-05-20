@@ -1,11 +1,13 @@
 import { chromium, type Browser, type BrowserContextOptions, type Page } from "playwright";
 import path from "path";
+import { TOTP, Secret } from "otpauth";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
 import type {
   DomSnapshot,
   Project,
+  ScriptCredentials,
   TestComposition,
   TestCompositionStep,
 } from "./types";
@@ -47,10 +49,38 @@ function rewriteGotoUrls(script: string, baseUrl: string | undefined): string {
 }
 
 /**
+ * Replace `$EMAIL$`, `$PASSWORD$`, `$OTP$` template variables in a script
+ * with values from the resolved vault entry. Generates a fresh TOTP code
+ * (or returns the static OTP) at call time so each invocation is live.
+ */
+function interpolateCredentials(script: string, creds: ScriptCredentials): string {
+  let out = script;
+  out = out.replace(/\$EMAIL\$/g, creds.email.replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
+  out = out.replace(/\$PASSWORD\$/g, creds.password.replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
+
+  if (out.includes("$OTP$")) {
+    let otp = "";
+    if (creds.staticOtp) {
+      otp = creds.staticOtp;
+    } else if (creds.totpSeed) {
+      const totp = new TOTP({ secret: Secret.fromBase32(creds.totpSeed), digits: 6, period: 30 });
+      otp = totp.generate();
+    }
+    out = out.replace(/\$OTP\$/g, otp);
+  }
+
+  return out;
+}
+
+/**
  * Execute a single micro-test script against a Playwright Page.
  *
  * The script string is the function *body* that receives `page` (Playwright Page)
  * and `expect` (Playwright test assertion) as arguments.
+ *
+ * When `credentials` is provided, `$EMAIL$`, `$PASSWORD$`, and `$OTP$`
+ * template variables in the script are replaced with vault values before
+ * execution. TOTP codes are generated fresh each call.
  *
  * Security note: this evals user-supplied code — acceptable for a
  * single-user self-hosted tool.
@@ -60,8 +90,12 @@ export async function executeMicroTest(
   script: string,
   timeout = STEP_TIMEOUT,
   baseUrl?: string,
+  credentials?: ScriptCredentials,
 ): Promise<void> {
-  const rewrittenScript = rewriteGotoUrls(script, baseUrl);
+  let processed = rewriteGotoUrls(script, baseUrl);
+  if (credentials) {
+    processed = interpolateCredentials(processed, credentials);
+  }
 
   let expectFn: unknown;
   try {
@@ -71,7 +105,7 @@ export async function executeMicroTest(
     // @playwright/test may not be installed — scripts that need `expect` will fail
   }
 
-  const fn = new Function("page", "expect", `return (async () => { ${rewrittenScript} })()`) as (
+  const fn = new Function("page", "expect", `return (async () => { ${processed} })()`) as (
     page: Page,
     expect: unknown,
   ) => Promise<void>;
@@ -123,11 +157,13 @@ export async function executeTestComposition(options: {
   onProgress?: (stepId: string, breakpoint: number) => void | Promise<void>;
   /** Reuse an existing browser instance instead of launching a new one. */
   browser?: Browser;
+  /** Vault credentials for $EMAIL$ / $PASSWORD$ / $OTP$ interpolation. */
+  credentials?: ScriptCredentials;
 }): Promise<MicroTestStepResult[]> {
   const {
     project, composition, baseUrl, breakpoints, outputDir, prefix,
     authConfig, contextOptions, initScript, onProgress,
-    browser: externalBrowser,
+    browser: externalBrowser, credentials,
   } = options;
   await ensureDir(outputDir);
 
@@ -167,7 +203,7 @@ export async function executeTestComposition(options: {
           }
 
           try {
-            await executeMicroTest(page, resolved.script, STEP_TIMEOUT, baseUrl);
+            await executeMicroTest(page, resolved.script, STEP_TIMEOUT, baseUrl, credentials);
           } catch (err) {
             console.error(
               `Composition "${composition.name}" step "${step.id}" ` +

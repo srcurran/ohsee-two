@@ -49,9 +49,13 @@ export async function GET(
   }
 }
 
-/** POST /api/projects/[id]/tests/[testId]/reports — run a specific test */
+/** POST /api/projects/[id]/tests/[testId]/reports — run a specific test.
+ *
+ *  Optional JSON body `{ scriptCredentials }` — the client resolves
+ *  vault credentials before the POST when the test uses template
+ *  variables ($EMAIL$, $PASSWORD$, $OTP$) in Playwright scripts. */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string; testId: string }> }
 ) {
   try {
@@ -65,6 +69,15 @@ export async function POST(
     const siteTest = project.tests?.find((t) => t.id === testId);
     if (!siteTest) {
       return NextResponse.json({ error: "Test not found" }, { status: 404 });
+    }
+
+    // Parse optional body (may be empty for backwards-compat).
+    let scriptCredentials: import("@/lib/types").ScriptCredentials | undefined;
+    try {
+      const body = await request.json();
+      if (body?.scriptCredentials) scriptCredentials = body.scriptCredentials;
+    } catch {
+      // No body or non-JSON — fine, credentials are optional.
     }
 
     // Same preflight as the project-level route — see lib/url-reachability.ts.
@@ -101,7 +114,7 @@ export async function POST(
     const reportDir = path.join(userReportsDir(userId), reportId);
     await writeJsonFile(path.join(reportDir, "report.json"), report);
 
-    runReport(project, reportId, userId, siteTest).catch(console.error);
+    runReport(project, reportId, userId, siteTest, { scriptCredentials }).catch(console.error);
 
     return NextResponse.json({ reportId }, { status: 202 });
   } catch (err) {

@@ -99,29 +99,47 @@ export function CredentialsSection({
                 gap: "var(--space-1)",
               }}
             >
-              {vaultEntries.map((entry) => (
-                <li
-                  key={entry.key}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    padding: "var(--space-1) 0",
-                  }}
-                >
-                  <span style={{ fontSize: "var(--font-size-md)" }}>{entry.label}</span>
-                  <code
+              {vaultEntries.map((entry) => {
+                const selected = credentials?.vaultEntryId === entry.key;
+                return (
+                  <li
+                    key={entry.key}
+                    onClick={() =>
+                      onChange({
+                        ...credentials,
+                        vaultEntryId: selected ? undefined : entry.key,
+                      })
+                    }
                     style={{
-                      fontSize: "var(--font-size-sm)",
-                      color: "var(--neutral-dark-500)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      padding: "var(--space-1-5) var(--space-2)",
+                      borderRadius: "var(--radius-sm)",
+                      cursor: "pointer",
+                      background: selected ? "var(--tint-4)" : "transparent",
                     }}
                   >
-                    {entry.key}
-                    {entry.hasTotp ? " · 2FA" : ""}
-                  </code>
-                </li>
-              ))}
+                    <span style={{ fontSize: "var(--font-size-md)" }}>{entry.label}</span>
+                    <code
+                      style={{
+                        fontSize: "var(--font-size-sm)",
+                        color: "var(--neutral-dark-500)",
+                      }}
+                    >
+                      {entry.key}
+                      {entry.hasTotp ? " · 2FA" : ""}
+                    </code>
+                  </li>
+                );
+              })}
             </ul>
+          )}
+
+          {credentials?.vaultEntryId && (
+            <p className="credentials-section__hint">
+              Selected credential will be used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>, <code>$OTP$</code> in scripts.
+            </p>
           )}
 
           <div>

@@ -6,7 +6,7 @@ import { generateSemanticDiff } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
-import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition } from "./types";
+import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
 import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
@@ -67,6 +67,9 @@ class ReportCancelledError extends Error {
 export type RunReportOptions = {
   /** Fired after the run reaches a terminal state (completed, cancelled, or failed). */
   onComplete?: (report: Report) => void;
+  /** Vault credentials resolved by the client for $EMAIL$ / $PASSWORD$ / $OTP$
+   *  interpolation inside Playwright script steps. */
+  scriptCredentials?: ScriptCredentials;
 };
 
 /**
@@ -84,6 +87,7 @@ export async function runReport(
   runningReports.set(reportId, controller);
   reportProjectMap.set(reportId, project.id);
 
+  const scriptCredentials = options?.scriptCredentials;
   const signal = controller.signal;
 
   const checkCancelled = () => {
@@ -374,6 +378,7 @@ export async function runReport(
           dataBase,
           authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
           breakpointList: projectBreakpoints,
+          credentials: scriptCredentials,
           checkCancelled,
           onProgress: async () => { completedOps++; await saveProgress(); },
           onStepDiffed: async (stepId, stepResults) => {
@@ -409,6 +414,7 @@ export async function runReport(
               dataBase,
               authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
               breakpointList: projectBreakpoints,
+              credentials: scriptCredentials,
               contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
               initScript: variant.initScript,
               checkCancelled,
@@ -762,6 +768,7 @@ async function captureAndDiffComposition(options: {
   dataBase: string;
   authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   breakpointList?: number[];
+  credentials?: ScriptCredentials;
   contextOptions?: { colorScheme?: "light" | "dark" };
   initScript?: string;
   checkCancelled: () => void;
@@ -772,7 +779,7 @@ async function captureAndDiffComposition(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     project, composition, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    authConfig, breakpointList = [...BREAKPOINTS], credentials, contextOptions, initScript,
     checkCancelled, onProgress, onStepDiffed, prodBrowser, devBrowser,
   } = options;
 
@@ -791,6 +798,7 @@ async function captureAndDiffComposition(options: {
       authConfig: authConfig.prod,
       contextOptions,
       initScript,
+      credentials,
       browser: prodBrowser,
       onProgress: async () => {
         checkCancelled();
@@ -807,6 +815,7 @@ async function captureAndDiffComposition(options: {
       authConfig: authConfig.dev,
       contextOptions,
       initScript,
+      credentials,
       browser: devBrowser,
       onProgress: async () => {
         checkCancelled();
