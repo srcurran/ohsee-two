@@ -58,9 +58,20 @@ export function CredentialsSection({
         <input
           type="checkbox"
           checked={enabled}
-          onChange={(e) =>
-            onChange({ ...credentials, enabled: e.target.checked })
-          }
+          onChange={(e) => {
+            const next = { ...credentials, enabled: e.target.checked };
+            // Auto-select first vault entry when enabling if none is
+            // selected — saves the user an extra click.
+            if (
+              e.target.checked &&
+              !credentials?.vaultEntryId &&
+              vaultEntries &&
+              vaultEntries.length > 0
+            ) {
+              next.vaultEntryId = vaultEntries[0].key;
+            }
+            onChange(next);
+          }}
           className="checkbox"
         />
         <span>Mint a session cookie before each capture (require auth)</span>
