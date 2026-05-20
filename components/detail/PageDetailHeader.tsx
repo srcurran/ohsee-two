@@ -5,6 +5,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@/components/utility/Icon";
 import { formatFullDateTime, formatRelativeTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
 import type { Report, ReportPage } from "@/lib/types";
@@ -77,15 +78,7 @@ export function PageDetailHeader({
           className="icon-btn"
           title="Previous page"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M15 18l-6-6 6-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Icon name="chevron-left" size={18} />
         </button>
 
         <button
@@ -94,27 +87,11 @@ export function PageDetailHeader({
           className="icon-btn"
           title="Next page"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M9 18l6-6-6-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Icon name="chevron-right" size={18} />
         </button>
 
         <button onClick={onClose} className="icon-btn" title="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M18 6L6 18M6 6l12 12"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Icon name="close" size={18} />
         </button>
       </div>
     </div>
@@ -202,15 +179,7 @@ function PageNavDropdown({
         className="icon-btn"
         title="Jump to page"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M6 9l6 6 6-6"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Icon name="chevron-down" size={18} />
       </button>
       {open && (
         <>

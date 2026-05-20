@@ -8,6 +8,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from "react";
+import { Icon } from "@/components/utility/Icon";
 
 /**
  * - `idle`     — neutral, no styling.
@@ -130,32 +131,12 @@ const MaterialField = forwardRef<HTMLInputElement, Props>(function MaterialField
 function defaultTrailing(status: MaterialFieldStatus): ReactNode {
   if (status === "verified") {
     return (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="material-field__icon material-field__icon--success"
-      >
-        <path d="M5 12l5 5 9-11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <Icon name="check" size={16} className="material-field__icon material-field__icon--success" />
     );
   }
   if (status === "invalid") {
     return (
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        className="material-field__icon material-field__icon--error"
-      >
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-        <path d="M12 7v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
-      </svg>
+      <Icon name="alert-circle" size={16} className="material-field__icon material-field__icon--error" />
     );
   }
   return null;

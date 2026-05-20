@@ -4,6 +4,7 @@ import { useState } from "react";
 import FlowRecorderModal from "@/components/settings/FlowRecorderModal";
 import type { FlowEntry, FlowAction } from "@/lib/types";
 import { resolveProjectPath } from "@/lib/url-utils";
+import { Icon } from "@/components/utility/Icon";
 
 const ACTION_TYPES = ["click", "fill", "wait", "waitForSelector", "navigate"] as const;
 
@@ -26,35 +27,6 @@ export function newStep(type: (typeof ACTION_TYPES)[number]): FlowAction {
 export function stepCapturesScreenshot(step: FlowAction): boolean {
   if (step.type === "screenshot") return true;
   return step.captureScreenshot !== false;
-}
-
-function CameraIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      style={{ color: active ? "var(--foreground)" : "color-mix(in srgb, var(--neutral-dark-500) 30%, transparent)" }}
-    >
-      <path
-        d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill={active ? "currentColor" : "none"}
-      />
-      <circle
-        cx="12"
-        cy="13"
-        r="4"
-        stroke={active ? "var(--neutral-light-100)" : "currentColor"}
-        strokeWidth="2"
-        fill="none"
-      />
-    </svg>
-  );
 }
 
 /**
@@ -293,7 +265,11 @@ export function FlowEditor({
                     className="flow-step__camera"
                     title={stepCapturesScreenshot(step) ? "Screenshot enabled — click to disable" : "Screenshot disabled — click to enable"}
                   >
-                    <CameraIcon active={stepCapturesScreenshot(step)} />
+                    <Icon
+                      name="camera"
+                      size={16}
+                      color={stepCapturesScreenshot(step) ? "var(--foreground)" : "color-mix(in srgb, var(--neutral-dark-500) 30%, transparent)"}
+                    />
                   </button>
                 )}
 

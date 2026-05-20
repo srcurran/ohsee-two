@@ -13,8 +13,9 @@ import { useOverlayAnim } from "@/components/settings/use/overlayAnim";
 import { useStepDrag } from "@/components/settings/use/stepDrag";
 import { useStepsState } from "@/components/settings/use/stepsState";
 import { useTestSettingsData } from "@/components/settings/use/testSettingsData";
+import { Icon } from "@/components/utility/Icon";
 
-type AccordionId = "settings" | "credentials" | "danger";
+type AccordionId = "steps" | "settings" | "credentials" | "danger";
 
 interface Props {
   projectId: string;
@@ -38,7 +39,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   >(null);
 
   const [editingName, setEditingName] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState<AccordionId | null>(null);
+  const [openAccordion, setOpenAccordion] = useState<AccordionId | null>("steps");
 
   // `beforeExit` needs to call into the data hook, which is initialized
   // below — bridge through a ref so the close callback can see the latest
@@ -88,10 +89,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     setStepEditor(null);
   };
 
-  const otherTests = (data.project?.tests || []).filter(
-    (t) => t.id !== testId && !t.archived,
-  );
-
   return (
     <div
       className={`project-settings-overlay project-settings-overlay--${animState}`}
@@ -113,9 +110,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
               onClick={() => setStepEditor(null)}
               className="btn btn--text project-settings-overlay__back"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Icon name="chevron-left" size={16} />
               <span>Back to steps</span>
             </button>
           ) : (
@@ -146,21 +141,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                   <span id="test-settings-title" className="project-settings-overlay__title">
                     {data.name || "Untitled test"}
                   </span>
-                  <svg
-                    className="project-settings-overlay__title-icon"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M16.5 4.5l3 3L8 19l-4 1 1-4L16.5 4.5z"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <Icon name="edit" size={16} className="project-settings-overlay__title-icon" />
                 </button>
               )}
               <button
@@ -169,9 +150,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                 onClick={handleClose}
                 title="Close"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
+                <Icon name="close" size={20} />
               </button>
             </>
           )}
@@ -194,148 +173,155 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             />
           ) : (
             <>
-              <section className="test-steps">
-                <h3 className="test-steps__heading">Test steps</h3>
-
-                {data.steps.length === 0 ? (
-                  <EmptySteps
-                    onPickUrl={() => setStepEditor({ mode: "create", initialType: "url" })}
-                    onPickMicrotest={() => setStepEditor({ mode: "create", initialType: "microtest" })}
-                  />
-                ) : (
-                  <ul className="test-steps__list">
-                    {data.steps.map((step, i) => (
-                      <Fragment key={step.id}>
-                        {stepsState.pendingDelete?.index === i && (
+              <div className="ts-accordion-group">
+                <Accordion
+                  title="Test steps"
+                  open={openAccordion === "steps"}
+                  onToggle={() =>
+                    setOpenAccordion((cur) => (cur === "steps" ? null : "steps"))
+                  }
+                >
+                  <section className="test-steps">
+                    {data.steps.length === 0 ? (
+                      <EmptySteps
+                        onPickUrl={() => setStepEditor({ mode: "create", initialType: "url" })}
+                        onPickMicrotest={() => setStepEditor({ mode: "create", initialType: "microtest" })}
+                      />
+                    ) : (
+                      <ul className="test-steps__list">
+                        {data.steps.map((step, i) => (
+                          <Fragment key={step.id}>
+                            {stepsState.pendingDelete?.index === i && (
+                              <PendingDeleteRow
+                                step={stepsState.pendingDelete.step}
+                                onUndo={stepsState.undoDelete}
+                              />
+                            )}
+                            <StepRow
+                              step={step}
+                              dragging={drag.dragIndex === i}
+                              onDragStart={() => drag.onDragStart(i)}
+                              onDragEnter={() => drag.onDragEnter(i)}
+                              onDragEnd={drag.onDragEnd}
+                              onEdit={() => setStepEditor({ mode: "edit", stepId: step.id })}
+                              onToggleScreenshot={() =>
+                                stepsState.updateStep(step.id, { captureScreenshot: step.captureScreenshot === false })
+                              }
+                              onRemove={() => stepsState.removeStep(step.id)}
+                            />
+                          </Fragment>
+                        ))}
+                        {stepsState.pendingDelete && stepsState.pendingDelete.index >= data.steps.length && (
                           <PendingDeleteRow
                             step={stepsState.pendingDelete.step}
                             onUndo={stepsState.undoDelete}
                           />
                         )}
-                        <StepRow
-                          step={step}
-                          dragging={drag.dragIndex === i}
-                          onDragStart={() => drag.onDragStart(i)}
-                          onDragEnter={() => drag.onDragEnter(i)}
-                          onDragEnd={drag.onDragEnd}
-                          onEdit={() => setStepEditor({ mode: "edit", stepId: step.id })}
-                          onToggleScreenshot={() =>
-                            stepsState.updateStep(step.id, { captureScreenshot: step.captureScreenshot === false })
-                          }
-                          onRemove={() => stepsState.removeStep(step.id)}
-                        />
-                      </Fragment>
-                    ))}
-                    {stepsState.pendingDelete && stepsState.pendingDelete.index >= data.steps.length && (
-                      <PendingDeleteRow
-                        step={stepsState.pendingDelete.step}
-                        onUndo={stepsState.undoDelete}
-                      />
+                      </ul>
                     )}
-                  </ul>
-                )}
 
-                <button
-                  type="button"
-                  className="btn btn--outline test-steps__add"
-                  onClick={() => setStepEditor({ mode: "create" })}
+                    <button
+                      type="button"
+                      className="btn btn--outline test-steps__add"
+                      onClick={() => setStepEditor({ mode: "create" })}
+                    >
+                      Add step
+                    </button>
+                  </section>
+                </Accordion>
+
+                <Accordion
+                  title="Test settings"
+                  open={openAccordion === "settings"}
+                  onToggle={() =>
+                    setOpenAccordion((cur) => (cur === "settings" ? null : "settings"))
+                  }
                 >
-                  Add step
-                </button>
-              </section>
+                  <div className="test-settings-section">
+                    <BreakpointEditor
+                      breakpoints={data.breakpoints}
+                      onChange={(bp) => {
+                        data.setBreakpoints(bp);
+                        data.scheduleSave();
+                      }}
+                    />
+                    <div className="test-settings-section__variants">
+                      <p className="test-settings-section__label">Variants</p>
+                      <div className="variant-list">
+                        {BUILT_IN_VARIANTS.map((v) => {
+                          const active = data.variantIds.includes(v.id);
+                          return (
+                            <label key={v.id} className="variant-option">
+                              <input
+                                type="checkbox"
+                                checked={active}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? [...data.variantIds, v.id]
+                                    : data.variantIds.filter((id) => id !== v.id);
+                                  data.setVariantIds(next);
+                                  data.scheduleSave();
+                                }}
+                                className="checkbox"
+                              />
+                              {v.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </Accordion>
 
-              <Accordion
-                title="Test settings"
-                open={openAccordion === "settings"}
-                onToggle={() =>
-                  setOpenAccordion((cur) => (cur === "settings" ? null : "settings"))
-                }
-              >
-                <div className="test-settings-section">
-                  <BreakpointEditor
-                    breakpoints={data.breakpoints}
-                    onChange={(bp) => {
-                      data.setBreakpoints(bp);
+                <Accordion
+                  title="Credentials"
+                  open={openAccordion === "credentials"}
+                  onToggle={() =>
+                    setOpenAccordion((cur) => (cur === "credentials" ? null : "credentials"))
+                  }
+                >
+                  <CredentialsSection
+                    credentials={data.credentials}
+                    onChange={(next) => {
+                      data.setCredentials(next);
                       data.scheduleSave();
                     }}
                   />
-                  <div className="test-settings-section__variants">
-                    <p className="test-settings-section__label">Variants</p>
-                    <div className="variant-list">
-                      {BUILT_IN_VARIANTS.map((v) => {
-                        const active = data.variantIds.includes(v.id);
-                        return (
-                          <label key={v.id} className="variant-option">
-                            <input
-                              type="checkbox"
-                              checked={active}
-                              onChange={(e) => {
-                                const next = e.target.checked
-                                  ? [...data.variantIds, v.id]
-                                  : data.variantIds.filter((id) => id !== v.id);
-                                data.setVariantIds(next);
-                                data.scheduleSave();
-                              }}
-                              className="checkbox"
-                            />
-                            {v.label}
-                          </label>
-                        );
-                      })}
-                    </div>
+                </Accordion>
+
+                <Accordion
+                  title="Danger Zone"
+                  open={openAccordion === "danger"}
+                  onToggle={() =>
+                    setOpenAccordion((cur) => (cur === "danger" ? null : "danger"))
+                  }
+                >
+                  <div className="project-settings-overlay__danger-body">
+                    <section className="project-settings-overlay__danger-section">
+                      <h3 className="project-settings-overlay__danger-heading">
+                        Archive test
+                      </h3>
+                      <p className="project-settings-overlay__danger-copy">
+                        Hide this test from the sidebar. Reports are preserved
+                        and the test can be restored from the project Danger
+                        Zone.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn--outline"
+                        onClick={async () => {
+                          // Persist archive flag, then close overlay so the
+                          // sidebar stops showing the test.
+                          await data.persist({ archived: true });
+                          handleClose();
+                        }}
+                      >
+                        Archive
+                      </button>
+                    </section>
                   </div>
-                </div>
-              </Accordion>
-
-              <Accordion
-                title="Credentials"
-                open={openAccordion === "credentials"}
-                onToggle={() =>
-                  setOpenAccordion((cur) => (cur === "credentials" ? null : "credentials"))
-                }
-              >
-                <CredentialsSection
-                  credentials={data.credentials}
-                  otherTests={otherTests}
-                  onChange={(next) => {
-                    data.setCredentials(next);
-                    data.scheduleSave();
-                  }}
-                />
-              </Accordion>
-
-              <Accordion
-                title="Danger Zone"
-                open={openAccordion === "danger"}
-                onToggle={() =>
-                  setOpenAccordion((cur) => (cur === "danger" ? null : "danger"))
-                }
-              >
-                <div className="project-settings-overlay__danger-body">
-                  <section className="project-settings-overlay__danger-section">
-                    <h3 className="project-settings-overlay__danger-heading">
-                      Archive test
-                    </h3>
-                    <p className="project-settings-overlay__danger-copy">
-                      Hide this test from the sidebar. Reports are preserved
-                      and the test can be restored from the project Danger
-                      Zone.
-                    </p>
-                    <button
-                      type="button"
-                      className="btn btn--outline"
-                      onClick={async () => {
-                        // Persist archive flag, then close overlay so the
-                        // sidebar stops showing the test.
-                        await data.persist({ archived: true });
-                        handleClose();
-                      }}
-                    >
-                      Archive
-                    </button>
-                  </section>
-                </div>
-              </Accordion>
+                </Accordion>
+              </div>
             </>
           )}
         </div>

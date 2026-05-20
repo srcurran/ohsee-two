@@ -24,16 +24,18 @@
   }
 
   /* Custom header content (per-page React node, e.g. report eyebrow row).
-     Left-aligned and clickable. Pads to match the report content's
-     horizontal padding (var(--space-6)). */
+     Left-aligned. The container stays pointer-events:none so the drag
+     region behind it still works; individual children opt in to clicks
+     and no-drag so only buttons/links steal the drag handle. */
   &--custom {
     justify-content: flex-start;
-    pointer-events: auto;
     padding: 0 var(--space-6);
     gap: var(--space-2);
 
-    /* Stay clickable inside the .titlebar-drag-region strip. */
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
+    > * {
+      pointer-events: auto;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
   }
 }

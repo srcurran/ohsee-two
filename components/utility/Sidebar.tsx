@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { SidebarGroup } from "@/components/utility/SidebarGroup";
-import { GearIcon } from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 import { useSidebarData } from "@/components/utility/use/sidebarData";
 import { useProjectDrag } from "@/components/utility/use/projectDrag";
 import type { Project, Report, SiteTest } from "@/lib/types";
@@ -108,7 +108,7 @@ export default function Sidebar() {
           title="Settings"
           className="icon-btn"
         >
-          <GearIcon />
+          <Icon name="settings" size={16} />
         </button>
       </div>
     </aside>

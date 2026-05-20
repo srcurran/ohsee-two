@@ -6,6 +6,7 @@ import MaterialField, { type MaterialFieldStatus } from "@/components/utility/Ma
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { checkUrl } from "@/lib/url-validation";
 import type { Project, SiteTest } from "@/lib/types";
+import { Icon } from "@/components/utility/Icon";
 
 const ENTER_MS = 180;
 const EXIT_MS = 140;
@@ -202,21 +203,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
               <span id="project-settings-title" className="project-settings-overlay__title">
                 {name || (project ? getDomain(project.prodUrl) : "Project")}
               </span>
-              <svg
-                className="project-settings-overlay__title-icon"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M16.5 4.5l3 3L8 19l-4 1 1-4L16.5 4.5z"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Icon name="edit" size={16} className="project-settings-overlay__title-icon" />
             </button>
           )}
           <button
@@ -225,9 +212,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             onClick={handleClose}
             title="Close"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <Icon name="close" size={20} />
           </button>
         </header>
 

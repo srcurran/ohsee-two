@@ -9,6 +9,7 @@ import CredentialsSettings from "@/components/settings/CredentialsSettings";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
+import { Icon } from "@/components/utility/Icon";
 
 const ENTER_MS = 180;
 const EXIT_MS = 140;
@@ -97,9 +98,7 @@ export default function SettingsOverlay() {
             onClick={handleClose}
             title="Close"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <Icon name="close" size={20} />
           </button>
         </header>
 

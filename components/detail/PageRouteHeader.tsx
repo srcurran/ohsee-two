@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { Report, ReportPage } from "@/lib/types";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 import { formatPageName } from "@/components/detail/utils/pageRoute";
 
 interface PageRouteHeaderProps {
@@ -152,11 +152,11 @@ export default function PageRouteHeader({
               className="report-page__arrow"
               title={prevPage.path === "/" ? "index" : prevPage.path.replace(/^\//, "")}
             >
-              <ChevronLeftIcon />
+              <Icon name="chevron-left" size={24} />
             </Link>
           ) : (
             <span className="report-page__arrow report-page__arrow--disabled">
-              <ChevronLeftIcon />
+              <Icon name="chevron-left" size={24} />
             </span>
           )}
 
@@ -166,11 +166,11 @@ export default function PageRouteHeader({
               className="report-page__arrow"
               title={nextPage.path === "/" ? "index" : nextPage.path.replace(/^\//, "")}
             >
-              <ChevronRightIcon />
+              <Icon name="chevron-right" size={24} />
             </Link>
           ) : (
             <span className="report-page__arrow report-page__arrow--disabled">
-              <ChevronRightIcon />
+              <Icon name="chevron-right" size={24} />
             </span>
           )}
 
@@ -179,7 +179,7 @@ export default function PageRouteHeader({
             className="report-page__arrow"
             title="Back to report"
           >
-            <CloseIcon />
+            <Icon name="close" size={24} />
           </Link>
         </div>
       </div>

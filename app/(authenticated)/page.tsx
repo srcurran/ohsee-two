@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Project, Report } from "@/lib/types";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
+import { Icon } from "@/components/utility/Icon";
 
 export default function Home() {
   const router = useRouter();
@@ -81,13 +82,7 @@ export default function Home() {
       <>
         <div className="empty-state empty-state--flush">
           <div className="empty-state__badge">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M3 9h18" stroke="currentColor" strokeWidth="1.5" />
-              <circle cx="6" cy="7" r="0.5" fill="currentColor" />
-              <circle cx="8" cy="7" r="0.5" fill="currentColor" />
-              <circle cx="10" cy="7" r="0.5" fill="currentColor" />
-            </svg>
+            <Icon name="monitor" size={28} />
           </div>
           <div>
             <h1 className="empty-state__title">Get started with Ohsee</h1>

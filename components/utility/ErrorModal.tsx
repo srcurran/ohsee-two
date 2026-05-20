@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { Icon } from "@/components/utility/Icon";
 
 /**
  * Structured payload for a single error display. Built by the caller —
@@ -69,23 +70,7 @@ export default function ErrorModal({ error, onClose }: Props) {
           {error.eyebrow && (
             <p className="error-modal__eyebrow">{error.eyebrow}</p>
           )}
-          <svg
-            className="error-modal__icon"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 3 1.5 21h21L12 3z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinejoin="round"
-            />
-            <path d="M12 10v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <circle cx="12" cy="17.5" r="1" fill="currentColor" />
-          </svg>
+          <Icon name="warning" size={16} className="error-modal__icon" />
         </div>
         <h2 className="error-modal__title">{error.title}</h2>
         <div className="error-modal__copy">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Icon } from "@/components/utility/Icon";
 
 export interface NavSection {
   label: string;
@@ -30,10 +31,7 @@ export default function SettingsSideNav({
       <nav className="sidenav">
         {backHref && (
           <Link href={backHref} className="sidenav__back">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5" />
-              <path d="m12 19-7-7 7-7" />
-            </svg>
+            <Icon name="arrow-left" size={14} />
             {backLabel || "Back"}
           </Link>
         )}

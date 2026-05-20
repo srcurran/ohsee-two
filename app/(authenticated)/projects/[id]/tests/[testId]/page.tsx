@@ -7,6 +7,7 @@ import { trackReportCompletion } from "@/lib/electron";
 import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
 import { buildRunErrorDetails } from "@/components/settings/run-error-details";
 import { useSidebar } from "@/components/utility/SidebarProvider";
+import { Icon } from "@/components/utility/Icon";
 
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();
@@ -82,9 +83,7 @@ export default function TestPage() {
             className="run-pill"
           >
             {running ? "Starting..." : "Run now"}
-            <svg width="16" height="16" viewBox="0 0 28 28" fill="none" className="run-pill__icon">
-              <path d="M8 5v18l16-9L8 5z" fill="currentColor" />
-            </svg>
+            <Icon name="play" size={16} className="run-pill__icon" />
           </button>
           <ErrorModal error={runError} onClose={() => setRunError(null)} />
         </>

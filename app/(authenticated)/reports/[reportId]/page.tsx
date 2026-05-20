@@ -11,7 +11,7 @@ import PageDetailPanel from "@/components/detail/PageDetailPanel";
 import { ReportHeader } from "@/components/index/ReportHeader";
 import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
 import { ReportPageGrid } from "@/components/index/ReportPageGrid";
-import { ProjectMenuIcon } from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
 import {
@@ -76,7 +76,7 @@ function ReportPageInner() {
           className="icon-btn icon-btn--sm"
           title="Project settings"
         >
-          <ProjectMenuIcon />
+          <Icon name="project-menu" size={16} />
         </button>
       </>
     );

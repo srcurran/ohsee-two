@@ -10,7 +10,7 @@ import Link from "next/link";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
 import type { Report } from "@/lib/types";
-import { DotsVerticalIcon, PlayIcon } from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 
 interface ReportHeaderProps {
   report: Report;
@@ -44,7 +44,7 @@ export function ReportHeader({
         {report.status !== "running" ? (
           <button onClick={onRun} className="run-pill">
             Run now
-            <PlayIcon className="run-pill__icon" />
+            <Icon name="play" size={16} className="run-pill__icon" />
           </button>
         ) : (
           <div className="progress">
@@ -87,7 +87,7 @@ export function ReportHeader({
             className="icon-btn"
             title={settingsTitle}
           >
-            <DotsVerticalIcon />
+            <Icon name="project-menu" size={16} />
           </button>
           {showReportNav && (
             <>

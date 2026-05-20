@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@/components/utility/Icon";
 
 function ensureProtocol(url: string): string {
   if (!/^https?:\/\//i.test(url)) return `https://${url}`;
@@ -76,18 +77,7 @@ export default function ProjectFavicon({
   if (failed || urls.length === 0 || allLocalhost) {
     return (
       <span className={`favicon favicon--fallback ${className || ""}`}>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="favicon__svg"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
+        <Icon name="globe" className="favicon__svg" />
       </span>
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Icon } from "@/components/utility/Icon";
 
 interface AccordionSectionProps {
   label: string;
@@ -39,21 +40,10 @@ export default function AccordionSection({
 
 function Chevron({ open }: { open: boolean }) {
   return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
+    <Icon
+      name="chevron-down"
+      size={14}
       className={`accordion__chevron ${open ? "accordion__chevron--open" : ""}`}
-      aria-hidden
-    >
-      <path
-        d="M6 9l6 6 6-6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    />
   );
 }

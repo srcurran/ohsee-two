@@ -6,13 +6,7 @@
 "use client";
 
 import type { TestStep } from "@/lib/types";
-import {
-  CameraIcon,
-  GripIcon,
-  PlaywrightIcon,
-  TrashIcon,
-  UrlIcon,
-} from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 import { stepLabel } from "@/components/settings/utils/testSteps";
 
 interface StepRowProps {
@@ -52,7 +46,7 @@ export function StepRow({
       onDragEnd={onDragEnd}
     >
       <span className="step-row__grip" aria-hidden="true">
-        <GripIcon />
+        <Icon name="grip" size={16} />
       </span>
 
       <span
@@ -60,7 +54,7 @@ export function StepRow({
         title={step.type === "url" ? "URL step" : "Playwright step"}
         aria-hidden="true"
       >
-        {step.type === "url" ? <UrlIcon /> : <PlaywrightIcon />}
+        {step.type === "url" ? <Icon name="globe" size={16} /> : <Icon name="playwright" size={16} />}
       </span>
 
       <button type="button" className="step-row__label" onClick={onEdit} title="Edit step">
@@ -75,7 +69,7 @@ export function StepRow({
           title={captureOn ? "Capturing screenshot" : "Screenshot disabled"}
           aria-pressed={captureOn}
         >
-          <CameraIcon />
+          <Icon name="camera" size={16} />
         </button>
         <button
           type="button"
@@ -83,7 +77,7 @@ export function StepRow({
           className="icon-btn step-row__trash"
           title="Remove step"
         >
-          <TrashIcon />
+          <Icon name="trash" size={16} />
         </button>
       </div>
     </li>

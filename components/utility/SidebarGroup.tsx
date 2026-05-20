@@ -6,7 +6,7 @@ import ProjectFavicon from "@/components/utility/ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
 import type { Project, Report, SiteTest } from "@/lib/types";
-import { DotsIcon, PlusIcon } from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 import {
   getDomain,
   getTestWithLatestReport,
@@ -112,7 +112,7 @@ function SidebarGroupComponent({
             onClick={() => onAddTest(project.id)}
             className="sidebar__add-test"
           >
-            <PlusIcon />
+            <Icon name="plus" size={14} />
             <span>Add new test</span>
           </button>
         </div>
@@ -157,7 +157,7 @@ function SidebarTestRow({
         className="sidebar__test-action"
         title="Test settings"
       >
-        <DotsIcon />
+        <Icon name="dots" size={12} />
       </button>
     </div>
   );

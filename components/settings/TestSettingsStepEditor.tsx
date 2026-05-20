@@ -10,7 +10,7 @@ import MaterialField from "@/components/utility/MaterialField";
 import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
 import { resolveProjectPath } from "@/lib/url-utils";
 import type { TestStep } from "@/lib/types";
-import { PlaywrightIcon, UrlIcon } from "@/components/utility/icons";
+import { Icon } from "@/components/utility/Icon";
 
 interface AddEditStepViewProps {
   editing: TestStep | null;
@@ -70,7 +70,7 @@ export function AddEditStepView({
             className="add-step-fork__card"
             onClick={() => setPickedType("url")}
           >
-            <UrlIcon className="add-step-fork__card-icon" />
+            <Icon name="globe" size={16} className="add-step-fork__card-icon" />
             <span className="add-step-fork__card-title">Path</span>
             <span className="add-step-fork__card-copy">Navigate to a page on this site and capture a screenshot.</span>
           </button>
@@ -79,7 +79,7 @@ export function AddEditStepView({
             className="add-step-fork__card"
             onClick={() => setPickedType("microtest")}
           >
-            <PlaywrightIcon className="add-step-fork__card-icon" />
+            <Icon name="playwright" size={16} className="add-step-fork__card-icon" />
             <span className="add-step-fork__card-title">Playwright</span>
             <span className="add-step-fork__card-copy">Run a Playwright script — type it or record one.</span>
           </button>
