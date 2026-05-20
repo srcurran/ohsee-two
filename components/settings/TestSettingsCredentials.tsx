@@ -29,6 +29,7 @@ export function CredentialsSection({
   const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(
     null,
   );
+  const [editingEntry, setEditingEntry] = useState<VaultEntryMeta | null>(null);
   const [credEditorOpen, setCredEditorOpen] = useState(false);
   const [vaultError, setVaultError] = useState<string | null>(null);
 
@@ -112,24 +113,56 @@ export function CredentialsSection({
                     }
                     style={{
                       display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
+                      alignItems: "center",
+                      gap: "var(--space-2)",
                       padding: "var(--space-1-5) var(--space-2)",
                       borderRadius: "var(--radius-sm)",
                       cursor: "pointer",
                       background: selected ? "var(--tint-4)" : "transparent",
                     }}
                   >
-                    <span style={{ fontSize: "var(--font-size-md)" }}>{entry.label}</span>
+                    <span style={{ flex: 1, fontSize: "var(--font-size-md)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
                     <code
                       style={{
                         fontSize: "var(--font-size-sm)",
                         color: "var(--neutral-dark-500)",
+                        flexShrink: 0,
                       }}
                     >
                       {entry.key}
                       {entry.hasTotp ? " · 2FA" : ""}
                     </code>
+                    <button
+                      type="button"
+                      className="btn btn--text"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingEntry(entry);
+                        setCredEditorOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--text"
+                      style={{ color: "var(--status-error-500)" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const ohsee = getOhsee();
+                        if (!ohsee) return;
+                        ohsee.vault.delete(entry.key).then(() => {
+                          if (credentials?.vaultEntryId === entry.key) {
+                            onChange({ ...credentials, vaultEntryId: undefined });
+                          }
+                          refreshVault();
+                        }).catch((err: unknown) => {
+                          setVaultError(err instanceof Error ? err.message : String(err));
+                        });
+                      }}
+                    >
+                      Remove
+                    </button>
                   </li>
                 );
               })}
@@ -145,7 +178,10 @@ export function CredentialsSection({
           <div>
             <button
               type="button"
-              onClick={() => setCredEditorOpen(true)}
+              onClick={() => {
+                setEditingEntry(null);
+                setCredEditorOpen(true);
+              }}
               className="btn btn--ghost"
             >
               + Add credential
@@ -156,10 +192,14 @@ export function CredentialsSection({
 
       {credEditorOpen && (
         <CredentialEditor
-          existing={null}
-          onClose={() => setCredEditorOpen(false)}
+          existing={editingEntry}
+          onClose={() => {
+            setCredEditorOpen(false);
+            setEditingEntry(null);
+          }}
           onSaved={() => {
             setCredEditorOpen(false);
+            setEditingEntry(null);
             refreshVault();
           }}
           onError={setVaultError}
