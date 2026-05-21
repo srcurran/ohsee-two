@@ -282,6 +282,7 @@ export default function PageDetailPanel({
                       <DiffViewer
                         prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
                         devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
+                        highlightSrc={bpResult.highlightScreenshot ? `/api/screenshots/${bpResult.highlightScreenshot}` : undefined}
                         alt={`Diff for ${currentPage.path}`}
                         changes={bpResult.semanticChanges}
                         highlightedChangeId={highlightedChangeId}

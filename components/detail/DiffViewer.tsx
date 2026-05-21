@@ -5,15 +5,13 @@ import type { SemanticChange } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_COLOR_FALLBACK } from "@/lib/colors";
 
 interface Props {
-  /** Prod screenshot — rendered on top with `mix-blend-mode: difference`,
-   *  so identical pixels go black and differences glow as the color delta.
-   *  `mix-blend-mode: difference` is symmetric, so which image is on top
-   *  doesn't change the difference math — but the bottom layer is the one
-   *  that "shows through" at lower overlay opacities, so we put dev on the
-   *  bottom (the user is shipping dev, that's the layer to inspect). */
+  /** Prod screenshot — used as blend overlay when no highlight image. */
   prodSrc: string;
-  /** Dev screenshot — rendered as the base layer. */
+  /** Dev screenshot — shown on press-and-hold so the user can compare. */
   devSrc: string;
+  /** Highlight image — prod with pink-tinted change regions. When available,
+   *  replaces the blend-mode approach with a clearer visual. */
+  highlightSrc?: string;
   alt?: string;
   changes?: SemanticChange[];
   highlightedChangeId?: string | null;
@@ -22,13 +20,13 @@ interface Props {
 function DiffViewerComponent({
   prodSrc,
   devSrc,
+  highlightSrc,
   alt = "Diff view",
   changes,
   highlightedChangeId,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  // Measure the base (dev) image — both layers are aligned to identical
-  // intrinsic dimensions, so one measurement drives marker positioning.
+  // Measure the base image — drives marker positioning.
   const imgRef = useRef<HTMLImageElement>(null);
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [renderedHeight, setRenderedHeight] = useState(0);
@@ -37,11 +35,11 @@ function DiffViewerComponent({
   // dev image briefly composites against the (white) container background and
   // flashes inverted before prod paints in behind it.
   const [overlayLoaded, setOverlayLoaded] = useState(false);
-  // Press-and-hold anywhere on the diff-viewer to surface the difference.
-  // At rest the overlay sits at 0.2 (mostly dev with subtle change highlights
-  // — readable as a real screenshot). While held it ramps to 0.8 (strong
-  // difference glow over a dim dev base — easy to spot exactly what changed).
+  // Press-and-hold: when highlight image is available, toggles to dev so the
+  // user can see the new version. Without highlight, ramps the blend overlay
+  // opacity to surface the pixel difference.
   const [peek, setPeek] = useState(false);
+  const hasHighlight = !!highlightSrc;
   const overlayOpacity = peek ? 0.8 : 0.2;
 
   useEffect(() => {
@@ -70,9 +68,9 @@ function DiffViewerComponent({
       window.removeEventListener("resize", update);
       ro.disconnect();
     };
-  }, [devSrc]);
+  }, [highlightSrc, devSrc]);
 
-  // Reset overlay-loaded gate when the prod (overlay) source changes, so a
+  // Reset overlay-loaded gate when the overlay source changes, so a
   // breakpoint / variant switch doesn't keep showing the previous overlay
   // while the new one streams in.
   useEffect(() => {
@@ -124,31 +122,30 @@ function DiffViewerComponent({
         onPointerUp={() => setPeek(false)}
         onPointerCancel={() => setPeek(false)}
       >
+        {/* When highlight image exists: show it at rest, swap to dev on peek.
+            When no highlight: legacy blend (dev base + prod overlay with
+            mix-blend-mode difference). */}
         <img
           ref={imgRef}
-          src={devSrc}
-          alt={`${alt} (dev)`}
+          src={hasHighlight ? (peek ? devSrc : highlightSrc) : devSrc}
+          alt={hasHighlight ? `${alt} (highlight)` : `${alt} (dev)`}
           className="diff-viewer__image diff-viewer__image--base"
           draggable={false}
           loading="lazy"
           decoding="async"
         />
-        <img
-          src={prodSrc}
-          alt={`${alt} (prod)`}
-          onLoad={() => setOverlayLoaded(true)}
-          loading="lazy"
-          decoding="async"
-          /* Hybrid blend (option 5): the difference layer at <1 opacity lets
-             the base (dev) image show through. Identical regions render as
-             (1 - opacity) × dev (dim but readable); differences render as
-             opacity × delta + (1 - opacity) × dev (the "glow" tinted by
-             what's underneath). Press-and-hold toggles strength — see
-             `peek` above. */
-          style={{ opacity: overlayLoaded ? overlayOpacity : 0 }}
-          className="diff-viewer__image diff-viewer__image--overlay"
-          draggable={false}
-        />
+        {!hasHighlight && (
+          <img
+            src={prodSrc}
+            alt={`${alt} (prod)`}
+            onLoad={() => setOverlayLoaded(true)}
+            loading="lazy"
+            decoding="async"
+            style={{ opacity: overlayLoaded ? overlayOpacity : 0 }}
+            className="diff-viewer__image diff-viewer__image--overlay"
+            draggable={false}
+          />
+        )}
         {scale > 0 &&
           markers.map((marker) => {
             const isHighlighted = highlightedChangeId
