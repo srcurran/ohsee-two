@@ -10,8 +10,8 @@
   }
 }
 
-/* Scrim + indicator — siblings of .page-grid-wrap inside
-   .report__grid-wrap, positioned absolutely against that container. */
+/* Scrim — covers the grid area with a translucent wash while a capture
+   is running. Absolutely positioned against .report__grid-wrap. */
 .page-grid-wrap__scrim {
   position: absolute;
   inset: 0;
@@ -20,12 +20,14 @@
   pointer-events: none;
 }
 
+/* Indicator — rendered BEFORE the grid in the DOM so sticky keeps it
+   pinned in the visible area as the user scrolls through already-
+   captured cards. Zero height prevents it from pushing the grid down. */
 .page-grid-wrap__indicator {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: sticky;
+  top: 40%;
   z-index: 2;
+  height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

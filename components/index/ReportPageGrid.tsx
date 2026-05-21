@@ -122,6 +122,16 @@ function ReportPageGridComponent({
 
   return (
     <>
+      {/* The indicator renders BEFORE the grid so position: sticky keeps
+          it visible while scrolling through already-captured cards. The
+          scrim stays absolute to cover the full grid area. */}
+      {isRunning && (
+        <div className="page-grid-wrap__indicator">
+          <div className="loader-spinner loader-spinner--sm" />
+          <p className="loader-text">Capturing...</p>
+        </div>
+      )}
+
       {hasPages && (
         <div className={`page-grid-wrap${isRunning ? " page-grid-wrap--running" : ""}`}>
           <div className="page-grid">
@@ -130,15 +140,7 @@ function ReportPageGridComponent({
         </div>
       )}
 
-      {isRunning && (
-        <>
-          <div className="page-grid-wrap__scrim" />
-          <div className="page-grid-wrap__indicator">
-            <div className="loader-spinner loader-spinner--sm" />
-            <p className="loader-text">Capturing...</p>
-          </div>
-        </>
-      )}
+      {isRunning && <div className="page-grid-wrap__scrim" />}
 
       {!hasPages && !isRunning && (
         <>
