@@ -20,20 +20,28 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
         {bps.map((bp) => {
           const isActive = active === bp;
           const stats = changeCounts?.[String(bp)];
-          // Show a deviation dot when this breakpoint's change profile
-          // differs from the active breakpoint. When scope-aware specific
-          // counts are available (detail panel), prefer those — they ignore
-          // universal changes and only flag viewport-dependent deviations.
-          // Falls back to total changeCount comparison (report overview).
+          // When scope-aware specific counts are available (detail panel),
+          // show type-based dots: outline = universal, filled = specific.
+          // Falls back to a single filled dot for the report overview
+          // (deviation comparison against the active breakpoint).
           const hasScope = stats?.specificCount !== undefined;
+          const specificCount = stats?.specificCount ?? 0;
+          const universalCount = hasScope
+            ? (stats?.changeCount ?? 0) - specificCount
+            : 0;
+
+          // Detail panel: show dots per change type on non-active bps
+          const showUniversalDot = !isActive && hasScope && universalCount > 0;
+          const showSpecificDot = !isActive && hasScope && specificCount > 0;
+
+          // Report overview fallback: single dot when counts deviate
           const deviates =
             !isActive &&
+            !hasScope &&
             stats !== undefined &&
             activeStats !== undefined &&
-            (hasScope
-              ? (stats.specificCount ?? 0) !== (activeStats.specificCount ?? 0)
-              : (stats.changed !== activeStats.changed ||
-                 stats.changeCount !== activeStats.changeCount));
+            (stats.changed !== activeStats.changed ||
+             stats.changeCount !== activeStats.changeCount);
 
           return (
             <button
@@ -42,7 +50,8 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
               className={`tab ${isActive ? "tab--active" : ""}`}
             >
               <span className="tab__label">{bp}px</span>
-              {deviates && <span className="tab__deviation" />}
+              {showUniversalDot && <span className="tab__deviation tab__deviation--outline" />}
+              {(showSpecificDot || deviates) && <span className="tab__deviation" />}
               {isActive && <span className="tab__indicator" />}
             </button>
           );
