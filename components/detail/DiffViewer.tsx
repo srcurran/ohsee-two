@@ -35,9 +35,9 @@ function DiffViewerComponent({
   // dev image briefly composites against the (white) container background and
   // flashes inverted before prod paints in behind it.
   const [overlayLoaded, setOverlayLoaded] = useState(false);
-  // Press-and-hold: when highlight image is available, toggles to dev so the
-  // user can see the new version. Without highlight, ramps the blend overlay
-  // opacity to surface the pixel difference.
+  // Press-and-hold: when highlight image is available, hides the change
+  // markers so the user can see the highlighted regions clearly. Without
+  // highlight, ramps the blend overlay opacity to surface the pixel difference.
   const [peek, setPeek] = useState(false);
   const hasHighlight = !!highlightSrc;
   const overlayOpacity = peek ? 0.8 : 0.2;
@@ -122,12 +122,12 @@ function DiffViewerComponent({
         onPointerUp={() => setPeek(false)}
         onPointerCancel={() => setPeek(false)}
       >
-        {/* When highlight image exists: show it at rest, swap to dev on peek.
-            When no highlight: legacy blend (dev base + prod overlay with
-            mix-blend-mode difference). */}
+        {/* When highlight image exists: always show it (markers toggle on
+            press). When no highlight: legacy blend (dev base + prod overlay
+            with mix-blend-mode difference). */}
         <img
           ref={imgRef}
-          src={hasHighlight ? (peek ? devSrc : highlightSrc) : devSrc}
+          src={hasHighlight ? highlightSrc : devSrc}
           alt={hasHighlight ? `${alt} (highlight)` : `${alt} (dev)`}
           className="diff-viewer__image diff-viewer__image--base"
           draggable={false}
@@ -146,7 +146,7 @@ function DiffViewerComponent({
             draggable={false}
           />
         )}
-        {scale > 0 &&
+        {scale > 0 && !(hasHighlight && peek) &&
           markers.map((marker) => {
             const isHighlighted = highlightedChangeId
               ? marker.changes.some((c) => c.id === highlightedChangeId)
