@@ -9,7 +9,7 @@ type TrackedReport = {
 
 type MinimalReport = {
   status?: string;
-  pages?: Array<{ breakpoints?: Record<string, { diffPercent?: number }> }>;
+  pages?: Array<{ breakpoints?: Record<string, { changeCount?: number }> }>;
   error?: string;
 };
 
@@ -112,7 +112,7 @@ function countChangedPages(report: MinimalReport): number {
   const pages = report.pages ?? [];
   return pages.reduce((count, page) => {
     const bps = page.breakpoints ? Object.values(page.breakpoints) : [];
-    const hasChange = bps.some((bp) => (bp?.diffPercent ?? 0) > 0);
+    const hasChange = bps.some((bp) => (bp?.changeCount ?? 0) > 0);
     return count + (hasChange ? 1 : 0);
   }, 0);
 }
