@@ -26,10 +26,10 @@
   background: var(--sidebar-background);
   /* 44px top puts the rail's content below the 36px titlebar drag strip
    * with a small breathing gap. */
-  padding: 44px var(--space-4) var(--space-5);
+  padding-top: 44px;
 
-  &--expanded  { width: 240px; padding-inline: var(--space-4); }
-  &--collapsed { width: 0;     padding-inline: 0; }
+  &--expanded  { width: 240px; }
+  &--collapsed { width: 0;}
   &--animated {
     transition:
       width 0.2s var(--ease-standard),

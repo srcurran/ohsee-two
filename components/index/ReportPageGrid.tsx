@@ -7,9 +7,49 @@
 
 import { memo } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
-import type { Report, ReportPage } from "@/lib/types";
+import type { Report, ReportPage, SemanticChange } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
 import { topLevelSelector } from "@/lib/change-identity";
+
+/** Short labels for category tags on page cards. */
+const CATEGORY_LABELS: Record<string, string> = {
+  structural: "DOM",
+  layout: "layout",
+  typography: "type",
+  color: "color",
+  content: "text",
+  spacing: "spacing",
+  alignment: "align",
+  visibility: "vis",
+  border: "border",
+};
+
+/** Build a concise summary of change categories for the card footer.
+ *  Groups by top-level selector first (so multiple property changes on
+ *  the same element count once), then counts per category. Returns
+ *  entries sorted by count descending, capped at 3 tags. */
+function summarizeChanges(
+  changes: SemanticChange[] | undefined,
+): { label: string; count: number }[] {
+  if (!changes || changes.length === 0) return [];
+  // Dedupe by top-level selector per category so the counts are
+  // meaningful (3 layout changes on the same nav = 1 "layout" hit).
+  const catSelectors = new Map<string, Set<string>>();
+  for (const c of changes) {
+    const cat = c.category;
+    const top = topLevelSelector(c.selector);
+    let set = catSelectors.get(cat);
+    if (!set) { set = new Set(); catSelectors.set(cat, set); }
+    set.add(top);
+  }
+  const entries = Array.from(catSelectors.entries())
+    .map(([cat, selectors]) => ({
+      label: CATEGORY_LABELS[cat] ?? cat,
+      count: selectors.size,
+    }))
+    .sort((a, b) => b.count - a.count);
+  return entries.slice(0, 3);
+}
 
 interface ReportPageGridProps {
   report: Report;
@@ -33,6 +73,7 @@ function ReportPageGridComponent({
     const thumbSrc = bpResult?.prodScreenshot
       ? `/api/screenshots/${bpResult.prodScreenshot}`
       : null;
+    const tags = summarizeChanges(bpResult?.semanticChanges);
 
     return (
       <button
@@ -56,9 +97,20 @@ function ReportPageGridComponent({
           )}
         </div>
         <div className="page-tile__footer">
-          <span className="page-tile__label">
-            {page.stepLabel || page.path}
-          </span>
+          <div className="page-tile__footer-text">
+            <span className="page-tile__label">
+              {page.stepLabel || page.path}
+            </span>
+            {tags.length > 0 && (
+              <div className="page-tile__tags">
+                {tags.map((t) => (
+                  <span key={t.label} className="page-tile__tag">
+                    {t.count} {t.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           <ChangeBadge count={changeCount} noData={!hasScreenshot} />
         </div>
       </button>
