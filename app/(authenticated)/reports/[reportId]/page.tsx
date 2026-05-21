@@ -25,7 +25,7 @@ import {
 function ReportPageInner() {
   const params = useParams<{ reportId: string }>();
   const router = useRouter();
-  const { refreshProjects, openProjectSettings, openTestSettings } = useSidebar();
+  const { refreshKey, refreshProjects, openProjectSettings, openTestSettings } = useSidebar();
 
   const {
     report,
@@ -37,7 +37,7 @@ function ReportPageInner() {
     setRunError,
     runNow,
     cancel,
-  } = useReportData({ reportId: params.reportId, refreshProjects });
+  } = useReportData({ reportId: params.reportId, refreshProjects, refreshKey });
 
   const {
     bpParam,

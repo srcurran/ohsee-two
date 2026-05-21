@@ -3,7 +3,7 @@
  * Also runs the 3s poll while a report is `running` and exposes
  * `runNow`/`cancel` mutations. The page UI is a thin composition over this. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buildRunErrorDetails } from "@/components/settings/run-error-details";
 import type { ErrorModalDetails } from "@/components/utility/ErrorModal";
@@ -16,6 +16,10 @@ interface UseReportDataArgs {
   reportId: string;
   /** Bumps the sidebar so its status dots refresh when a run finishes. */
   refreshProjects: () => void;
+  /** Incremented by SidebarProvider.refreshProjects() — drives a re-fetch
+   *  of project + siteTest so settings edits (like name changes) are
+   *  reflected without a full page reload. */
+  refreshKey: number;
 }
 
 interface UseReportDataResult {
@@ -33,6 +37,7 @@ interface UseReportDataResult {
 export function useReportData({
   reportId,
   refreshProjects,
+  refreshKey,
 }: UseReportDataArgs): UseReportDataResult {
   const router = useRouter();
   const [report, setReport] = useState<Report | null>(null);
@@ -102,6 +107,42 @@ export function useReportData({
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportId, refreshProjects]);
+
+  // Re-fetch project + siteTest when the sidebar data refreshes (e.g.
+  // after renaming a test in the settings overlay). Uses a ref to read
+  // the current report without adding it as a dependency — we only want
+  // this effect to fire on refreshKey changes, not on every report poll.
+  const reportRef = useRef(report);
+  reportRef.current = report;
+  const initialRefreshKey = useRef(refreshKey);
+  useEffect(() => {
+    // Skip the initial mount — the main effect already loads the project.
+    if (refreshKey === initialRefreshKey.current) return;
+    const r = reportRef.current;
+    if (!r?.projectId) return;
+    let cancelled = false;
+    (async () => {
+      const reportsUrl = r.siteTestId
+        ? `/api/projects/${r.projectId}/tests/${r.siteTestId}/reports`
+        : `/api/projects/${r.projectId}/reports`;
+      const [pRes, allRes] = await Promise.all([
+        fetch(`/api/projects/${r.projectId}`),
+        fetch(reportsUrl),
+      ]);
+      if (cancelled) return;
+      if (pRes.ok) {
+        const p = await pRes.json();
+        setProject(p);
+        if (r.siteTestId && p.tests) {
+          const test = p.tests.find((t: SiteTest) => t.id === r.siteTestId);
+          if (test) setSiteTest(test);
+        }
+      }
+      if (allRes.ok) setAllReports(await allRes.json());
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const runNow = async () => {
     if (!project) return;
