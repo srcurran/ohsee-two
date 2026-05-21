@@ -35,8 +35,8 @@ function DiffViewerComponent({
   // dev image briefly composites against the (white) container background and
   // flashes inverted before prod paints in behind it.
   const [overlayLoaded, setOverlayLoaded] = useState(false);
-  // Press-and-hold: when highlight image is available, hides the change
-  // markers so the user can see the highlighted regions clearly. Without
+  // Press-and-hold: when highlight image is available, shows the change
+  // markers (hidden by default so the highlight regions are clean). Without
   // highlight, ramps the blend overlay opacity to surface the pixel difference.
   const [peek, setPeek] = useState(false);
   const hasHighlight = !!highlightSrc;
@@ -146,7 +146,7 @@ function DiffViewerComponent({
             draggable={false}
           />
         )}
-        {scale > 0 && !(hasHighlight && peek) &&
+        {scale > 0 && (!hasHighlight || peek) &&
           markers.map((marker) => {
             const isHighlighted = highlightedChangeId
               ? marker.changes.some((c) => c.id === highlightedChangeId)
@@ -167,7 +167,7 @@ function DiffViewerComponent({
                 />
                 <div
                   className="diff-viewer__label"
-                  style={{ backgroundColor: marker.color }}
+                  style={{ backgroundColor: `color-mix(in srgb, ${marker.color} 70%, #000)` }}
                 >
                   {marker.label}
                   {marker.count > 1 && (

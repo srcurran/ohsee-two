@@ -22,6 +22,7 @@ export async function sliceIntoStrips(
     const height = Math.min(stripHeight, totalHeight - top);
     const strip = await sharp(imagePath)
       .extract({ left: 0, top, width, height })
+      .removeAlpha()
       .raw()
       .toBuffer();
     buffers.push(strip);
@@ -83,18 +84,33 @@ export function alignStrips(
   const m = prodHashes.length;
   const n = devHashes.length;
 
-  // When strip counts are similar (within ~5%), the pages have the same
-  // structure and strips map 1:1 sequentially. LCS over-optimizes here
-  // by skipping low-similarity strips to find better matches later,
-  // which creates blank gaps in the aligned output.
+  // When strip counts are similar (within ~5%), try sequential alignment
+  // first — it avoids the blank-gap artifacts that LCS can produce.
+  // But verify the alignment quality: if too many consecutive low-
+  // similarity pairs appear (indicating a vertical shift), fall back to
+  // LCS which handles inserted/deleted sections properly.
   const countDiff = Math.abs(m - n);
   const maxCount = Math.max(m, n);
   if (maxCount > 0 && countDiff / maxCount <= 0.05) {
-    return sequentialAlign(prodHashes, devHashes);
+    const seq = sequentialAlign(prodHashes, devHashes);
+    // Check for vertical shift: if any run of 3+ consecutive low-
+    // similarity pairs exists, the content is shifted and LCS will
+    // produce a more accurate alignment.
+    let lowRunLen = 0;
+    let hasShift = false;
+    for (const a of seq) {
+      if (a.similarity < 0.90) {
+        lowRunLen++;
+        if (lowRunLen >= 3) { hasShift = true; break; }
+      } else {
+        lowRunLen = 0;
+      }
+    }
+    if (!hasShift) return seq;
   }
 
-  // For pages with significantly different lengths, use LCS to find
-  // inserted/deleted sections.
+  // For pages with significantly different lengths or detected shifts,
+  // use LCS to find inserted/deleted sections.
   return lcsAlign(prodHashes, devHashes, threshold);
 }
 
