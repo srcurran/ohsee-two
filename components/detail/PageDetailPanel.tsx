@@ -115,14 +115,6 @@ export default function PageDetailPanel({
     () => computeBpChangeCounts(activeBpData),
     [activeBpData],
   );
-  // Unique element groups with changes at the active breakpoint — drives
-  // the header badge. Uses the active bp only (not all bps) so the number
-  // matches the page-card badge and the change list count.
-  const activeBpChangeCount = useMemo(() => {
-    const bpR = activeBpData[String(initialBp)];
-    if (!bpR?.semanticChanges) return 0;
-    return new Set(bpR.semanticChanges.map((c) => topLevelSelector(c.selector))).size;
-  }, [activeBpData, initialBp]);
   const reportBreakpoints = useMemo(
     () => collectReportBreakpoints(report),
     [report],
@@ -132,6 +124,33 @@ export default function PageDetailPanel({
     () => classifyChanges(activeBpData),
     [activeBpData],
   );
+  // Unique element groups with changes at the active breakpoint — drives
+  // the header badge. Groups by top-level selector, then classifies each
+  // group as universal or specific (same logic as the page-card badges).
+  const { activeBpChangeCount, headerUniversalCount, headerSpecificCount } =
+    useMemo(() => {
+      const bpR = activeBpData[String(initialBp)];
+      if (!bpR?.semanticChanges)
+        return { activeBpChangeCount: 0, headerUniversalCount: 0, headerSpecificCount: 0 };
+      const selectorBucket = new Map<string, boolean>();
+      for (const c of bpR.semanticChanges) {
+        const top = topLevelSelector(c.selector);
+        const isUni = changeScope.isUniversal(c);
+        const prev = selectorBucket.get(top);
+        selectorBucket.set(top, prev === undefined ? isUni : prev && isUni);
+      }
+      let uni = 0;
+      let spec = 0;
+      for (const allUniversal of selectorBucket.values()) {
+        if (allUniversal) uni++;
+        else spec++;
+      }
+      return {
+        activeBpChangeCount: uni + spec,
+        headerUniversalCount: uni,
+        headerSpecificCount: spec,
+      };
+    }, [activeBpData, initialBp, changeScope]);
   // Merge scope-aware specific counts into the per-breakpoint stats so the
   // deviation dots in BreakpointTabs can distinguish universal changes from
   // breakpoint-specific ones.
@@ -153,12 +172,6 @@ export default function PageDetailPanel({
     : currentPage.path === "/"
       ? "index"
       : currentPage.path.replace(/^\//, "");
-
-  const badgeMod = !bpResult?.prodScreenshot
-    ? "badge--neutral"
-    : activeBpChangeCount > 0
-      ? "badge--warning"
-      : "badge--success";
 
   return (
     <>
@@ -207,8 +220,10 @@ export default function PageDetailPanel({
                 project.devUrl,
                 "dev",
               )}
-              badgeMod={badgeMod}
-              badgeContent={bpResult?.prodScreenshot ? activeBpChangeCount : "—"}
+              noData={!bpResult?.prodScreenshot}
+              changeCount={activeBpChangeCount}
+              universalCount={headerUniversalCount}
+              specificCount={headerSpecificCount}
               activeBp={activeBp}
               prevPage={prevPage}
               nextPage={nextPage}

@@ -16,8 +16,10 @@ interface PageDetailHeaderProps {
   pageName: string;
   prodUrl: string;
   devUrl: string;
-  badgeMod: string;
-  badgeContent: number | "—";
+  noData: boolean;
+  changeCount: number;
+  universalCount: number;
+  specificCount: number;
   activeBp: number;
   prevPage: ReportPage | null;
   nextPage: ReportPage | null;
@@ -32,8 +34,10 @@ export function PageDetailHeader({
   pageName,
   prodUrl,
   devUrl,
-  badgeMod,
-  badgeContent,
+  noData,
+  changeCount,
+  universalCount,
+  specificCount,
   activeBp,
   prevPage,
   nextPage,
@@ -48,7 +52,13 @@ export function PageDetailHeader({
     >
       <div className="page-detail-panel__title-group">
         <PageTitleMenu label={pageName} prodUrl={prodUrl} devUrl={devUrl} />
-        <span className={`badge badge--lg ${badgeMod}`}>{badgeContent}</span>
+        <HeaderBadge
+          noData={noData}
+          changeCount={changeCount}
+          universalCount={universalCount}
+          specificCount={specificCount}
+          activeBp={activeBp}
+        />
       </div>
 
       <div className="page-detail-panel__nav">
@@ -154,6 +164,60 @@ function PageTitleMenu({
         </>
       )}
     </div>
+  );
+}
+
+/** Split badge for the detail header: universal (outline) + specific (filled),
+ * each with a short label explaining what the number means. Falls back to
+ * a single neutral or success badge when there's no data or zero changes. */
+function HeaderBadge({
+  noData,
+  changeCount,
+  universalCount,
+  specificCount,
+  activeBp,
+}: {
+  noData: boolean;
+  changeCount: number;
+  universalCount: number;
+  specificCount: number;
+  activeBp: number;
+}) {
+  if (noData) {
+    return <span className="badge badge--lg badge--neutral">&mdash;</span>;
+  }
+  if (changeCount === 0) {
+    return <span className="badge badge--lg badge--success">0</span>;
+  }
+
+  const hasSplit = universalCount > 0 || specificCount > 0;
+  if (hasSplit && (universalCount + specificCount) > 0) {
+    return (
+      <div className="header-badge-group">
+        {universalCount > 0 && (
+          <div className="header-badge-group__item">
+            <span className="badge badge--lg badge--warning-outline">
+              {universalCount > 50 ? "50+" : universalCount}
+            </span>
+            <span className="header-badge-group__label">all</span>
+          </div>
+        )}
+        {specificCount > 0 && (
+          <div className="header-badge-group__item">
+            <span className="badge badge--lg badge--warning">
+              {specificCount > 50 ? "50+" : specificCount}
+            </span>
+            <span className="header-badge-group__label">{activeBp}px</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <span className="badge badge--lg badge--warning">
+      {changeCount > 50 ? "50+" : changeCount}
+    </span>
   );
 }
 
