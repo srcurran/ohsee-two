@@ -60,6 +60,10 @@ export function pickActiveBp(
 export interface BpChangeStats {
   changed: number;
   total: number;
+  /** Total semantic change count across all pages at this breakpoint.
+   *  Used to detect deviation even when the same pages have changes at
+   *  different breakpoints — e.g. 3 changes at 1440 vs 2 at 1024. */
+  changeCount: number;
 }
 
 /** Per-breakpoint change stats: how many pages have changes vs total pages. */
@@ -77,16 +81,20 @@ export function computeBpChangeCounts(
           ? page.variants[activeVariant]
           : page.breakpoints;
       for (const [bp, result] of Object.entries(bpData)) {
-        if (!stats[bp]) stats[bp] = { changed: 0, total: 0 };
+        if (!stats[bp]) stats[bp] = { changed: 0, total: 0, changeCount: 0 };
         stats[bp].total++;
-        if ((result.semanticChanges?.length ?? 0) > 0) stats[bp].changed++;
+        const n = result.semanticChanges?.length ?? 0;
+        if (n > 0) stats[bp].changed++;
+        stats[bp].changeCount += n;
       }
     }
   } else {
     for (const [bp, result] of Object.entries(reportOrBpData)) {
+      const n = result.semanticChanges?.length ?? 0;
       stats[bp] = {
-        changed: (result.semanticChanges?.length ?? 0) > 0 ? 1 : 0,
+        changed: n > 0 ? 1 : 0,
         total: 1,
+        changeCount: n,
       };
     }
   }

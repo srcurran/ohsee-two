@@ -20,14 +20,16 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
         {bps.map((bp) => {
           const isActive = active === bp;
           const stats = changeCounts?.[String(bp)];
-          // Show a deviation dot when this breakpoint's changed-page count
-          // differs from the active breakpoint — highlights breakpoint-
-          // specific changes vs. universal ones.
+          // Show a deviation dot when this breakpoint's change profile
+          // differs from the active breakpoint — either a different number
+          // of pages with changes, or a different total change count
+          // (catches e.g. 3 changes at 1440 vs 2 at 1024 on the same page).
           const deviates =
             !isActive &&
             stats !== undefined &&
             activeStats !== undefined &&
-            stats.changed !== activeStats.changed;
+            (stats.changed !== activeStats.changed ||
+             stats.changeCount !== activeStats.changeCount);
 
           return (
             <button

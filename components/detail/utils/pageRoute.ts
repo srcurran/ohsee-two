@@ -27,9 +27,11 @@ export function computeBpChangeCounts(
   const stats: Record<string, BpChangeStats> = {};
   for (const [key, val] of Object.entries(data)) {
     if (val.changeCount < 0) continue;
+    const n = val.semanticChanges?.length ?? 0;
     stats[key] = {
-      changed: (val.semanticChanges?.length ?? 0) > 0 ? 1 : 0,
+      changed: n > 0 ? 1 : 0,
       total: 1,
+      changeCount: n,
     };
   }
   return stats;
