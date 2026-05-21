@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import type { Project, Report } from "@/lib/types";
 import {
   type ProjectWithReports,
@@ -69,19 +68,20 @@ export function useSidebarData({
   }, [refreshKey]);
 
   // Live-poll while a report is in flight so the sidebar dots update.
-  // Skipped while the user is on /reports/* — useReportData polls the
-  // individual report there and calls refreshProjects() on the
-  // running → terminal transition, so this would double up.
-  const pathname = usePathname();
-  const onReportPage = !!pathname && pathname.startsWith("/reports/");
+  // Runs regardless of which page the user is on — the report-page
+  // poll also calls refreshProjects() on the running → terminal
+  // transition, but there's a race where the transition can be missed
+  // if the report finishes before the page's initial fetch completes.
+  // The refreshProjects debounce coalesces duplicate calls anyway, so
+  // the extra fetches are negligible.
   const hasRunningReport = data.some(({ reports }) =>
     reports.some((r) => r.status === "running"),
   );
   useEffect(() => {
-    if (!hasRunningReport || onReportPage) return;
+    if (!hasRunningReport) return;
     const interval = setInterval(refreshProjects, 3000);
     return () => clearInterval(interval);
-  }, [hasRunningReport, onReportPage, refreshProjects]);
+  }, [hasRunningReport, refreshProjects]);
 
   return { data, setData, loading };
 }
