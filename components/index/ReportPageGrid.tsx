@@ -70,9 +70,15 @@ function ReportPageGridComponent({
       ? new Set(bpResult.semanticChanges.map((c) => topLevelSelector(c.selector))).size
       : 0;
     const hasScreenshot = !!bpResult?.prodScreenshot;
-    const thumbSrc = bpResult?.prodScreenshot
-      ? `/api/screenshots/${bpResult.prodScreenshot}`
-      : null;
+    // Prefer the highlight image (prod with changed pixels tinted) when
+    // available — it gives an at-a-glance view of what changed. Falls
+    // back to the plain prod screenshot for zero-change pages or older
+    // reports that don't have a highlight image.
+    const thumbSrc = bpResult?.highlightScreenshot
+      ? `/api/screenshots/${bpResult.highlightScreenshot}`
+      : bpResult?.prodScreenshot
+        ? `/api/screenshots/${bpResult.prodScreenshot}`
+        : null;
     const tags = summarizeChanges(bpResult?.semanticChanges);
 
     return (

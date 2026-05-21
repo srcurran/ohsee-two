@@ -217,6 +217,8 @@ export interface BreakpointResult {
   diffScreenshot: string;
   alignedProdScreenshot?: string;
   alignedDevScreenshot?: string;
+  /** Prod screenshot with changed pixels tinted — used as the page-card thumbnail. */
+  highlightScreenshot?: string;
   /** Actual URL Playwright was on when the prod screenshot was taken (post-redirects, post-flow-navigation). */
   prodUrl?: string;
   /** Actual URL Playwright was on when the dev screenshot was taken. */

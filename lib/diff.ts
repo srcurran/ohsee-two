@@ -8,9 +8,35 @@ export interface DiffResult {
   diffImagePath: string;
   alignedProdImagePath: string;
   alignedDevImagePath: string;
+  highlightImagePath: string;
   changeCount: number;
   totalPixels: number;
   changePercentage: number;
+}
+
+/** Highlight overlay colour — pinkish-red that stands out on any background. */
+const HL_R = 255, HL_G = 50, HL_B = 100, HL_ALPHA = 0.45;
+
+/**
+ * Blend a highlight tint onto `prod` pixels wherever `diff` marks a change.
+ * With the default pixelmatch options the diff buffer paints changed pixels
+ * with `diffColor` at full alpha (255) and unchanged pixels at `alpha * 255`
+ * (~25).  Thresholding at 128 cleanly separates the two.
+ */
+function blendHighlight(
+  prod: Buffer,
+  diff: Buffer,
+  length: number,
+): Buffer {
+  const out = Buffer.from(prod);
+  for (let i = 0; i < length; i += 4) {
+    if (diff[i + 3] > 128) {
+      out[i]     = Math.round(out[i]     * (1 - HL_ALPHA) + HL_R * HL_ALPHA);
+      out[i + 1] = Math.round(out[i + 1] * (1 - HL_ALPHA) + HL_G * HL_ALPHA);
+      out[i + 2] = Math.round(out[i + 2] * (1 - HL_ALPHA) + HL_B * HL_ALPHA);
+    }
+  }
+  return out;
 }
 
 /**
@@ -69,29 +95,31 @@ export async function generateDiff(
   outputPath: string,
   alignedProdPath: string,
   alignedDevPath: string,
-  stripHeight: number = 100
+  stripHeight?: number,
+  highlightPath?: string,
 ): Promise<DiffResult> {
+  const sh = stripHeight ?? 100;
   const prodMeta = await sharp(prodImagePath).metadata();
   const devMeta = await sharp(devImagePath).metadata();
 
   const width = Math.max(prodMeta.width!, devMeta.width!);
 
   // If images are very small, just do direct pixelmatch
-  if (prodMeta.height! < stripHeight * 3 && devMeta.height! < stripHeight * 3) {
-    return directDiff(prodImagePath, devImagePath, outputPath, alignedProdPath, alignedDevPath, width);
+  if (prodMeta.height! < sh * 3 && devMeta.height! < sh * 3) {
+    return directDiff(prodImagePath, devImagePath, outputPath, alignedProdPath, alignedDevPath, width, highlightPath);
   }
 
   // Slice into strips
-  const prodStrips = await sliceIntoStrips(prodImagePath, stripHeight);
-  const devStrips = await sliceIntoStrips(devImagePath, stripHeight);
+  const prodStrips = await sliceIntoStrips(prodImagePath, sh);
+  const devStrips = await sliceIntoStrips(devImagePath, sh);
 
   // Compute hashes
   const prodHashes = prodStrips.buffers.map((buf, i) => {
-    const h = Math.min(stripHeight, prodStrips.totalHeight - i * stripHeight);
+    const h = Math.min(sh, prodStrips.totalHeight - i * sh);
     return computeStripHash(buf, prodStrips.width, h);
   });
   const devHashes = devStrips.buffers.map((buf, i) => {
-    const h = Math.min(stripHeight, devStrips.totalHeight - i * stripHeight);
+    const h = Math.min(sh, devStrips.totalHeight - i * sh);
     return computeStripHash(buf, devStrips.width, h);
   });
 
@@ -105,6 +133,9 @@ export async function generateDiff(
   const alignedProdStrips: Buffer[] = [];
   const alignedDevStrips: Buffer[] = [];
   const alignedStripHeights: number[] = [];
+  // Highlight strips — prod with changed pixels tinted
+  const highlightStrips: Buffer[] = [];
+  const highlightStripHeights: number[] = [];
   let changeCount = 0;
   let totalPixels = 0;
 
@@ -114,12 +145,12 @@ export async function generateDiff(
       // perceptual hash can miss spacing and subtle layout changes
       const prodIdx = alignment.prodIndex!;
       const devIdx = alignment.devIndex!;
-      const prodH = Math.min(stripHeight, prodStrips.totalHeight - prodIdx * stripHeight);
-      const devH = Math.min(stripHeight, devStrips.totalHeight - devIdx * stripHeight);
+      const prodH = Math.min(sh, prodStrips.totalHeight - prodIdx * sh);
+      const devH = Math.min(sh, devStrips.totalHeight - devIdx * sh);
       const h = Math.min(prodH, devH);
 
-      const prodPng = await extractStrip(prodImagePath, prodIdx * stripHeight, prodMeta.width!, prodH, width, h);
-      const devPng = await extractStrip(devImagePath, devIdx * stripHeight, devMeta.width!, devH, width, h);
+      const prodPng = await extractStrip(prodImagePath, prodIdx * sh, prodMeta.width!, prodH, width, h);
+      const devPng = await extractStrip(devImagePath, devIdx * sh, devMeta.width!, devH, width, h);
 
       const diffBuf = Buffer.alloc(width * h * 4);
       const numDiff = pixelmatch(
@@ -139,13 +170,19 @@ export async function generateDiff(
       alignedDevStrips.push(devPng);
       alignedStripHeights.push(h);
 
+      // Highlight: prod pixels with changed pixels tinted
+      if (highlightPath) {
+        highlightStrips.push(blendHighlight(prodPng, diffBuf, width * h * 4));
+        highlightStripHeights.push(h);
+      }
+
       changeCount += numDiff;
       totalPixels += width * h;
     } else if (alignment.type === "insert") {
       // Dev-only content
       const devIdx = alignment.devIndex!;
-      const h = Math.min(stripHeight, devStrips.totalHeight - devIdx * stripHeight);
-      const strip = await extractStrip(devImagePath, devIdx * stripHeight, devMeta.width!, h, width, h);
+      const h = Math.min(sh, devStrips.totalHeight - devIdx * sh);
+      const strip = await extractStrip(devImagePath, devIdx * sh, devMeta.width!, h, width, h);
 
       outputStrips.push(strip);
       outputStripHeights.push(h);
@@ -156,13 +193,20 @@ export async function generateDiff(
       alignedDevStrips.push(strip);
       alignedStripHeights.push(h);
 
+      // Highlight: inserted content is fully tinted (every pixel changed)
+      if (highlightPath) {
+        const allChanged = Buffer.alloc(width * h * 4, 255); // all alpha = 255 → all "changed"
+        highlightStrips.push(blendHighlight(strip, allChanged, width * h * 4));
+        highlightStripHeights.push(h);
+      }
+
       changeCount += width * h;
       totalPixels += width * h;
     } else if (alignment.type === "delete") {
       // Prod-only content (removed in dev)
       const prodIdx = alignment.prodIndex!;
-      const h = Math.min(stripHeight, prodStrips.totalHeight - prodIdx * stripHeight);
-      const prodStrip = await extractStrip(prodImagePath, prodIdx * stripHeight, prodMeta.width!, h, width, h);
+      const h = Math.min(sh, prodStrips.totalHeight - prodIdx * sh);
+      const prodStrip = await extractStrip(prodImagePath, prodIdx * sh, prodMeta.width!, h, width, h);
 
       // Aligned: real in prod, blank in dev
       const blankStrip = Buffer.alloc(width * h * 4, 0); // transparent
@@ -170,37 +214,46 @@ export async function generateDiff(
       alignedDevStrips.push(blankStrip);
       alignedStripHeights.push(h);
 
+      // Highlight: deleted content is fully tinted
+      if (highlightPath) {
+        const allChanged = Buffer.alloc(width * h * 4, 255);
+        highlightStrips.push(blendHighlight(prodStrip, allChanged, width * h * 4));
+        highlightStripHeights.push(h);
+      }
+
       totalPixels += prodStrips.width * h;
     }
   }
 
   // Stitch all output images
   if (outputStrips.length === 0) {
-    await sharp({ create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-      .png()
-      .toFile(outputPath);
-    await sharp({ create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-      .png()
-      .toFile(alignedProdPath);
-    await sharp({ create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-      .png()
-      .toFile(alignedDevPath);
+    const blank = sharp({ create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png();
+    await Promise.all([
+      blank.clone().toFile(outputPath),
+      blank.clone().toFile(alignedProdPath),
+      blank.clone().toFile(alignedDevPath),
+    ]);
     return {
       diffImagePath: outputPath,
       alignedProdImagePath: alignedProdPath,
       alignedDevImagePath: alignedDevPath,
+      highlightImagePath: highlightPath ?? "",
       changeCount: 0,
       totalPixels: 0,
       changePercentage: 0,
     };
   }
 
-  // Diff image (dev strips, used for DiffViewer overlay markers)
-  await stitchStrips(outputStrips, outputStripHeights, width, outputPath);
-
-  // Aligned prod and dev images (used for tap/slider comparison)
-  await stitchStrips(alignedProdStrips, alignedStripHeights, width, alignedProdPath);
-  await stitchStrips(alignedDevStrips, alignedStripHeights, width, alignedDevPath);
+  // Stitch in parallel: diff, aligned prod, aligned dev, and highlight
+  const stitchJobs: Promise<void>[] = [
+    stitchStrips(outputStrips, outputStripHeights, width, outputPath),
+    stitchStrips(alignedProdStrips, alignedStripHeights, width, alignedProdPath),
+    stitchStrips(alignedDevStrips, alignedStripHeights, width, alignedDevPath),
+  ];
+  if (highlightPath && highlightStrips.length > 0 && changeCount > 0) {
+    stitchJobs.push(stitchStrips(highlightStrips, highlightStripHeights, width, highlightPath));
+  }
+  await Promise.all(stitchJobs);
 
   const changePercentage = totalPixels > 0 ? (changeCount / totalPixels) * 100 : 0;
 
@@ -208,6 +261,7 @@ export async function generateDiff(
     diffImagePath: outputPath,
     alignedProdImagePath: alignedProdPath,
     alignedDevImagePath: alignedDevPath,
+    highlightImagePath: (highlightPath && changeCount > 0) ? highlightPath : "",
     changeCount,
     totalPixels,
     changePercentage,
@@ -248,7 +302,8 @@ async function directDiff(
   outputPath: string,
   alignedProdPath: string,
   alignedDevPath: string,
-  targetWidth: number
+  targetWidth: number,
+  highlightPath?: string,
 ): Promise<DiffResult> {
   const prodImg = await sharp(prodImagePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const devImg = await sharp(devImagePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -270,15 +325,28 @@ async function directDiff(
   );
 
   // Save diff (dev image), and aligned versions (just resized originals for small images)
-  await sharp(devResized, { raw: { width, height, channels: 4 } }).png().toFile(outputPath);
-  await sharp(prodResized, { raw: { width, height, channels: 4 } }).png().toFile(alignedProdPath);
-  await sharp(devResized, { raw: { width, height, channels: 4 } }).png().toFile(alignedDevPath);
+  const writes: Promise<void>[] = [
+    sharp(devResized, { raw: { width, height, channels: 4 } }).png().toFile(outputPath).then(() => {}),
+    sharp(prodResized, { raw: { width, height, channels: 4 } }).png().toFile(alignedProdPath).then(() => {}),
+    sharp(devResized, { raw: { width, height, channels: 4 } }).png().toFile(alignedDevPath).then(() => {}),
+  ];
+
+  // Generate highlight image (prod with changed pixels tinted)
+  if (highlightPath && numDiff > 0) {
+    const hlBuf = blendHighlight(prodResized, diffBuf, width * height * 4);
+    writes.push(
+      sharp(hlBuf, { raw: { width, height, channels: 4 } }).png().toFile(highlightPath).then(() => {}),
+    );
+  }
+
+  await Promise.all(writes);
 
   const totalPixels = width * height;
   return {
     diffImagePath: outputPath,
     alignedProdImagePath: alignedProdPath,
     alignedDevImagePath: alignedDevPath,
+    highlightImagePath: (highlightPath && numDiff > 0) ? highlightPath : "",
     changeCount: numDiff,
     totalPixels,
     changePercentage: totalPixels > 0 ? (numDiff / totalPixels) * 100 : 0,
