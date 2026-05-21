@@ -9,7 +9,7 @@ import { memo } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
 import type { Report, ReportPage, SemanticChange } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
-import { topLevelSelector } from "@/lib/change-identity";
+import { topLevelSelector, changeGroupKey } from "@/lib/change-identity";
 
 /** Short labels for category tags on page cards. */
 const CATEGORY_LABELS: Record<string, string> = {
@@ -70,6 +70,46 @@ function ReportPageGridComponent({
       ? new Set(bpResult.semanticChanges.map((c) => topLevelSelector(c.selector))).size
       : 0;
     const hasScreenshot = !!bpResult?.prodScreenshot;
+
+    // Split the change count into universal (appears at all breakpoints) vs
+    // breakpoint-specific, using the coarse group key for matching.
+    const bpData = activeVariant && page.variants?.[activeVariant]
+      ? page.variants[activeVariant]
+      : page.breakpoints;
+    const bpsWithSemantic = Object.values(bpData).filter(
+      (r) => r.semanticChanges !== undefined,
+    );
+    let universalCount = 0;
+    let specificCount = 0;
+    if (bpResult?.semanticChanges && bpsWithSemantic.length > 1) {
+      // Build key → Set<bp index> across ALL breakpoints
+      const keyToBpCount = new Map<string, number>();
+      for (const r of bpsWithSemantic) {
+        const seen = new Set<string>();
+        for (const c of r.semanticChanges!) {
+          const k = changeGroupKey(c);
+          if (!seen.has(k)) { seen.add(k); keyToBpCount.set(k, (keyToBpCount.get(k) ?? 0) + 1); }
+        }
+      }
+      const totalBps = bpsWithSemantic.length;
+      // Count unique top-level selectors in each bucket for this bp
+      const uniSelectors = new Set<string>();
+      const specSelectors = new Set<string>();
+      for (const c of bpResult.semanticChanges) {
+        const k = changeGroupKey(c);
+        const top = topLevelSelector(c.selector);
+        if ((keyToBpCount.get(k) ?? 0) >= totalBps) {
+          uniSelectors.add(top);
+        } else {
+          specSelectors.add(top);
+        }
+      }
+      universalCount = uniSelectors.size;
+      specificCount = specSelectors.size;
+    } else {
+      // Single breakpoint or no semantic data — all counts are "universal"
+      universalCount = changeCount;
+    }
     // Prefer the highlight image (prod with changed pixels tinted) when
     // available — it gives an at-a-glance view of what changed. Falls
     // back to the plain prod screenshot for zero-change pages or older
@@ -117,7 +157,12 @@ function ReportPageGridComponent({
               </div>
             )}
           </div>
-          <ChangeBadge count={changeCount} noData={!hasScreenshot} />
+          <ChangeBadge
+            count={changeCount}
+            universalCount={universalCount}
+            specificCount={specificCount}
+            noData={!hasScreenshot}
+          />
         </div>
       </button>
     );
