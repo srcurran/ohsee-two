@@ -131,13 +131,12 @@ function ReportPageGridComponent({
         className="page-tile animate-card-in"
         style={{ animationDelay: `${index * 50}ms` }}
       >
-        <div className="page-tile__thumb page-tile__thumb--center">
+        <div className="page-tile__thumb">
           {thumbSrc ? (
             <img
               src={thumbSrc}
               alt={page.stepLabel || page.path}
-              className="page-tile__thumb-img page-tile__thumb-img--clamped"
-              style={{ maxWidth: activeBp }}
+              className="page-tile__thumb-img"
               loading="lazy"
               decoding="async"
             />

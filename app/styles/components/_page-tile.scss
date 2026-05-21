@@ -1,9 +1,9 @@
-/* PageTile — interactive report page card with a thumbnail image.
+/* PageTile — interactive report page card with a scrollable thumbnail.
  * Structure mirrors the JSX tree (rendered inline by ReportPageGrid.tsx):
  *   <button .page-tile>
- *     <div .page-tile__thumb [--center]>
- *       <img .page-tile__thumb-img [--clamped]>   ← when a diff exists
- *       <div .page-tile__thumb-empty>              ← fallback
+ *     <div .page-tile__thumb>
+ *       <img .page-tile__thumb-img>         ← when a diff exists
+ *       <div .page-tile__thumb-empty>       ← fallback
  *     <div .page-tile__footer>
  *       <span .page-tile__label>
  */
@@ -37,28 +37,20 @@
     position: relative;
     aspect-ratio: 4 / 3;
     width: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: var(--radius-xs);
     background: var(--page-tile-thumb-background);
-    display: flex;
-
-    &--center {
-      justify-content: center;
-    }
+    /* Hide scrollbar for clean look — scroll still works via wheel/trackpad. */
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 
     .page-tile__thumb-img {
       display: block;
       width: 100%;
-      height: 100%;
-      margin-inline: auto;
-      object-fit: contain;
-      object-position: top;
+      height: auto;
       border: 1px solid var(--page-tile-thumb-border);
       border-radius: var(--radius-xs);
-
-      &--clamped {
-        object-fit: cover;
-      }
     }
 
     .page-tile__thumb-empty {
