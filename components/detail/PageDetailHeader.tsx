@@ -167,9 +167,9 @@ function PageTitleMenu({
   );
 }
 
-/** Split badge for the detail header: universal (outline) + specific (filled),
- * each with a short label explaining what the number means. Falls back to
- * a single neutral or success badge when there's no data or zero changes. */
+/** Inline pill badges for the detail header: universal (outline) + specific
+ * (filled), each containing both the count and a label so they're self-
+ * documenting. Falls back to a single badge for zero/no-data states. */
 function HeaderBadge({
   noData,
   changeCount,
@@ -195,20 +195,20 @@ function HeaderBadge({
     return (
       <div className="header-badge-group">
         {universalCount > 0 && (
-          <div className="header-badge-group__item">
-            <span className="badge badge--lg badge--warning-outline">
+          <span className="header-pill header-pill--outline">
+            <span className="header-pill__count">
               {universalCount > 50 ? "50+" : universalCount}
             </span>
-            <span className="header-badge-group__label">all</span>
-          </div>
+            <span className="header-pill__label">all</span>
+          </span>
         )}
         {specificCount > 0 && (
-          <div className="header-badge-group__item">
-            <span className="badge badge--lg badge--warning">
+          <span className="header-pill header-pill--filled">
+            <span className="header-pill__count">
               {specificCount > 50 ? "50+" : specificCount}
             </span>
-            <span className="header-badge-group__label">{activeBp}px</span>
-          </div>
+            <span className="header-pill__label">{activeBp}px only</span>
+          </span>
         )}
       </div>
     );
