@@ -10,6 +10,7 @@ import Link from "next/link";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
 import type { Report } from "@/lib/types";
+import type { BpChangeStats } from "@/components/index/utils/report";
 import { Icon } from "@/components/utility/Icon";
 
 interface ReportHeaderProps {
@@ -17,6 +18,9 @@ interface ReportHeaderProps {
   allReports: Report[];
   headerTitle: string;
   activeBp: number;
+  /** Stats for the active breakpoint — rendered as a changed/total badge
+   *  next to the title so the per-breakpoint tabs can stay clean. */
+  changeStats?: BpChangeStats;
   onRun: () => void;
   onCancel: () => void;
   onOpenSettings: () => void;
@@ -28,6 +32,7 @@ export function ReportHeader({
   allReports,
   headerTitle,
   activeBp,
+  changeStats,
   onRun,
   onCancel,
   onOpenSettings,
@@ -41,6 +46,17 @@ export function ReportHeader({
     <div className="report__title-row">
       <div className="report__title-group">
         <h1 className="report__title">{headerTitle}</h1>
+        {changeStats && report.status !== "running" && (
+          <span
+            className={`report__change-count ${
+              changeStats.changed > 0
+                ? "report__change-count--warning"
+                : "report__change-count--success"
+            }`}
+          >
+            {changeStats.changed}/{changeStats.total}
+          </span>
+        )}
         {report.status !== "running" ? (
           <button onClick={onRun} className="run-pill">
             Run now

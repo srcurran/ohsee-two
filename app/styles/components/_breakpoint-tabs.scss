@@ -63,6 +63,17 @@
     }
   }
 
+  /* Small dot that flags breakpoints whose change count deviates from
+     the active tab — makes breakpoint-specific bugs visible at a glance. */
+  &__deviation {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--status-error-500);
+    flex-shrink: 0;
+  }
+
   &__indicator {
     position: absolute;
     bottom: -1px;

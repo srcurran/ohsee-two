@@ -13,14 +13,21 @@ interface Props {
 
 export default function BreakpointTabs({ active, onChange, changeCounts, breakpoints: bpOverride, align = "center" }: Props) {
   const bps = bpOverride || [...BREAKPOINTS];
+  const activeStats = changeCounts?.[String(active)];
   return (
     <div className="tab-bar">
       <div className={`tab-bar__list tab-bar__list--${align}`}>
         {bps.map((bp) => {
           const isActive = active === bp;
           const stats = changeCounts?.[String(bp)];
-          const hasData = stats !== undefined;
-          const hasChanges = hasData && stats.changed > 0;
+          // Show a deviation dot when this breakpoint's changed-page count
+          // differs from the active breakpoint — highlights breakpoint-
+          // specific changes vs. universal ones.
+          const deviates =
+            !isActive &&
+            stats !== undefined &&
+            activeStats !== undefined &&
+            stats.changed !== activeStats.changed;
 
           return (
             <button
@@ -29,11 +36,7 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
               className={`tab ${isActive ? "tab--active" : ""}`}
             >
               <span className="tab__label">{bp}px</span>
-              {hasData && (
-                <span className={`tab__stats ${hasChanges ? "tab__stats--warning" : "tab__stats--success"}`}>
-                  {stats.changed}/{stats.total}
-                </span>
-              )}
+              {deviates && <span className="tab__deviation" />}
               {isActive && <span className="tab__indicator" />}
             </button>
           );

@@ -69,6 +69,27 @@
           overflow: hidden;
           text-overflow: ellipsis;
         }
+
+        /* Compact changed/total pill beside the title — replaces the
+           per-breakpoint counts so the tab bar can focus on deviations. */
+        .report__change-count {
+          font-size: var(--font-size-sm);
+          font-weight: var(--weight-semibold);
+          padding: var(--space-0-5) var(--space-2);
+          border-radius: var(--radius-full);
+          line-height: var(--line-none);
+          white-space: nowrap;
+          flex-shrink: 0;
+
+          &--success {
+            background: color-mix(in srgb, var(--status-success-500) 15%, transparent);
+            color: var(--status-success-500);
+          }
+          &--warning {
+            background: color-mix(in srgb, var(--status-error-500) 15%, transparent);
+            color: var(--status-error-500);
+          }
+        }
       }
 
       .report__right {
