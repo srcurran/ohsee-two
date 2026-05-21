@@ -15,25 +15,79 @@ export interface DiffResult {
 }
 
 /** Highlight overlay colour — pinkish-red that stands out on any background. */
-const HL_R = 255, HL_G = 50, HL_B = 100, HL_ALPHA = 0.45;
+const HL_R = 255, HL_G = 75, HL_B = 105, HL_ALPHA = 0.55;
+/** Dilation radius (px) — grows each changed pixel into a visible block so
+ *  highlights are obvious even at thumbnail scale. */
+const HL_DILATE = 20;
 
 /**
- * Blend a highlight tint onto `prod` pixels wherever `diff` marks a change.
- * With the default pixelmatch options the diff buffer paints changed pixels
- * with `diffColor` at full alpha (255) and unchanged pixels at `alpha * 255`
- * (~25).  Thresholding at 128 cleanly separates the two.
+ * Blend a highlight tint onto `prod` pixels wherever `diff` marks a change,
+ * dilating the change mask first so individual changed pixels become visible
+ * blocks at thumbnail scale.
+ *
+ * Uses separable box dilation: first expand horizontally, then vertically.
+ * This is O(W×H) and creates solid rectangular highlight regions.
  */
 function blendHighlight(
   prod: Buffer,
-  diff: Buffer,
+  diff: Buffer | Uint8Array,
   length: number,
+  imgWidth: number,
 ): Buffer {
+  const pixelCount = length / 4;
+  const h = pixelCount / imgWidth;
+
+  // Step 1: Extract binary mask from diff alpha channel.
+  // pixelmatch paints changed pixels red (255,0,0) and anti-aliased
+  // pixels yellow (255,255,0) — both with blue = 0.  Unchanged pixels
+  // are grayscale (N,N,N) where blue ≈ 230+.  Checking blue < 100
+  // cleanly separates changed/AA from unchanged.
+  const mask = new Uint8Array(pixelCount);
+  for (let i = 0; i < pixelCount; i++) {
+    mask[i] = diff[i * 4 + 2] < 100 ? 1 : 0;
+  }
+
+  // Step 2: Dilate horizontally — for each row, expand 1s outward by HL_DILATE.
+  const hMask = new Uint8Array(pixelCount);
+  for (let y = 0; y < h; y++) {
+    const row = y * imgWidth;
+    let last = -HL_DILATE - 1;
+    for (let x = 0; x < imgWidth; x++) {
+      if (mask[row + x]) last = x;
+      if (x - last <= HL_DILATE) hMask[row + x] = 1;
+    }
+    last = imgWidth + HL_DILATE + 1;
+    for (let x = imgWidth - 1; x >= 0; x--) {
+      if (mask[row + x]) last = x;
+      if (last - x <= HL_DILATE) hMask[row + x] = 1;
+    }
+  }
+
+  // Step 3: Dilate vertically (using the horizontally-dilated mask).
+  const finalMask = new Uint8Array(pixelCount);
+  for (let x = 0; x < imgWidth; x++) {
+    let last = -HL_DILATE - 1;
+    for (let y = 0; y < h; y++) {
+      if (hMask[y * imgWidth + x]) last = y;
+      if (y - last <= HL_DILATE) finalMask[y * imgWidth + x] = 1;
+    }
+    last = h + HL_DILATE + 1;
+    for (let y = h - 1; y >= 0; y--) {
+      if (hMask[y * imgWidth + x]) last = y;
+      if (last - y <= HL_DILATE) finalMask[y * imgWidth + x] = 1;
+    }
+  }
+
+  // Step 4: Blend highlight colour onto prod wherever the dilated mask is set.
   const out = Buffer.from(prod);
-  for (let i = 0; i < length; i += 4) {
-    if (diff[i + 3] > 128) {
-      out[i]     = Math.round(out[i]     * (1 - HL_ALPHA) + HL_R * HL_ALPHA);
-      out[i + 1] = Math.round(out[i + 1] * (1 - HL_ALPHA) + HL_G * HL_ALPHA);
-      out[i + 2] = Math.round(out[i + 2] * (1 - HL_ALPHA) + HL_B * HL_ALPHA);
+  const invAlpha = 1 - HL_ALPHA;
+  const tR = HL_R * HL_ALPHA, tG = HL_G * HL_ALPHA, tB = HL_B * HL_ALPHA;
+  for (let i = 0; i < pixelCount; i++) {
+    if (finalMask[i]) {
+      const px = i * 4;
+      out[px]     = Math.round(out[px]     * invAlpha + tR);
+      out[px + 1] = Math.round(out[px + 1] * invAlpha + tG);
+      out[px + 2] = Math.round(out[px + 2] * invAlpha + tB);
     }
   }
   return out;
@@ -152,11 +206,11 @@ export async function generateDiff(
       const prodPng = await extractStrip(prodImagePath, prodIdx * sh, prodMeta.width!, prodH, width, h);
       const devPng = await extractStrip(devImagePath, devIdx * sh, devMeta.width!, devH, width, h);
 
-      const diffBuf = Buffer.alloc(width * h * 4);
+      const diffBuf = new Uint8Array(width * h * 4);
       const numDiff = pixelmatch(
         new Uint8Array(prodPng),
         new Uint8Array(devPng),
-        new Uint8Array(diffBuf),
+        diffBuf,
         width,
         h,
         { threshold: 0.1 }
@@ -172,7 +226,7 @@ export async function generateDiff(
 
       // Highlight: prod pixels with changed pixels tinted
       if (highlightPath) {
-        highlightStrips.push(blendHighlight(prodPng, diffBuf, width * h * 4));
+        highlightStrips.push(blendHighlight(prodPng, diffBuf, width * h * 4, width));
         highlightStripHeights.push(h);
       }
 
@@ -196,7 +250,7 @@ export async function generateDiff(
       // Highlight: inserted content is fully tinted (every pixel changed)
       if (highlightPath) {
         const allChanged = Buffer.alloc(width * h * 4, 255); // all alpha = 255 → all "changed"
-        highlightStrips.push(blendHighlight(strip, allChanged, width * h * 4));
+        highlightStrips.push(blendHighlight(strip, allChanged, width * h * 4, width));
         highlightStripHeights.push(h);
       }
 
@@ -217,7 +271,7 @@ export async function generateDiff(
       // Highlight: deleted content is fully tinted
       if (highlightPath) {
         const allChanged = Buffer.alloc(width * h * 4, 255);
-        highlightStrips.push(blendHighlight(prodStrip, allChanged, width * h * 4));
+        highlightStrips.push(blendHighlight(prodStrip, allChanged, width * h * 4, width));
         highlightStripHeights.push(h);
       }
 
@@ -314,11 +368,11 @@ async function directDiff(
   const prodResized = await sharp(prodImagePath).resize(width, height, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } }).ensureAlpha().raw().toBuffer();
   const devResized = await sharp(devImagePath).resize(width, height, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } }).ensureAlpha().raw().toBuffer();
 
-  const diffBuf = Buffer.alloc(width * height * 4);
+  const diffBuf = new Uint8Array(width * height * 4);
   const numDiff = pixelmatch(
     new Uint8Array(prodResized),
     new Uint8Array(devResized),
-    new Uint8Array(diffBuf),
+    diffBuf,
     width,
     height,
     { threshold: 0.1 }
@@ -333,7 +387,7 @@ async function directDiff(
 
   // Generate highlight image (prod with changed pixels tinted)
   if (highlightPath && numDiff > 0) {
-    const hlBuf = blendHighlight(prodResized, diffBuf, width * height * 4);
+    const hlBuf = blendHighlight(prodResized, diffBuf, width * height * 4, width);
     writes.push(
       sharp(hlBuf, { raw: { width, height, channels: 4 } }).png().toFile(highlightPath).then(() => {}),
     );
