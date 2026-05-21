@@ -6,14 +6,17 @@
 
 import ChangeList from "@/components/detail/ChangeList";
 import type { BreakpointResult } from "@/lib/types";
+import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
 interface PageDetailChangesProps {
   bpResult: BreakpointResult;
+  changeScope?: ChangeScope;
   onChangeClick: (id: string) => void;
 }
 
 export function PageDetailChanges({
   bpResult,
+  changeScope,
   onChangeClick,
 }: PageDetailChangesProps) {
   return (
@@ -22,6 +25,7 @@ export function PageDetailChanges({
         <ChangeList
           changes={bpResult.semanticChanges}
           summary={bpResult.changeSummary}
+          changeScope={changeScope}
           onChangeClick={onChangeClick}
         />
       ) : bpResult.pixelChangeCount && bpResult.pixelChangeCount > 0 ? (

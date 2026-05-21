@@ -154,6 +154,19 @@
       color: var(--change-entry-description-color);
     }
 
+    .change-entry__scope {
+      display: inline-flex;
+      margin-left: var(--space-1-5);
+      padding: 1px var(--space-1);
+      border-radius: var(--radius-xs);
+      background: var(--change-entry-scope-background, color-mix(in srgb, var(--neutral-400) 20%, transparent));
+      color: var(--change-entry-scope-color, var(--neutral-500));
+      font-size: var(--font-size-xs);
+      line-height: var(--line-none);
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
     .change-entry__selector {
       font-size: var(--font-size-sm);
       color: var(--change-entry-selector-color);

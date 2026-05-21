@@ -25,6 +25,8 @@ import {
   getPageLabel,
   resolvePageUrl,
 } from "@/components/detail/utils/pageDetail";
+import { classifyChanges } from "@/components/detail/utils/changeScope";
+import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
 interface Props {
   report: Report;
@@ -125,6 +127,20 @@ export default function PageDetailPanel({
     [report],
   );
   const reportVariants = useMemo(() => collectReportVariants(report), [report]);
+  const changeScope = useMemo(
+    () => classifyChanges(activeBpData),
+    [activeBpData],
+  );
+  // Merge scope-aware specific counts into the per-breakpoint stats so the
+  // deviation dots in BreakpointTabs can distinguish universal changes from
+  // breakpoint-specific ones.
+  const bpChangeCountsWithScope = useMemo(() => {
+    const merged = { ...bpChangeCounts };
+    for (const [bp, stats] of Object.entries(merged)) {
+      merged[bp] = { ...stats, specificCount: changeScope.specificCountPerBp[bp] ?? 0 };
+    }
+    return merged;
+  }, [bpChangeCounts, changeScope]);
 
   // Early return must follow every hook above so hook order stays stable.
   if (!currentPage) return null;
@@ -215,7 +231,7 @@ export default function PageDetailPanel({
               <BreakpointTabs
                 active={activeBp}
                 onChange={onBpChange}
-                changeCounts={bpChangeCounts}
+                changeCounts={bpChangeCountsWithScope}
                 breakpoints={reportBreakpoints}
                 align="start"
               />
@@ -284,6 +300,7 @@ export default function PageDetailPanel({
               {bpResult && (
                 <PageDetailChanges
                   bpResult={bpResult}
+                  changeScope={changeScope}
                   onChangeClick={(id) => {
                     // Tapping a change item is a request to inspect it —
                     // force the Changes view so the marker is visible

@@ -15,6 +15,15 @@ export function semanticChangeKey(change: SemanticChange): string {
   return `${change.selector}::${change.category}::${prop}::${prod}->${dev}`;
 }
 
+/**
+ * Coarser identity that ignores prod/dev values so the same logical change
+ * (e.g. "width changed on .hero") matches across breakpoints even when the
+ * specific values differ (1360→1240 at 1440px vs 900→800 at 1024px).
+ */
+export function changeGroupKey(change: SemanticChange): string {
+  return `${change.selector}::${change.category}::${change.details?.property ?? ""}`;
+}
+
 // --- Selector grouping (shared with ChangeList UI) ---
 
 const SEMANTIC_TAGS = new Set([

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 import { topLevelSelector } from "@/lib/change-identity";
+import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
 /**
  * Trailing portion of `child` after stripping the parent prefix. Empty string
@@ -87,6 +88,7 @@ function groupBySelector(changes: SemanticChange[]): SelectorGroup[] {
 interface ChangeListProps {
   changes: SemanticChange[];
   summary?: Record<string, number>;
+  changeScope?: ChangeScope;
   onChangeClick?: (id: string) => void;
 }
 
@@ -94,7 +96,7 @@ interface ChangeListProps {
 // suppress the trailing click on whichever pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
 
-export default function ChangeList({ changes, onChangeClick }: ChangeListProps) {
+export default function ChangeList({ changes, changeScope, onChangeClick }: ChangeListProps) {
   const [activeFilter, setActiveFilter] = useState<ChangeCategory | "all">("all");
   const filtersRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -255,12 +257,14 @@ export default function ChangeList({ changes, onChangeClick }: ChangeListProps) 
             <ChangeEntry
               key={group.changes[0].id}
               change={group.changes[0]}
+              changeScope={changeScope}
               onClick={onChangeClick ? () => onChangeClick(group.changes[0].id) : undefined}
             />
           ) : (
             <ChangeGroup
               key={group.key}
               group={group}
+              changeScope={changeScope}
               onChangeClick={onChangeClick}
             />
           ),
@@ -272,9 +276,11 @@ export default function ChangeList({ changes, onChangeClick }: ChangeListProps) 
 
 function ChangeGroup({
   group,
+  changeScope,
   onChangeClick,
 }: {
   group: SelectorGroup;
+  changeScope?: ChangeScope;
   onChangeClick?: (id: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(true);
@@ -300,6 +306,7 @@ function ChangeGroup({
             <ChangeEntry
               key={change.id}
               change={change}
+              changeScope={changeScope}
               onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
               parentSelector={group.selector}
             />
@@ -312,10 +319,12 @@ function ChangeGroup({
 
 function ChangeEntry({
   change,
+  changeScope,
   onClick,
   parentSelector,
 }: {
   change: SemanticChange;
+  changeScope?: ChangeScope;
   onClick?: () => void;
   /** When set, the entry is rendered inside a ChangeGroup that already shows
    *  this prefix in its header — we drop the visual chrome (border, bg) and
@@ -334,6 +343,16 @@ function ChangeEntry({
     ? relativeSelector(parentSelector, change.selector)
     : readableSelector(change.selector);
 
+  // Scope badge — breakpoint-specific changes get a "N of M" annotation so
+  // the user can distinguish universal changes from viewport-dependent ones.
+  let scopeLabel: string | null = null;
+  if (changeScope && changeScope.totalBps > 1) {
+    const bpCount = changeScope.bpCountFor(change);
+    if (bpCount < changeScope.totalBps) {
+      scopeLabel = `${bpCount} of ${changeScope.totalBps}`;
+    }
+  }
+
   return (
     <div
       onClick={onClick}
@@ -347,7 +366,12 @@ function ChangeEntry({
         {cfg.icon}
       </span>
       <div className="change-entry__body">
-        <span className="change-entry__description">{change.description}</span>
+        <span className="change-entry__description">
+          {change.description}
+          {scopeLabel && (
+            <span className="change-entry__scope">{scopeLabel}</span>
+          )}
+        </span>
         {displaySelector && change.details.prodValue && change.details.devValue && (
           <span className="change-entry__selector">{displaySelector}</span>
         )}
