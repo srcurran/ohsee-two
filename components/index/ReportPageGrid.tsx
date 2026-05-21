@@ -73,6 +73,8 @@ function ReportPageGridComponent({
 
     // Split the change count into universal (appears at all breakpoints) vs
     // breakpoint-specific, using the coarse group key for matching.
+    // Each selector group is counted exactly once — it's "universal" only
+    // if ALL its changes are universal, otherwise "specific".
     const bpData = activeVariant && page.variants?.[activeVariant]
       ? page.variants[activeVariant]
       : page.breakpoints;
@@ -82,7 +84,7 @@ function ReportPageGridComponent({
     let universalCount = 0;
     let specificCount = 0;
     if (bpResult?.semanticChanges && bpsWithSemantic.length > 1) {
-      // Build key → Set<bp index> across ALL breakpoints
+      // Build key → bp count across ALL breakpoints
       const keyToBpCount = new Map<string, number>();
       for (const r of bpsWithSemantic) {
         const seen = new Set<string>();
@@ -92,20 +94,21 @@ function ReportPageGridComponent({
         }
       }
       const totalBps = bpsWithSemantic.length;
-      // Count unique top-level selectors in each bucket for this bp
-      const uniSelectors = new Set<string>();
-      const specSelectors = new Set<string>();
+      // Group by top-level selector, then classify the whole group.
+      // A group is "universal" only if EVERY change in it is universal.
+      // If any change is breakpoint-specific, the group is "specific".
+      const selectorBucket = new Map<string, boolean>(); // true = all universal so far
       for (const c of bpResult.semanticChanges) {
-        const k = changeGroupKey(c);
         const top = topLevelSelector(c.selector);
-        if ((keyToBpCount.get(k) ?? 0) >= totalBps) {
-          uniSelectors.add(top);
-        } else {
-          specSelectors.add(top);
-        }
+        const k = changeGroupKey(c);
+        const isUniversal = (keyToBpCount.get(k) ?? 0) >= totalBps;
+        const prev = selectorBucket.get(top);
+        selectorBucket.set(top, prev === undefined ? isUniversal : prev && isUniversal);
       }
-      universalCount = uniSelectors.size;
-      specificCount = specSelectors.size;
+      for (const allUniversal of selectorBucket.values()) {
+        if (allUniversal) universalCount++;
+        else specificCount++;
+      }
     } else {
       // Single breakpoint or no semantic data — all counts are "universal"
       universalCount = changeCount;

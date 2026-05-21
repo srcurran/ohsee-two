@@ -6,7 +6,7 @@ import VariantTabs from "@/components/index/VariantTabs";
 import DiffViewer from "@/components/detail/DiffViewer";
 import SliderComparison from "@/components/detail/SliderComparison";
 import type { Project, Report } from "@/lib/types";
-import { countUniqueSemanticChanges } from "@/lib/change-identity";
+import { topLevelSelector } from "@/lib/change-identity";
 import { PageDetailHeader } from "@/components/detail/PageDetailHeader";
 import { PageDetailViewToggle } from "@/components/detail/PageDetailViewToggle";
 import { PageDetailChanges } from "@/components/detail/PageDetailChanges";
@@ -115,13 +115,14 @@ export default function PageDetailPanel({
     () => computeBpChangeCounts(activeBpData),
     [activeBpData],
   );
-  const totalUniqueChanges = useMemo(
-    () =>
-      countUniqueSemanticChanges(
-        Object.values(activeBpData).map((bp) => bp.semanticChanges),
-      ),
-    [activeBpData],
-  );
+  // Unique element groups with changes at the active breakpoint — drives
+  // the header badge. Uses the active bp only (not all bps) so the number
+  // matches the page-card badge and the change list count.
+  const activeBpChangeCount = useMemo(() => {
+    const bpR = activeBpData[String(initialBp)];
+    if (!bpR?.semanticChanges) return 0;
+    return new Set(bpR.semanticChanges.map((c) => topLevelSelector(c.selector))).size;
+  }, [activeBpData, initialBp]);
   const reportBreakpoints = useMemo(
     () => collectReportBreakpoints(report),
     [report],
@@ -155,7 +156,7 @@ export default function PageDetailPanel({
 
   const badgeMod = !bpResult?.prodScreenshot
     ? "badge--neutral"
-    : totalUniqueChanges > 0
+    : activeBpChangeCount > 0
       ? "badge--warning"
       : "badge--success";
 
@@ -207,7 +208,7 @@ export default function PageDetailPanel({
                 "dev",
               )}
               badgeMod={badgeMod}
-              badgeContent={bpResult?.prodScreenshot ? totalUniqueChanges : "—"}
+              badgeContent={bpResult?.prodScreenshot ? activeBpChangeCount : "—"}
               activeBp={activeBp}
               prevPage={prevPage}
               nextPage={nextPage}
