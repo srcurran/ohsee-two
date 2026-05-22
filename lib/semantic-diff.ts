@@ -187,28 +187,72 @@ interface ElementMatch {
   devOnly: CapturedElement[];
 }
 
-/** Identity key for content-anchoring — tag + collapsed direct text.
- *  Returns null for elements with no text (they can't be anchored). */
-function anchorKey(el: CapturedElement): string | null {
-  const text = el.textContent.trim().replace(/\s+/g, " ");
-  return text ? `${el.tag}\u0000${text}` : null;
+/** Collapsed direct text of an element, or "" when it has none. */
+function collapsedText(el: CapturedElement): string {
+  return el.textContent.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Direct text of every element's descendants, keyed by the ancestor's
+ * selector, in document order and capped so identity keys stay bounded.
+ * Lets a text-less container be identified by what it holds.
+ */
+function buildDescendantText(
+  elements: CapturedElement[],
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  for (const el of elements) {
+    const text = collapsedText(el);
+    if (!text) continue;
+    const segs = el.selector.split(" > ");
+    for (let i = 1; i < segs.length; i++) {
+      const ancestor = segs.slice(0, i).join(" > ");
+      const arr = map.get(ancestor);
+      if (arr) {
+        if (arr.length < 25) arr.push(text);
+      } else {
+        map.set(ancestor, [text]);
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Identity key for content-anchoring. A text-bearing element keys on its
+ * own direct text; a text-less container keys on its descendants' text — so
+ * a wrapper that survives a sibling deletion still matches by what it holds
+ * rather than its shifted :nth-of-type selector. Returns null when there is
+ * no text anywhere in the element's subtree.
+ */
+function anchorKey(
+  el: CapturedElement,
+  descendants: Map<string, string[]>,
+): string | null {
+  const own = collapsedText(el);
+  if (own) return `t:${el.tag}:${JSON.stringify(own)}`;
+  const desc = descendants.get(el.selector);
+  if (desc && desc.length > 0) return `d:${el.tag}:${JSON.stringify(desc)}`;
+  return null;
 }
 
 /**
  * Match prod ↔ dev elements.
  *
- * Pass 1 — content anchor: a text-bearing element is identified by its
- * tag + text, not its CSS selector. When that identity is unambiguous —
- * the same tag+text appears *exactly once* on each side — the two elements
- * are the same logical element even if a sibling insertion/removal shifted
- * its :nth-of-type selector. Repeated text (N:M, e.g. an "About" link in
- * both the nav and the footer) is deliberately left unanchored: pairing it
- * by document order guesses wrong when the counts differ and invents
- * phantom removed/added elements.
+ * Pass 1 — content anchor: an element is identified by content, not by its
+ * CSS selector — a text-bearing element by its own text, a text-less
+ * container by the text of its descendants (so a wrapper row matches by
+ * what it holds). When that identity is unambiguous — the same key appears
+ * *exactly once* on each side — the two elements are the same logical
+ * element even if a sibling insertion/removal shifted its :nth-of-type
+ * selector. Repeated content (N:M, e.g. an "About" link in both the nav and
+ * the footer) is deliberately left unanchored: pairing it by document order
+ * guesses wrong when the counts differ and invents phantom changes.
  *
- * Pass 2 — selector-match the remainder: text-less elements, repeated-text
- * elements, and genuine text edits (old text gone, new text new). Anything
- * still unmatched falls to the caller's similarity pairing.
+ * Pass 2 — selector-match the remainder: elements with no text anywhere in
+ * their subtree, repeated-content elements, and genuine text edits (old
+ * text gone, new text new). Anything still unmatched falls to the caller's
+ * similarity pairing.
  *
  * Anchoring first is what stops a deleted sibling from cascading into a
  * pile of bogus "text changed" entries: every surviving row matches its
@@ -221,17 +265,23 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
   const claimedDev = new Set<CapturedElement>();
 
   // Pass 1 — content anchor.
+  const prodDescendants = buildDescendantText(prod.elements);
+  const devDescendants = buildDescendantText(dev.elements);
   const prodByKey = new Map<string, CapturedElement[]>();
   const devByKey = new Map<string, CapturedElement[]>();
-  const group = (map: Map<string, CapturedElement[]>, el: CapturedElement) => {
-    const k = anchorKey(el);
+  const group = (
+    map: Map<string, CapturedElement[]>,
+    el: CapturedElement,
+    descendants: Map<string, string[]>,
+  ) => {
+    const k = anchorKey(el, descendants);
     if (!k) return;
     const arr = map.get(k);
     if (arr) arr.push(el);
     else map.set(k, [el]);
   };
-  for (const el of prod.elements) group(prodByKey, el);
-  for (const el of dev.elements) group(devByKey, el);
+  for (const el of prod.elements) group(prodByKey, el, prodDescendants);
+  for (const el of dev.elements) group(devByKey, el, devDescendants);
 
   for (const [key, prodEls] of prodByKey) {
     const devEls = devByKey.get(key);
