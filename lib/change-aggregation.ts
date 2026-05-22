@@ -253,7 +253,7 @@ export function aggregateAcrossElements(
       c.details.property ?? "",
       c.details.prodValue ?? "",
       c.details.devValue ?? "",
-    ].join(" ");
+    ].join("\u0000");
     const group = valueGroups.get(key) ?? [];
     group.push(c);
     valueGroups.set(key, group);
@@ -265,7 +265,7 @@ export function aggregateAcrossElements(
   for (const c of changes) {
     if (c.category !== "structural") continue;
     const direction = isRemoval(c) ? "rm" : isAddition(c) ? "add" : "restructure";
-    const key = [direction, c.tag, parentSelector(c.selector)].join(" ");
+    const key = [direction, c.tag, parentSelector(c.selector)].join("\u0000");
     const group = structGroups.get(key) ?? [];
     group.push(c);
     structGroups.set(key, group);
