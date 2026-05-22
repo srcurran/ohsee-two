@@ -106,16 +106,31 @@ const SIZE_EXPLAINERS = new Set([
   "textContent", "display", "element", "gap", "dom-restructure",
 ]);
 
+/** Parse a "WIDTHxHEIGHT" dimensions value into numbers. */
+function parseSize(value: string | undefined): { w: number; h: number } | null {
+  const m = value?.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/);
+  return m ? { w: parseFloat(m[1]), h: parseFloat(m[2]) } : null;
+}
+
+/** Whether a dimensions change moved the element's width (vs. height-only). */
+function widthChanged(change: SemanticChange): boolean {
+  const p = parseSize(change.details.prodValue);
+  const d = parseSize(change.details.devValue);
+  return !!p && !!d && Math.abs(p.w - d.w) > 4;
+}
+
 /**
  * Drop changes that are pure downstream effects of another change:
- *  • line-height — proportionally derived from font-size (1.5× across the
+ *  • line-height  — proportionally derived from font-size (1.5× across the
  *    whole dataset); when font-size also changed it carries no new signal.
- *  • dimensions  — a bare width/height delta with no local cause (no spacing,
- *    content, display or structural change) is a reflow artifact, not an
- *    intentional edit. 81% of historical dimension changes were unexplained.
- *  • position    — an element shifting is almost always a consequence of some
- *    other edit (a sibling resized, content reflowed). The visual diff still
- *    shows the movement; a textual "shifted Npx" entry just adds noise.
+ *  • dimensions   — a *height-only* delta with no local cause (no spacing,
+ *    content, display or structural change) is a reflow artifact. A width
+ *    change at a fixed viewport, by contrast, reflects a real layout edit
+ *    (max-width, width) and is kept. 81% of historical dimension changes
+ *    were unexplained height reflow.
+ *  • position     — an element shifting is almost always a consequence of
+ *    some other edit (a sibling resized, content reflowed). The visual diff
+ *    still shows the movement; a textual "shifted Npx" entry just adds noise.
  */
 export function suppressDownstream(
   changes: SemanticChange[],
@@ -138,7 +153,8 @@ export function suppressDownstream(
     if (c.details.property === "position") {
       return false;
     }
-    if (c.details.property === "dimensions") {
+    if (c.details.property === "dimensions" && !widthChanged(c)) {
+      // height-only change — keep it only if something local explains it
       let explained = false;
       for (const p of props) {
         if (SIZE_EXPLAINERS.has(p)) {
@@ -353,6 +369,18 @@ function describeStructural(
   return `${verb} <${tag}>`;
 }
 
+/** Describe a size change in terms of the axis that actually moved. */
+function describeSize(change: SemanticChange): string {
+  const p = parseSize(change.details.prodValue);
+  const d = parseSize(change.details.devValue);
+  if (!p || !d) return change.description;
+  const dw = Math.abs(p.w - d.w) > 4;
+  const dh = Math.abs(p.h - d.h) > 4;
+  if (dw && !dh) return `Width changed from ${p.w}px to ${d.w}px`;
+  if (dh && !dw) return `Height changed from ${p.h}px to ${d.h}px`;
+  return `Size changed from ${p.w}×${p.h}px to ${d.w}×${d.h}px`;
+}
+
 /** rgb()/rgba() → #hex, with a trailing opacity note when not fully opaque. */
 function formatColor(value: string | undefined): string {
   if (!value) return "";
@@ -424,6 +452,9 @@ export function describeChanges(
       );
     } else {
       if (change.category === "color") description = describeColor(change);
+      else if (change.details.property === "dimensions") {
+        description = describeSize(change);
+      }
       description = appendScope(description, change);
     }
 
