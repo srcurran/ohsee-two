@@ -38,9 +38,16 @@ const isRemoval = (c: SemanticChange): boolean =>
 const isAddition = (c: SemanticChange): boolean =>
   c.category === "structural" && c.details.prodValue === "absent";
 
+/** Shortens a string for display, or — when description text is built for a
+ *  hover tooltip — passes it through untouched. See `describeChanges`. */
+type Truncator = (s: string, max: number) => string;
+
 function truncate(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max) + "…";
 }
+
+/** A no-op `Truncator` — yields the full, untruncated string. */
+const keepFull: Truncator = (s) => s;
 
 /** Selector of the parent element (one segment up), or "" at the root. */
 function parentSelector(sel: string): string {
@@ -346,6 +353,7 @@ function pluralNoun(noun: string): string {
 function computeLocation(
   change: SemanticChange,
   elements: CapturedElement[],
+  cap: Truncator = truncate,
 ): string {
   const y = change.yPosition;
   let headingText = "";
@@ -377,7 +385,7 @@ function computeLocation(
   }
 
   if (landmarkChrome) return `the ${landmarkNoun}`;
-  if (headingText) return `the “${truncate(headingText, 40)}” section`;
+  if (headingText) return `the “${cap(headingText, 40)}” section`;
   if (landmarkNoun) return `the ${landmarkNoun}`;
   return "";
 }
@@ -407,6 +415,7 @@ function describeStructural(
   change: SemanticChange,
   elements: CapturedElement[],
   verb: string,
+  cap: Truncator = truncate,
 ): string {
   const noun = tagNoun(change.tag);
   const count = change.instances?.length ?? 1;
@@ -420,7 +429,7 @@ function describeStructural(
       el?.ariaLabel ||
       descendantTexts(elements, first, 1).samples[0] ||
       "";
-    const eg = sample ? ` (e.g. “${truncate(sample, 40)}”)` : "";
+    const eg = sample ? ` (e.g. “${cap(sample, 40)}”)` : "";
     return `${verb} ${count} ${pluralNoun(noun)}${eg}`;
   }
 
@@ -429,17 +438,17 @@ function describeStructural(
   // Media: identity is the alt text / accessible name / source filename.
   if (MEDIA_TAGS.has(change.tag)) {
     const name = el?.alt || el?.ariaLabel || el?.src || "";
-    return name ? `${verb} ${noun} “${truncate(name, 60)}”` : `${verb} ${noun}`;
+    return name ? `${verb} ${noun} “${cap(name, 60)}”` : `${verb} ${noun}`;
   }
 
   // Text-bearing element: name it by its own text.
   const own = el?.textContent?.trim() || el?.ariaLabel;
-  if (own) return `${verb} ${noun} “${truncate(own, 60)}”`;
+  if (own) return `${verb} ${noun} “${cap(own, 60)}”`;
 
   // Container: name it by the content it holds.
   const { samples, total } = descendantTexts(elements, change.selector, 3);
   if (samples.length > 0) {
-    const quoted = samples.map((s) => `“${truncate(s, 30)}”`).join(", ");
+    const quoted = samples.map((s) => `“${cap(s, 30)}”`).join(", ");
     const more = total > samples.length ? `, +${total - samples.length} more` : "";
     return `${verb} ${noun} containing ${quoted}${more}`;
   }
@@ -491,56 +500,85 @@ function appendScope(base: string, change: SemanticChange): string {
  * raw CSS selectors. Structural changes are described by the text they
  * contain; aggregated changes gain an "N elements" scope suffix.
  */
+/** Build the description + location for one change. `cap` controls text
+ *  shortening: `truncate` for the displayed strings, `keepFull` for the
+ *  untruncated copies used as hover tooltips. */
+function describeOne(
+  change: SemanticChange,
+  prod: DomSnapshot,
+  dev: DomSnapshot,
+  cap: Truncator,
+): { description: string; location: string | undefined } {
+  let description = change.description;
+
+  if (isRemoval(change)) {
+    description = describeStructural(change, prod.elements, "Removed", cap);
+  } else if (isAddition(change)) {
+    description = describeStructural(change, dev.elements, "Added", cap);
+  } else if (change.details.property === "dom-restructure") {
+    // The element exists in both snapshots (it moved); describe by whichever
+    // side still has its content so the entry isn't a bare opaque selector.
+    const prefix = change.selector + " > ";
+    const inProd = prod.elements.some(
+      (e) => e.selector === change.selector || e.selector.startsWith(prefix),
+    );
+    description = describeStructural(
+      change,
+      inProd ? prod.elements : dev.elements,
+      "Restructured",
+      cap,
+    );
+  } else {
+    if (change.category === "color") description = describeColor(change);
+    else if (change.details.property === "textContent") {
+      const from = change.details.prodValue ?? "";
+      const to = change.details.devValue ?? "";
+      if (from && to) {
+        description = `Text changed from “${cap(from, 45)}” to “${cap(to, 45)}”`;
+      }
+    }
+    description = appendScope(description, change);
+  }
+
+  // Locate the change by content rather than selector. Aggregated changes
+  // already carry an "N elements …" scope suffix, so skip a per-change
+  // location for them. Removals/restructures resolve against prod (gone
+  // from dev); additions and modifications against dev.
+  const aggregated = (change.instances?.length ?? 1) > 1;
+  const locElements = isAddition(change) ? dev.elements : prod.elements;
+  const location = aggregated
+    ? undefined
+    : computeLocation(change, locElements, cap) || undefined;
+
+  return { description, location };
+}
+
 export function describeChanges(
   changes: SemanticChange[],
   prod: DomSnapshot,
   dev: DomSnapshot,
 ): SemanticChange[] {
   return changes.map((change) => {
-    let description = change.description;
+    const { description, location } = describeOne(change, prod, dev, truncate);
+    const full = describeOne(change, prod, dev, keepFull);
+    // Only keep the full copies when shortening actually happened — they
+    // back the hover tooltip in the change list.
+    const descriptionFull =
+      full.description !== description ? full.description : undefined;
+    const locationFull =
+      full.location !== undefined && full.location !== location
+        ? full.location
+        : undefined;
 
-    if (isRemoval(change)) {
-      description = describeStructural(change, prod.elements, "Removed");
-    } else if (isAddition(change)) {
-      description = describeStructural(change, dev.elements, "Added");
-    } else if (change.details.property === "dom-restructure") {
-      // The element exists in both snapshots (it moved); describe by whichever
-      // side still has its content so the entry isn't a bare opaque selector.
-      const prefix = change.selector + " > ";
-      const inProd = prod.elements.some(
-        (e) => e.selector === change.selector || e.selector.startsWith(prefix),
-      );
-      description = describeStructural(
-        change,
-        inProd ? prod.elements : dev.elements,
-        "Restructured",
-      );
-    } else {
-      if (change.category === "color") description = describeColor(change);
-      else if (change.details.property === "textContent") {
-        const from = change.details.prodValue ?? "";
-        const to = change.details.devValue ?? "";
-        if (from && to) {
-          description = `Text changed from “${truncate(from, 45)}” to “${truncate(to, 45)}”`;
-        }
-      }
-      description = appendScope(description, change);
-    }
-
-    // Locate the change by content rather than selector. Aggregated changes
-    // already carry an "N elements …" scope suffix, so skip a per-change
-    // location for them. Removals/restructures resolve against prod (gone
-    // from dev); additions and modifications against dev.
-    const aggregated = (change.instances?.length ?? 1) > 1;
-    const locElements = isAddition(change) ? dev.elements : prod.elements;
-    const location = aggregated
-      ? undefined
-      : computeLocation(change, locElements) || undefined;
-
-    if (description === change.description && location === change.location) {
+    if (
+      description === change.description &&
+      location === change.location &&
+      descriptionFull === undefined &&
+      locationFull === undefined
+    ) {
       return change;
     }
-    return { ...change, description, location };
+    return { ...change, description, location, descriptionFull, locationFull };
   });
 }
 

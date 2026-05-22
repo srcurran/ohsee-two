@@ -7,49 +7,9 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
-import type { Report, ReportPage, SemanticChange } from "@/lib/types";
+import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
-import { topLevelSelector, changeGroupKey } from "@/lib/change-identity";
-
-/** Short labels for category tags on page cards. */
-const CATEGORY_LABELS: Record<string, string> = {
-  structural: "DOM",
-  layout: "layout",
-  typography: "type",
-  color: "color",
-  content: "text",
-  spacing: "spacing",
-  alignment: "align",
-  visibility: "vis",
-  border: "border",
-};
-
-/** Build a concise summary of change categories for the card footer.
- *  Groups by top-level selector first (so multiple property changes on
- *  the same element count once), then counts per category. Returns
- *  entries sorted by count descending, capped at 3 tags. */
-function summarizeChanges(
-  changes: SemanticChange[] | undefined,
-): { label: string; count: number }[] {
-  if (!changes || changes.length === 0) return [];
-  // Dedupe by top-level selector per category so the counts are
-  // meaningful (3 layout changes on the same nav = 1 "layout" hit).
-  const catSelectors = new Map<string, Set<string>>();
-  for (const c of changes) {
-    const cat = c.category;
-    const top = topLevelSelector(c.selector);
-    let set = catSelectors.get(cat);
-    if (!set) { set = new Set(); catSelectors.set(cat, set); }
-    set.add(top);
-  }
-  const entries = Array.from(catSelectors.entries())
-    .map(([cat, selectors]) => ({
-      label: CATEGORY_LABELS[cat] ?? cat,
-      count: selectors.size,
-    }))
-    .sort((a, b) => b.count - a.count);
-  return entries.slice(0, 3);
-}
+import { changeGroupKey } from "@/lib/change-identity";
 
 /** Page-tile thumbnail with a shimmer placeholder shown until the image is
  *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
@@ -123,15 +83,13 @@ function ReportPageGridComponent({
 }: ReportPageGridProps) {
   const renderPageCard = (page: ReportPage, index: number) => {
     const bpResult = getPageBp(page, String(activeBp), activeVariant);
-    const changeCount = bpResult?.semanticChanges
-      ? new Set(bpResult.semanticChanges.map((c) => topLevelSelector(c.selector))).size
-      : 0;
+    const changeCount = bpResult?.semanticChanges?.length ?? 0;
     const hasScreenshot = !!bpResult?.prodScreenshot;
 
-    // Split the change count into universal (appears at all breakpoints) vs
-    // breakpoint-specific, using the coarse group key for matching.
-    // Each selector group is counted exactly once — it's "universal" only
-    // if ALL its changes are universal, otherwise "specific".
+    // Split the change count into universal (appears at every captured
+    // breakpoint) vs breakpoint-specific, matched by the coarse group key.
+    // Each change is counted individually — no per-selector grouping — so
+    // the total matches the Detected Changes list.
     const bpData = activeVariant && page.variants?.[activeVariant]
       ? page.variants[activeVariant]
       : page.breakpoints;
@@ -151,19 +109,9 @@ function ReportPageGridComponent({
         }
       }
       const totalBps = bpsWithSemantic.length;
-      // Group by top-level selector, then classify the whole group.
-      // A group is "universal" only if EVERY change in it is universal.
-      // If any change is breakpoint-specific, the group is "specific".
-      const selectorBucket = new Map<string, boolean>(); // true = all universal so far
       for (const c of bpResult.semanticChanges) {
-        const top = topLevelSelector(c.selector);
-        const k = changeGroupKey(c);
-        const isUniversal = (keyToBpCount.get(k) ?? 0) >= totalBps;
-        const prev = selectorBucket.get(top);
-        selectorBucket.set(top, prev === undefined ? isUniversal : prev && isUniversal);
-      }
-      for (const allUniversal of selectorBucket.values()) {
-        if (allUniversal) universalCount++;
+        const isUniversal = (keyToBpCount.get(changeGroupKey(c)) ?? 0) >= totalBps;
+        if (isUniversal) universalCount++;
         else specificCount++;
       }
     } else {
@@ -179,7 +127,6 @@ function ReportPageGridComponent({
       : bpResult?.prodScreenshot
         ? `/api/screenshots/${bpResult.prodScreenshot}`
         : null;
-    const tags = summarizeChanges(bpResult?.semanticChanges);
 
     return (
       <button

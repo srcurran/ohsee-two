@@ -197,13 +197,17 @@ function ChangeEntry({
   // Locate the change by content ("the header", "the “Pricing” section").
   const locationLine = change.location;
 
-  // Scope badge — breakpoint-specific changes get a "N of M" annotation so
-  // the user can distinguish universal changes from viewport-dependent ones.
+  // Scope label — every change is tagged as either spanning all
+  // breakpoints or being specific to certain ones, so the user can tell
+  // universal changes from viewport-dependent ones at a glance.
   let scopeLabel: string | null = null;
   if (changeScope && changeScope.totalBps > 1) {
-    const bpCount = changeScope.bpCountFor(change);
-    if (bpCount < changeScope.totalBps) {
-      scopeLabel = `${bpCount} of ${changeScope.totalBps}`;
+    if (changeScope.isUniversal(change)) {
+      scopeLabel = "All breakpoints";
+    } else {
+      const bps = changeScope.bpsFor(change);
+      scopeLabel =
+        bps.length === 1 ? `${bps[0]}px only` : `${bps.join(", ")}px`;
     }
   }
 
@@ -220,14 +224,20 @@ function ChangeEntry({
         {cfg.icon}
       </span>
       <div className="change-entry__body">
-        <span className="change-entry__description">
+        <span
+          className="change-entry__description"
+          title={change.descriptionFull ?? change.description}
+        >
           {change.description}
           {scopeLabel && (
             <span className="change-entry__scope">{scopeLabel}</span>
           )}
         </span>
         {locationLine && (
-          <span className="change-entry__selector" title={locationLine}>
+          <span
+            className="change-entry__selector"
+            title={change.locationFull ?? locationLine}
+          >
             {locationLine}
           </span>
         )}

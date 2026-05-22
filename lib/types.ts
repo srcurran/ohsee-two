@@ -334,4 +334,9 @@ export interface SemanticChange {
    *  derived from the DOM snapshot at detection time. Lets the UI locate a
    *  change by content instead of showing a raw CSS selector. */
   location?: string;
+  /** Untruncated `description`, set only when `description` was shortened
+   *  with an ellipsis. Surfaced as a hover tooltip in the change list. */
+  descriptionFull?: string;
+  /** Untruncated `location`, set only when `location` was shortened. */
+  locationFull?: string;
 }

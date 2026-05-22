@@ -6,7 +6,6 @@ import VariantTabs from "@/components/index/VariantTabs";
 import DiffViewer from "@/components/detail/DiffViewer";
 import SliderComparison from "@/components/detail/SliderComparison";
 import type { Project, Report } from "@/lib/types";
-import { topLevelSelector } from "@/lib/change-identity";
 import { PageDetailHeader } from "@/components/detail/PageDetailHeader";
 import { PageDetailViewToggle } from "@/components/detail/PageDetailViewToggle";
 import { PageDetailChanges } from "@/components/detail/PageDetailChanges";
@@ -124,25 +123,18 @@ export default function PageDetailPanel({
     () => classifyChanges(activeBpData),
     [activeBpData],
   );
-  // Unique element groups with changes at the active breakpoint — drives
-  // the header badge. Groups by top-level selector, then classifies each
-  // group as universal or specific (same logic as the page-card badges).
+  // Change counts at the active breakpoint — drives the header badge.
+  // Each change is counted individually (no per-selector grouping) so the
+  // header total matches the page-card badge and the Detected Changes list.
   const { activeBpChangeCount, headerUniversalCount, headerSpecificCount } =
     useMemo(() => {
       const bpR = activeBpData[String(initialBp)];
       if (!bpR?.semanticChanges)
         return { activeBpChangeCount: 0, headerUniversalCount: 0, headerSpecificCount: 0 };
-      const selectorBucket = new Map<string, boolean>();
-      for (const c of bpR.semanticChanges) {
-        const top = topLevelSelector(c.selector);
-        const isUni = changeScope.isUniversal(c);
-        const prev = selectorBucket.get(top);
-        selectorBucket.set(top, prev === undefined ? isUni : prev && isUni);
-      }
       let uni = 0;
       let spec = 0;
-      for (const allUniversal of selectorBucket.values()) {
-        if (allUniversal) uni++;
+      for (const c of bpR.semanticChanges) {
+        if (changeScope.isUniversal(c)) uni++;
         else spec++;
       }
       return {
