@@ -295,18 +295,40 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
     }
   }
 
-  // Pass 2 — selector-match whatever is left.
-  const devBySelector = new Map<string, CapturedElement>();
-  for (const el of dev.elements) {
-    if (!claimedDev.has(el)) devBySelector.set(el.selector, el);
-  }
-  for (const el of prod.elements) {
-    if (claimedProd.has(el)) continue;
-    const match = devBySelector.get(el.selector);
-    if (match && !claimedDev.has(match)) {
-      pairs.push({ prod: el, dev: match });
-      claimedProd.add(el);
-      claimedDev.add(match);
+  // Pass 2 — selector-match whatever is left, but only when the selector
+  // unambiguously identifies one element on each side and the tags agree.
+  // Builder-generated sites (Webflow et al.) routinely ship duplicate ids,
+  // so a single selector can resolve to several elements; pairing those by
+  // document order guesses wrong and invents a phantom pair — a cascade of
+  // bogus style diffs — plus a stray add/remove. A tag mismatch likewise
+  // means the id was reused on a different element, not edited in place.
+  // Ambiguous or cross-tag selectors fall through to similarity pairing.
+  const groupBySelector = (
+    elements: CapturedElement[],
+    claimed: Set<CapturedElement>,
+  ): Map<string, CapturedElement[]> => {
+    const map = new Map<string, CapturedElement[]>();
+    for (const el of elements) {
+      if (claimed.has(el)) continue;
+      const arr = map.get(el.selector);
+      if (arr) arr.push(el);
+      else map.set(el.selector, [el]);
+    }
+    return map;
+  };
+  const prodBySelector = groupBySelector(prod.elements, claimedProd);
+  const devBySelector = groupBySelector(dev.elements, claimedDev);
+  for (const [selector, prodEls] of prodBySelector) {
+    const devEls = devBySelector.get(selector);
+    if (
+      devEls &&
+      prodEls.length === 1 &&
+      devEls.length === 1 &&
+      prodEls[0].tag === devEls[0].tag
+    ) {
+      pairs.push({ prod: prodEls[0], dev: devEls[0] });
+      claimedProd.add(prodEls[0]);
+      claimedDev.add(devEls[0]);
     }
   }
 

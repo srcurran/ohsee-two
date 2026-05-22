@@ -120,7 +120,7 @@
   .change-entry__body {
     display: flex;
     flex-direction: column;
-    gap: var(--space-0-5);
+    gap: var(--space-2);
     min-width: 0;
 
     .change-entry__description {
@@ -129,13 +129,10 @@
     }
 
     .change-entry__scope {
-      display: inline-flex;
-      margin-left: var(--space-1-5);
-      padding: 1px var(--space-1);
       border-radius: var(--radius-xs);
       background: var(--change-entry-scope-background, color-mix(in srgb, var(--neutral-400) 20%, transparent));
       color: var(--change-entry-scope-color, var(--neutral-500));
-      font-size: var(--font-size-xs);
+      font-size: var(--font-size-sm);
       line-height: var(--line-none);
       white-space: nowrap;
       vertical-align: middle;

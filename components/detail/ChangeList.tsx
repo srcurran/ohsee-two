@@ -203,7 +203,7 @@ function ChangeEntry({
   let scopeLabel: string | null = null;
   if (changeScope && changeScope.totalBps > 1) {
     if (changeScope.isUniversal(change)) {
-      scopeLabel = "All breakpoints";
+      scopeLabel = "All";
     } else {
       const bps = changeScope.bpsFor(change);
       scopeLabel =
@@ -229,9 +229,7 @@ function ChangeEntry({
           title={change.descriptionFull ?? change.description}
         >
           {change.description}
-          {scopeLabel && (
-            <span className="change-entry__scope">{scopeLabel}</span>
-          )}
+
         </span>
         {locationLine && (
           <span
@@ -240,6 +238,9 @@ function ChangeEntry({
           >
             {locationLine}
           </span>
+        )}
+        {scopeLabel && (
+            <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
         )}
       </div>
     </div>
