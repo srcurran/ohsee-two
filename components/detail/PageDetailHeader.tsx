@@ -7,7 +7,6 @@
 import { useState } from "react";
 import { Icon } from "@/components/utility/Icon";
 import { formatFullDateTime, formatRelativeTime } from "@/lib/relative-time";
-import { reportDotModifier } from "@/lib/colors";
 import type { Report, ReportPage } from "@/lib/types";
 
 interface PageDetailHeaderProps {
@@ -69,9 +68,6 @@ export function PageDetailHeader({
           >
             {formatRelativeTime(report.createdAt)}
           </span>
-          <span
-            className={`status-dot status-dot--${reportDotModifier(report)}`}
-          />
         </div>
 
         <PageNavDropdown
@@ -237,7 +233,7 @@ function PageNavDropdown({
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div>
       <button
         onClick={() => setOpen(!open)}
         className="icon-btn"

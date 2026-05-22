@@ -75,6 +75,9 @@
         flex-shrink: 0;
         align-items: center;
         gap: var(--space-6);
+        /* Containing block for the page-nav dropdown so it anchors to the
+           right edge of the whole nav row rather than the chevron button. */
+        position: relative;
 
         .page-detail-panel__date-group {
           display: flex;
