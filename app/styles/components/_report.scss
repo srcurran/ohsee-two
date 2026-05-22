@@ -172,6 +172,14 @@
     padding: var(--space-6);
     flex: 1;
 
+    /* While capturing, fill the available column space without growing to
+       the (sparse, partial) grid behind the overlay — keeps the centered
+       loader inside the viewport instead of riding tall content. */
+    &--running {
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .report__flow-section {
       .report__flow-header {
         display: flex;

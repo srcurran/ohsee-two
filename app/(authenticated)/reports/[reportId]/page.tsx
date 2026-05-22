@@ -161,7 +161,7 @@ function ReportPageInner() {
           </div>
         </div>
 
-        <div className="report__grid-wrap">
+        <div className={`report__grid-wrap${report.status === "running" ? " report__grid-wrap--running" : ""}`}>
           <ReportPageGrid
             report={report}
             activeBp={activeBp}
