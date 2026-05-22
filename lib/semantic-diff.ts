@@ -22,38 +22,18 @@ export function generateSemanticDiff(
   prod: DomSnapshot,
   dev: DomSnapshot
 ): SemanticDiffResult {
-  const prodMap = new Map<string, CapturedElement>();
-  const devMap = new Map<string, CapturedElement>();
-
-  for (const el of prod.elements) prodMap.set(el.selector, el);
-  for (const el of dev.elements) devMap.set(el.selector, el);
-
   const changes: SemanticChange[] = [];
   let nextId = 1;
 
-  // 1. Compare matched elements
-  for (const [selector, prodEl] of prodMap) {
-    const devEl = devMap.get(selector);
-    if (!devEl) continue;
-
-    const elChanges = compareElements(prodEl, devEl);
-    for (const c of elChanges) {
+  // 1. Match prod ↔ dev elements, then compare each pair. Matching is
+  //    content-anchored (see matchElements): a sibling being inserted or
+  //    removed shifts every following :nth-of-type index, so a purely
+  //    selector-keyed match would compare elements against the wrong
+  //    counterpart and report a cascade of bogus "text changed" entries.
+  const { pairs, prodOnly, devOnly } = matchElements(prod, dev);
+  for (const { prod: prodEl, dev: devEl } of pairs) {
+    for (const c of compareElements(prodEl, devEl)) {
       changes.push({ ...c, id: `sc-${nextId++}` });
-    }
-  }
-
-  // 2. Find unmatched elements
-  const prodOnly: CapturedElement[] = [];
-  const devOnly: CapturedElement[] = [];
-
-  for (const [selector, prodEl] of prodMap) {
-    if (!devMap.has(selector) && prodEl.isVisible) {
-      prodOnly.push(prodEl);
-    }
-  }
-  for (const [selector, devEl] of devMap) {
-    if (!prodMap.has(selector) && devEl.isVisible) {
-      devOnly.push(devEl);
     }
   }
 
@@ -196,6 +176,94 @@ export function generateSemanticDiff(
     changes: aggregated,
     summary,
     issueCount: aggregated.length,
+  };
+}
+
+// --- Element matching ---
+
+interface ElementMatch {
+  pairs: { prod: CapturedElement; dev: CapturedElement }[];
+  prodOnly: CapturedElement[];
+  devOnly: CapturedElement[];
+}
+
+/** Identity key for content-anchoring — tag + collapsed direct text.
+ *  Returns null for elements with no text (they can't be anchored). */
+function anchorKey(el: CapturedElement): string | null {
+  const text = el.textContent.trim().replace(/\s+/g, " ");
+  return text ? `${el.tag}\u0000${text}` : null;
+}
+
+/**
+ * Match prod ↔ dev elements.
+ *
+ * Pass 1 — content anchor: a text-bearing element is identified by its
+ * tag + text, not its CSS selector. When that identity is unambiguous (the
+ * same tag+text appears once on each side) the two elements are the same
+ * logical element even if a sibling insertion/removal shifted its
+ * :nth-of-type selector. Repeated text (N:M) is paired in document order.
+ *
+ * Pass 2 — selector-match the remainder: text-less elements, and genuine
+ * text edits (old text gone, new text new — neither anchors).
+ *
+ * Anchoring first is what stops a deleted sibling from cascading into a
+ * pile of bogus "text changed" entries: every surviving row matches its
+ * real counterpart by content, so the wrong-counterpart comparison that a
+ * purely selector-keyed match would make can never happen.
+ */
+function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
+  const pairs: { prod: CapturedElement; dev: CapturedElement }[] = [];
+  const claimedProd = new Set<CapturedElement>();
+  const claimedDev = new Set<CapturedElement>();
+
+  // Pass 1 — content anchor.
+  const prodByKey = new Map<string, CapturedElement[]>();
+  const devByKey = new Map<string, CapturedElement[]>();
+  const group = (map: Map<string, CapturedElement[]>, el: CapturedElement) => {
+    const k = anchorKey(el);
+    if (!k) return;
+    const arr = map.get(k);
+    if (arr) arr.push(el);
+    else map.set(k, [el]);
+  };
+  for (const el of prod.elements) group(prodByKey, el);
+  for (const el of dev.elements) group(devByKey, el);
+
+  for (const [key, prodEls] of prodByKey) {
+    const devEls = devByKey.get(key);
+    if (!devEls) continue;
+    // 1:1 is a confident identity match; N:M repeated text pairs in
+    // document order (prod.elements / dev.elements are walked in order).
+    const n = Math.min(prodEls.length, devEls.length);
+    for (let i = 0; i < n; i++) {
+      pairs.push({ prod: prodEls[i], dev: devEls[i] });
+      claimedProd.add(prodEls[i]);
+      claimedDev.add(devEls[i]);
+    }
+  }
+
+  // Pass 2 — selector-match whatever is left.
+  const devBySelector = new Map<string, CapturedElement>();
+  for (const el of dev.elements) {
+    if (!claimedDev.has(el)) devBySelector.set(el.selector, el);
+  }
+  for (const el of prod.elements) {
+    if (claimedProd.has(el)) continue;
+    const match = devBySelector.get(el.selector);
+    if (match && !claimedDev.has(match)) {
+      pairs.push({ prod: el, dev: match });
+      claimedProd.add(el);
+      claimedDev.add(match);
+    }
+  }
+
+  // Whatever stays unclaimed is genuinely added/removed (or moved — the
+  // caller's similarity pairing resolves that). Invisible-only elements are
+  // dropped so they aren't reported as removed/added.
+  return {
+    pairs,
+    prodOnly: prod.elements.filter((el) => !claimedProd.has(el) && el.isVisible),
+    devOnly: dev.elements.filter((el) => !claimedDev.has(el) && el.isVisible),
   };
 }
 
