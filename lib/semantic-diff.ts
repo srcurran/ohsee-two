@@ -5,6 +5,7 @@ import type {
   ChangeCategory,
   ChangeSeverity,
 } from "./types";
+import { suppressNestedStructural, aggregateChanges } from "./change-aggregation";
 
 export interface SemanticDiffResult {
   changes: SemanticChange[];
@@ -134,12 +135,18 @@ export function generateSemanticDiff(
     });
   }
 
+  // Removing or adding a container implies its whole subtree changed too.
+  // Collapse structural changes nested under another structural change so
+  // only the topmost add/remove survives — historically ~76% of "Element
+  // removed" entries were descendants of an already-reported removal.
+  const prunedChanges = suppressNestedStructural(changes);
+
   // 4. Pair remaining structural add/remove by tag to consolidate
   //    e.g., "removed <iframe>" + "new <iframe>" → "restructured <iframe>"
-  const structRemoved = changes.filter(
+  const structRemoved = prunedChanges.filter(
     (c) => c.category === "structural" && c.details.devValue === "absent"
   );
-  const structAdded = changes.filter(
+  const structAdded = prunedChanges.filter(
     (c) => c.category === "structural" && c.details.prodValue === "absent"
   );
   const pairedStructIds = new Set<string>();
@@ -155,7 +162,7 @@ export function generateSemanticDiff(
   // Replace paired structural changes with a single "restructured" entry per pair
   const consolidatedChanges: SemanticChange[] = [];
   const seenPairTags = new Set<string>();
-  for (const c of changes) {
+  for (const c of prunedChanges) {
     if (pairedStructIds.has(c.id)) {
       // Only emit once per tag
       const pairKey = `struct-${c.tag}`;
@@ -173,19 +180,24 @@ export function generateSemanticDiff(
     }
   }
 
-  // Deduplicate cascading changes
+  // Deduplicate cascading layout changes (parent/child shift suppression).
   const deduped = deduplicateChanges(consolidatedChanges);
+
+  // Collapse the raw element×property transcript into logical changes:
+  // suppress downstream effects, merge axis pairs, aggregate identical
+  // changes across repeated elements, and rewrite descriptions.
+  const aggregated = aggregateChanges(deduped, prod, dev);
 
   // Build summary
   const summary: Record<string, number> = {};
-  for (const c of deduped) {
+  for (const c of aggregated) {
     summary[c.category] = (summary[c.category] || 0) + 1;
   }
 
   return {
-    changes: deduped,
+    changes: aggregated,
     summary,
-    issueCount: deduped.length,
+    issueCount: aggregated.length,
   };
 }
 

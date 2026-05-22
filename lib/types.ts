@@ -315,4 +315,10 @@ export interface SemanticChange {
     prodValue?: string;
     devValue?: string;
   };
+  /** When this change aggregates several elements with the identical
+   *  change (same property + same prod→dev transition, or sibling
+   *  add/removes), every affected element. The top-level `selector` holds a
+   *  stable representative; `yPosition` holds the topmost instance. Absent
+   *  ⇒ a single-element change. */
+  instances?: { selector: string; yPosition: number }[];
 }
