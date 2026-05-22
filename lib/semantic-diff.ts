@@ -198,13 +198,17 @@ function anchorKey(el: CapturedElement): string | null {
  * Match prod ↔ dev elements.
  *
  * Pass 1 — content anchor: a text-bearing element is identified by its
- * tag + text, not its CSS selector. When that identity is unambiguous (the
- * same tag+text appears once on each side) the two elements are the same
- * logical element even if a sibling insertion/removal shifted its
- * :nth-of-type selector. Repeated text (N:M) is paired in document order.
+ * tag + text, not its CSS selector. When that identity is unambiguous —
+ * the same tag+text appears *exactly once* on each side — the two elements
+ * are the same logical element even if a sibling insertion/removal shifted
+ * its :nth-of-type selector. Repeated text (N:M, e.g. an "About" link in
+ * both the nav and the footer) is deliberately left unanchored: pairing it
+ * by document order guesses wrong when the counts differ and invents
+ * phantom removed/added elements.
  *
- * Pass 2 — selector-match the remainder: text-less elements, and genuine
- * text edits (old text gone, new text new — neither anchors).
+ * Pass 2 — selector-match the remainder: text-less elements, repeated-text
+ * elements, and genuine text edits (old text gone, new text new). Anything
+ * still unmatched falls to the caller's similarity pairing.
  *
  * Anchoring first is what stops a deleted sibling from cascading into a
  * pile of bogus "text changed" entries: every surviving row matches its
@@ -231,14 +235,13 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
 
   for (const [key, prodEls] of prodByKey) {
     const devEls = devByKey.get(key);
-    if (!devEls) continue;
-    // 1:1 is a confident identity match; N:M repeated text pairs in
-    // document order (prod.elements / dev.elements are walked in order).
-    const n = Math.min(prodEls.length, devEls.length);
-    for (let i = 0; i < n; i++) {
-      pairs.push({ prod: prodEls[i], dev: devEls[i] });
-      claimedProd.add(prodEls[i]);
-      claimedDev.add(devEls[i]);
+    // Only anchor an unambiguous 1:1 identity. Ambiguous repeated text is
+    // left for the selector pass / similarity pairing — order-pairing it
+    // here produced phantom removed/added elements when counts differed.
+    if (devEls && prodEls.length === 1 && devEls.length === 1) {
+      pairs.push({ prod: prodEls[0], dev: devEls[0] });
+      claimedProd.add(prodEls[0]);
+      claimedDev.add(devEls[0]);
     }
   }
 
