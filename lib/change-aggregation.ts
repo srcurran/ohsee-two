@@ -98,14 +98,6 @@ export function suppressNestedStructural(
   });
 }
 
-/** Properties whose presence on an element explains a co-located size change. */
-const SIZE_EXPLAINERS = new Set([
-  "padding-top", "padding-right", "padding-bottom", "padding-left",
-  "margin-top", "margin-right", "margin-bottom", "margin-left",
-  "padding-x", "padding-y", "margin-x", "margin-y",
-  "textContent", "display", "element", "gap", "dom-restructure",
-]);
-
 /** Parse a "WIDTHxHEIGHT" dimensions value into numbers. */
 function parseSize(value: string | undefined): { w: number; h: number } | null {
   const m = value?.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/);
@@ -119,23 +111,37 @@ function widthChanged(change: SemanticChange): boolean {
   return !!p && !!d && Math.abs(p.w - d.w) > 4;
 }
 
+/** Whether a change is the kind of edit that itself resizes an element —
+ *  content, spacing, display, or a child being added/removed/restructured. */
+function isSizeCause(c: SemanticChange): boolean {
+  const p = c.details.property ?? "";
+  return (
+    c.category === "spacing" ||
+    c.category === "content" ||
+    p === "display" ||
+    p === "element" ||
+    p === "dom-restructure"
+  );
+}
+
 /**
  * Drop changes that are pure downstream effects of another change:
- *  • line-height  — proportionally derived from font-size (1.5× across the
- *    whole dataset); when font-size also changed it carries no new signal.
- *  • dimensions   — a *height-only* delta with no local cause (no spacing,
- *    content, display or structural change) is a reflow artifact. A width
- *    change at a fixed viewport, by contrast, reflects a real layout edit
- *    (max-width, width) and is kept. 81% of historical dimension changes
- *    were unexplained height reflow.
- *  • position     — an element shifting is almost always a consequence of
- *    some other edit (a sibling resized, content reflowed). The visual diff
- *    still shows the movement; a textual "shifted Npx" entry just adds noise.
+ *  • line-height — proportionally derived from font-size; when font-size also
+ *    changed it carries no new signal.
+ *  • position    — an element shifting is almost always a consequence of some
+ *    other edit; the visual diff still shows the movement.
+ *  • dimensions  — a size change is downstream when something in the element's
+ *    own subtree explains it (content edited, spacing changed, a child
+ *    added/removed): that cause is already reported, so the size delta is
+ *    redundant. What survives is a *standalone width* change — a genuine
+ *    layout edit (max-width / width) with no inner cause. A standalone
+ *    height-only delta is reflow noise and is dropped.
  */
 export function suppressDownstream(
   changes: SemanticChange[],
 ): SemanticChange[] {
   const propsBySelector = new Map<string, Set<string>>();
+  const causeSelectors: string[] = [];
   for (const c of changes) {
     let set = propsBySelector.get(c.selector);
     if (!set) {
@@ -143,7 +149,15 @@ export function suppressDownstream(
       propsBySelector.set(c.selector, set);
     }
     if (c.details.property) set.add(c.details.property);
+    if (isSizeCause(c)) causeSelectors.push(c.selector);
   }
+
+  // A size change is "explained" when the element itself, or any element in
+  // its subtree, carries a content / spacing / structural change.
+  const isExplained = (selector: string): boolean =>
+    causeSelectors.some(
+      (s) => s === selector || s.startsWith(selector + " > "),
+    );
 
   return changes.filter((c) => {
     const props = propsBySelector.get(c.selector) ?? new Set<string>();
@@ -153,16 +167,9 @@ export function suppressDownstream(
     if (c.details.property === "position") {
       return false;
     }
-    if (c.details.property === "dimensions" && !widthChanged(c)) {
-      // height-only change — keep it only if something local explains it
-      let explained = false;
-      for (const p of props) {
-        if (SIZE_EXPLAINERS.has(p)) {
-          explained = true;
-          break;
-        }
-      }
-      if (!explained) return false;
+    if (c.details.property === "dimensions") {
+      if (isExplained(c.selector)) return false; // downstream of a real edit
+      if (!widthChanged(c)) return false; // standalone height = reflow noise
     }
     return true;
   });
@@ -314,9 +321,11 @@ export function aggregateAcrossElements(
 // Stage 4 — content-based descriptions
 // ---------------------------------------------------------------------------
 
-/** Tags that name a region of the page. */
+/** Landmark tags whose own role is a meaningful location label on its own.
+ *  `section`/`article` are deliberately excluded — they are named by their
+ *  heading, and "the section" as a bare label says nothing. */
 const LANDMARK_TAGS = new Set([
-  "header", "nav", "main", "footer", "section", "article", "aside", "form",
+  "header", "nav", "main", "footer", "aside", "form",
 ]);
 
 /** Region landmarks whose own role names a location better than any heading
@@ -351,44 +360,46 @@ function pluralNoun(noun: string): string {
 }
 
 /**
- * Human-readable location for a change — the named section or page region it
- * sits in — derived by walking the DOM snapshot. Replaces showing a raw CSS
- * selector. Returns "" when nothing better than the selector is available.
+ * Human-readable location for a change — the page section or region it sits
+ * in. Resolved by vertical position: the nearest heading at or above the
+ * change names its section; the smallest landmark whose span contains the
+ * change names a region. Position is used rather than selector ancestry
+ * because builder-generated sites (Webflow et al.) root most elements at
+ * scattered ids, so two elements in the same section share no selector
+ * prefix. Returns "" when the change sits above the first heading (page
+ * chrome) and no semantic landmark contains it — better an honest blank than
+ * a confidently wrong section name.
  */
 function computeLocation(
-  selector: string,
+  change: SemanticChange,
   elements: CapturedElement[],
 ): string {
-  const target = selector.split(" > ");
+  const y = change.yPosition;
   let headingText = "";
-  let headingShared = -1;
+  let headingY = -Infinity;
   let landmarkNoun = "";
   let landmarkChrome = false;
-  let landmarkDepth = -1;
+  let landmarkSpan = Infinity;
 
   for (const e of elements) {
-    const segs = e.selector.split(" > ");
-    let shared = 0;
-    const max = Math.min(segs.length, target.length);
-    while (shared < max && segs[shared] === target[shared]) shared++;
+    if (!e.isVisible) continue;
+    const top = e.bounds.y;
 
     if (HEADING_TAGS.has(e.tag)) {
       const text = e.textContent?.trim();
-      if (text && shared > headingShared) {
-        headingShared = shared;
+      // closest heading at or above the change's vertical position
+      if (text && top <= y + 4 && top > headingY) {
+        headingY = top;
         headingText = text;
       }
-    }
-    // e is an ancestor of (or equal to) the target when all of its segments
-    // matched a prefix of the target's path.
-    if (
-      LANDMARK_TAGS.has(e.tag) &&
-      shared === segs.length &&
-      segs.length > landmarkDepth
-    ) {
-      landmarkDepth = segs.length;
-      landmarkNoun = tagNoun(e.tag);
-      landmarkChrome = CHROME_LANDMARKS.has(e.tag);
+    } else if (LANDMARK_TAGS.has(e.tag)) {
+      // smallest landmark whose vertical span contains the change
+      const h = e.bounds.height;
+      if (h > 0 && top <= y + 4 && top + h >= y - 4 && h < landmarkSpan) {
+        landmarkSpan = h;
+        landmarkNoun = tagNoun(e.tag);
+        landmarkChrome = CHROME_LANDMARKS.has(e.tag);
+      }
     }
   }
 
@@ -565,7 +576,7 @@ export function describeChanges(
     const locElements = isAddition(change) ? dev.elements : prod.elements;
     const location = aggregated
       ? undefined
-      : computeLocation(change.selector, locElements) || undefined;
+      : computeLocation(change, locElements) || undefined;
 
     if (description === change.description && location === change.location) {
       return change;
