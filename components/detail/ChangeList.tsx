@@ -57,14 +57,16 @@ interface SelectorGroup {
 }
 
 /**
- * Bucket changes by top-level selector. Single-change buckets render flat
- * (no group chrome); multi-change buckets render as a parent card. Insertion
- * order is preserved so groups appear where their first change would have.
+ * Bucket changes by their content-based location (falling back to top-level
+ * selector for older reports without one), so everything in "the “Pricing”
+ * section" reads as a single group. Single-change buckets render flat;
+ * multi-change buckets render as a parent card. Insertion order is preserved
+ * so groups appear where their first change would have.
  */
 function groupBySelector(changes: SemanticChange[]): SelectorGroup[] {
   const groups = new Map<string, SelectorGroup>();
   for (const change of changes) {
-    const key = topLevelSelector(change.selector);
+    const key = change.location || topLevelSelector(change.selector);
     const existing = groups.get(key);
     if (existing) {
       existing.changes.push(change);
