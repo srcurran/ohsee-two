@@ -295,7 +295,7 @@ function ChangeGroup({
         <span className={`change-group__chevron${collapsed ? "" : " change-group__chevron--open"}`}>
           ›
         </span>
-        <span className="change-group__selector" title={group.selector}>
+        <span className="change-group__selector" title={groupLabel(group)}>
           {groupLabel(group)}
         </span>
         <span className="change-group__count">{group.changes.length}</span>
@@ -371,7 +371,9 @@ function ChangeEntry({
           )}
         </span>
         {locationLine && (
-          <span className="change-entry__selector">{locationLine}</span>
+          <span className="change-entry__selector" title={locationLine}>
+            {locationLine}
+          </span>
         )}
       </div>
     </div>
