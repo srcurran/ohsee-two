@@ -5,12 +5,14 @@ import type { SemanticChange } from "@/lib/types";
 import { CATEGORY_COLORS, CATEGORY_COLOR_FALLBACK } from "@/lib/colors";
 
 interface Props {
-  /** Prod screenshot — used as blend overlay when no highlight image. */
+  /** Prod screenshot — shown (pink-tinted via highlightSrc when available)
+   *  as the background for the Prod side of the toggle. */
   prodSrc: string;
-  /** Dev screenshot — shown on press-and-hold so the user can compare. */
+  /** Dev screenshot — the default background: the change annotations sit on
+   *  the version the user is building. */
   devSrc: string;
-  /** Highlight image — prod with pink-tinted change regions. When available,
-   *  replaces the blend-mode approach with a clearer visual. */
+  /** Highlight image — prod with pink-tinted change regions. Used as the
+   *  Prod-side background when available. */
   highlightSrc?: string;
   alt?: string;
   changes?: SemanticChange[];
@@ -31,16 +33,13 @@ function DiffViewerComponent({
   const [naturalHeight, setNaturalHeight] = useState(0);
   const [renderedHeight, setRenderedHeight] = useState(0);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  // Hide the overlay until it has actually loaded — otherwise a partly-loaded
-  // dev image briefly composites against the (white) container background and
-  // flashes inverted before prod paints in behind it.
-  const [overlayLoaded, setOverlayLoaded] = useState(false);
-  // Press-and-hold: when highlight image is available, shows the change
-  // markers (hidden by default so the highlight regions are clean). Without
-  // highlight, ramps the blend overlay opacity to surface the pixel difference.
-  const [peek, setPeek] = useState(false);
-  const hasHighlight = !!highlightSrc;
-  const overlayOpacity = peek ? 0.8 : 0.2;
+  // Which version backs the annotations. Defaults to dev — the build the
+  // user is working on — and clicking the image toggles to prod to compare,
+  // the same gesture as the Tap view. The change markers stay on either way.
+  const [showingDev, setShowingDev] = useState(true);
+
+  // Prod side prefers the pink-tinted highlight image; dev side is plain.
+  const baseSrc = showingDev ? devSrc : highlightSrc ?? prodSrc;
 
   useEffect(() => {
     const img = imgRef.current;
@@ -68,14 +67,7 @@ function DiffViewerComponent({
       window.removeEventListener("resize", update);
       ro.disconnect();
     };
-  }, [highlightSrc, devSrc]);
-
-  // Reset overlay-loaded gate when the overlay source changes, so a
-  // breakpoint / variant switch doesn't keep showing the previous overlay
-  // while the new one streams in.
-  useEffect(() => {
-    setOverlayLoaded(false);
-  }, [prodSrc]);
+  }, [baseSrc]);
 
   const scale = naturalHeight > 0 ? renderedHeight / naturalHeight : 0;
 
@@ -97,8 +89,7 @@ function DiffViewerComponent({
     }
   }, [highlightedChangeId, scale]);
   // dedupeMarkers is O(n log n) over the change set — re-running it on
-  // every render (including every peek pointerdown) was the dominant
-  // cost in this view per the perf audit.
+  // every render was the dominant cost in this view per the perf audit.
   const markers = useMemo(
     () => (changes ? dedupeMarkers(changes, scale) : []),
     [changes, scale],
@@ -109,55 +100,28 @@ function DiffViewerComponent({
       <div
         ref={containerRef}
         className="diff-viewer"
-        // Push-to-peek. setPointerCapture guarantees pointerup fires here even
-        // if the cursor drifts outside the container during the press, so we
-        // don't get stuck in peek mode. pointercancel handles OS-level aborts
-        // (focus stolen by a screenshot tool, etc.). We deliberately don't
-        // listen to pointerleave — under capture, leave still fires on drift,
-        // and we *want* peek to survive drift until release.
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          setPeek(true);
-        }}
-        onPointerUp={() => setPeek(false)}
-        onPointerCancel={() => setPeek(false)}
+        // Click toggles the backing version, mirroring the Tap view — the
+        // change markers stay overlaid on whichever side is shown.
+        onClick={() => setShowingDev((s) => !s)}
       >
-        {/* When highlight image exists: always show it (markers toggle on
-            press). When no highlight: legacy blend (dev base + prod overlay
-            with mix-blend-mode difference). */}
+        <span className="diff-viewer__side-badge">
+          {showingDev ? "Dev" : "Prod"}
+          <span className="diff-viewer__side-badge-hint">click to compare</span>
+        </span>
         <img
           ref={imgRef}
-          src={hasHighlight ? highlightSrc : devSrc}
-          alt={hasHighlight ? `${alt} (highlight)` : `${alt} (dev)`}
+          src={baseSrc}
+          alt={`${alt} (${showingDev ? "dev" : "prod"})`}
           className="diff-viewer__image diff-viewer__image--base"
           draggable={false}
           loading="lazy"
           decoding="async"
         />
-        {!hasHighlight && (
-          <img
-            src={prodSrc}
-            alt={`${alt} (prod)`}
-            onLoad={() => setOverlayLoaded(true)}
-            loading="lazy"
-            decoding="async"
-            style={{ opacity: overlayLoaded ? overlayOpacity : 0 }}
-            className="diff-viewer__image diff-viewer__image--overlay"
-            draggable={false}
-          />
-        )}
         {scale > 0 &&
           markers.map((marker) => {
             const isHighlighted = highlightedChangeId
               ? marker.changes.some((c) => c.id === highlightedChangeId)
               : false;
-
-            // In highlight mode the markers are hidden by default — the pink
-            // overlay already carries the signal — and shown while peeking.
-            // The one exception is the marker the user just clicked in the
-            // sidebar: it must render even when hidden so the scroll-into-view
-            // effect has a target and the change can be pulsed.
-            if (hasHighlight && !peek && !isHighlighted) return null;
 
             return (
               <div

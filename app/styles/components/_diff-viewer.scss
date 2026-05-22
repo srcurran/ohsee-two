@@ -2,8 +2,9 @@
  * Structure mirrors the JSX tree:
  *
  *   <div .diff-viewer>
- *     <img .diff-viewer__image --base>      ← dev, normal flow (sizes container)
- *     <img .diff-viewer__image --overlay>   ← prod, mix-blend-mode difference
+ *     <span .diff-viewer__side-badge>       ← "Dev"/"Prod" current-side label
+ *       <span .diff-viewer__side-badge-hint>
+ *     <img .diff-viewer__image --base>      ← dev or prod, sizes the container
  *     <div .diff-viewer__marker [--highlighted]>   ← one per change cluster
  *       <div .diff-viewer__line>
  *       <div .diff-viewer__label>
@@ -16,35 +17,42 @@
   position: relative;
   overflow: auto;
   border: 1px solid var(--diff-viewer-border);
-  /* Isolate the stacking context so the overlay's mix-blend-mode only blends
-     against the prod image inside this container, not the page background. */
-  isolation: isolate;
-  /* Click toggles overlay opacity (see `peek` in DiffViewer.tsx). */
+  /* Click toggles the backing version (see `showingDev` in DiffViewer.tsx). */
   cursor: pointer;
 
   .diff-viewer__image {
     width: 100%;
     display: block;
 
-    /* Bottom layer — prod, in normal flow so the container sizes to it. */
+    /* Base layer — dev or prod, in normal flow so the container sizes to it. */
     &--base {
       position: relative;
       z-index: 0;
     }
+  }
 
-    /* Top layer — dev, composited as |dev - prod| against the base. Identical
-       pixels render as black; differences render as the color delta and "glow"
-       against that black. Absolutely positioned so it overlays the base
-       without affecting layout. */
-    &--overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1;
-      mix-blend-mode: difference;
-      transition: opacity 0.15s var(--ease-standard);
-      pointer-events: none;
+  .diff-viewer__side-badge {
+    position: sticky;
+    top: var(--space-2);
+    z-index: var(--z-20);
+    float: right;
+    margin: var(--space-2);
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-1-5);
+    padding: var(--space-1) var(--space-2-5);
+    border-radius: var(--radius-full);
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font-size: var(--font-size-sm);
+    font-weight: var(--weight-semibold);
+    box-shadow: var(--elevation-sm);
+    pointer-events: none;
+
+    .diff-viewer__side-badge-hint {
+      font-size: var(--font-size-xs);
+      font-weight: var(--weight-regular);
+      opacity: 0.65;
     }
   }
 

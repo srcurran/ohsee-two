@@ -30,7 +30,7 @@ export function PageDetailViewToggle({
           setShowingDev(false);
         }}
         className={`page-detail-panel__view-label ${
-          (viewMode === "tap" && !showingDev) || viewMode === "changes"
+          viewMode === "tap" && !showingDev
             ? "page-detail-panel__view-label--active"
             : ""
         }`}
