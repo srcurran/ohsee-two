@@ -154,13 +154,19 @@ export default function PageDetailPanel({
   // Merge scope-aware specific counts into the per-breakpoint stats so the
   // deviation dots in BreakpointTabs can distinguish universal changes from
   // breakpoint-specific ones.
+  // For the deviation dots we use raw per-change classification, not the
+  // grouped per-selector counts used by the header badges.  A selector
+  // group that mixes universal + specific changes would hide the universal
+  // signal when grouped, but the dots should answer a simpler question:
+  // "does this breakpoint have ANY universal change?" / "…ANY specific?"
   const bpChangeCountsWithScope = useMemo(() => {
     const merged = { ...bpChangeCounts };
     for (const [bp, stats] of Object.entries(merged)) {
+      const specific = changeScope.specificCountPerBp[bp] ?? 0;
       merged[bp] = {
         ...stats,
-        universalCount: changeScope.universalGroupCountPerBp[bp] ?? 0,
-        specificCount: changeScope.specificGroupCountPerBp[bp] ?? 0,
+        universalCount: stats.changeCount - specific,
+        specificCount: specific,
       };
     }
     return merged;
