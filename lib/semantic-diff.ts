@@ -14,8 +14,6 @@ export interface SemanticDiffResult {
 }
 
 // --- Thresholds ---
-const POSITION_THRESHOLD = 8; // px difference to flag a layout shift
-const SIZE_THRESHOLD = 8; // px difference to flag a size change
 const COLOR_DISTANCE_THRESHOLD = 3.0; // deltaE just-noticeable difference
 
 // --- Main entry point ---
@@ -334,6 +332,16 @@ function compareElements(
   checkStyleChange(prod, dev, "justifyContent", "justify-content", "alignment", changes, base);
   checkStyleChange(prod, dev, "alignItems", "align-items", "alignment", changes, base);
 
+  // Size constraints — intentional layout edits. Note we compare the CSS
+  // min/max box properties, NOT the rendered bounding box: getComputedStyle
+  // resolves max-width/min-width to the authored declaration, so a change
+  // here is a real edit rather than a downstream reflow (e.g. a button
+  // getting narrower because its label shortened).
+  checkStyleChange(prod, dev, "maxWidth", "max-width", "layout", changes, base);
+  checkStyleChange(prod, dev, "minWidth", "min-width", "layout", changes, base);
+  checkStyleChange(prod, dev, "maxHeight", "max-height", "layout", changes, base);
+  checkStyleChange(prod, dev, "minHeight", "min-height", "layout", changes, base);
+
   // Borders (keylines)
   if (prod.styles.borderBottom !== dev.styles.borderBottom) {
     const prodHasBorder = hasMeaningfulBorder(prod.styles.borderBottom);
@@ -375,45 +383,11 @@ function compareElements(
     }
   }
 
-  // Layout: position shift
-  const dx = Math.abs(prod.bounds.x - dev.bounds.x);
-  const dy = Math.abs(prod.bounds.y - dev.bounds.y);
-  if (dx > POSITION_THRESHOLD || dy > POSITION_THRESHOLD) {
-    const parts: string[] = [];
-    if (dx > POSITION_THRESHOLD) parts.push(`${dx}px horizontally`);
-    if (dy > POSITION_THRESHOLD) parts.push(`${dy}px vertically`);
-    changes.push({
-      ...base,
-      category: "layout",
-      severity: Math.max(dx, dy) > 20 ? "error" : "warning",
-      description: `Element shifted ${parts.join(" and ")}`,
-      details: {
-        property: "position",
-        prodValue: `(${prod.bounds.x}, ${prod.bounds.y})`,
-        devValue: `(${dev.bounds.x}, ${dev.bounds.y})`,
-      },
-    });
-  }
-
-  // Layout: size change
-  const dw = Math.abs(prod.bounds.width - dev.bounds.width);
-  const dh = Math.abs(prod.bounds.height - dev.bounds.height);
-  if (dw > SIZE_THRESHOLD || dh > SIZE_THRESHOLD) {
-    const parts: string[] = [];
-    if (dw > SIZE_THRESHOLD) parts.push(`width ${prod.bounds.width}→${dev.bounds.width}px`);
-    if (dh > SIZE_THRESHOLD) parts.push(`height ${prod.bounds.height}→${dev.bounds.height}px`);
-    changes.push({
-      ...base,
-      category: "layout",
-      severity: Math.max(dw, dh) > 30 ? "error" : "warning",
-      description: `Element size changed: ${parts.join(", ")}`,
-      details: {
-        property: "dimensions",
-        prodValue: `${prod.bounds.width}x${prod.bounds.height}`,
-        devValue: `${dev.bounds.width}x${dev.bounds.height}`,
-      },
-    });
-  }
+  // Position shifts and rendered size changes are deliberately NOT compared
+  // from the bounding box — those are downstream reflow effects (an element
+  // moves/resizes because something else changed). Intentional size edits
+  // are caught above via the min/max box properties; the pixel diff still
+  // surfaces any purely visual movement.
 
   // Display change
   if (prod.styles.display !== dev.styles.display) {

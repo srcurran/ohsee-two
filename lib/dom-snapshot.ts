@@ -1,6 +1,9 @@
 import type { Page } from "playwright";
 import type { CapturedElement, DomSnapshot } from "./types";
 
+// Captures content identity (alt / aria-label / src) alongside layout, so
+// change descriptions can name elements by what they are.
+
 /**
  * Significant tags to capture - semantic/content elements that carry
  * meaningful visual properties worth comparing.
@@ -137,6 +140,10 @@ function extractElementsInPage(significantTags: string[]): CapturedElement[] {
         flexDirection: cs.flexDirection,
         justifyContent: cs.justifyContent,
         alignItems: cs.alignItems,
+        maxWidth: cs.maxWidth,
+        minWidth: cs.minWidth,
+        maxHeight: cs.maxHeight,
+        minHeight: cs.minHeight,
       },
       textContent: getDirectText(el),
       isVisible: visible,

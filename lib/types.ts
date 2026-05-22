@@ -267,6 +267,10 @@ export interface CapturedElement {
     flexDirection: string;
     justifyContent: string;
     alignItems: string;
+    maxWidth: string;
+    minWidth: string;
+    maxHeight: string;
+    minHeight: string;
   };
   /** Visible text content (first 200 chars, direct text only) */
   textContent: string;

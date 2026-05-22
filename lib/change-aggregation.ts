@@ -98,50 +98,21 @@ export function suppressNestedStructural(
   });
 }
 
-/** Parse a "WIDTHxHEIGHT" dimensions value into numbers. */
-function parseSize(value: string | undefined): { w: number; h: number } | null {
-  const m = value?.match(/^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/);
-  return m ? { w: parseFloat(m[1]), h: parseFloat(m[2]) } : null;
-}
-
-/** Whether a dimensions change moved the element's width (vs. height-only). */
-function widthChanged(change: SemanticChange): boolean {
-  const p = parseSize(change.details.prodValue);
-  const d = parseSize(change.details.devValue);
-  return !!p && !!d && Math.abs(p.w - d.w) > 4;
-}
-
-/** Whether a change is the kind of edit that itself resizes an element —
- *  content, spacing, display, or a child being added/removed/restructured. */
-function isSizeCause(c: SemanticChange): boolean {
-  const p = c.details.property ?? "";
-  return (
-    c.category === "spacing" ||
-    c.category === "content" ||
-    p === "display" ||
-    p === "element" ||
-    p === "dom-restructure"
-  );
-}
-
 /**
- * Drop changes that are pure downstream effects of another change:
- *  • line-height — proportionally derived from font-size; when font-size also
- *    changed it carries no new signal.
- *  • position    — an element shifting is almost always a consequence of some
- *    other edit; the visual diff still shows the movement.
- *  • dimensions  — a size change is downstream when something in the element's
- *    own subtree explains it (content edited, spacing changed, a child
- *    added/removed): that cause is already reported, so the size delta is
- *    redundant. What survives is a *standalone width* change — a genuine
- *    layout edit (max-width / width) with no inner cause. A standalone
- *    height-only delta is reflow noise and is dropped.
+ * Drop changes that are pure downstream effects of another change.
+ *
+ * This is now just line-height: it is proportionally derived from font-size,
+ * so when font-size also changed on the same element the line-height delta
+ * carries no independent signal.
+ *
+ * (Position shifts and rendered size deltas are no longer produced at all —
+ * `generateSemanticDiff` only emits intentional min/max box-property edits,
+ * so there is nothing downstream to suppress there.)
  */
 export function suppressDownstream(
   changes: SemanticChange[],
 ): SemanticChange[] {
   const propsBySelector = new Map<string, Set<string>>();
-  const causeSelectors: string[] = [];
   for (const c of changes) {
     let set = propsBySelector.get(c.selector);
     if (!set) {
@@ -149,27 +120,14 @@ export function suppressDownstream(
       propsBySelector.set(c.selector, set);
     }
     if (c.details.property) set.add(c.details.property);
-    if (isSizeCause(c)) causeSelectors.push(c.selector);
   }
 
-  // A size change is "explained" when the element itself, or any element in
-  // its subtree, carries a content / spacing / structural change.
-  const isExplained = (selector: string): boolean =>
-    causeSelectors.some(
-      (s) => s === selector || s.startsWith(selector + " > "),
-    );
-
   return changes.filter((c) => {
-    const props = propsBySelector.get(c.selector) ?? new Set<string>();
-    if (c.details.property === "line-height" && props.has("font-size")) {
+    if (
+      c.details.property === "line-height" &&
+      propsBySelector.get(c.selector)?.has("font-size")
+    ) {
       return false;
-    }
-    if (c.details.property === "position") {
-      return false;
-    }
-    if (c.details.property === "dimensions") {
-      if (isExplained(c.selector)) return false; // downstream of a real edit
-      if (!widthChanged(c)) return false; // standalone height = reflow noise
     }
     return true;
   });
@@ -473,18 +431,6 @@ function describeStructural(
   return `${verb} ${noun}`;
 }
 
-/** Describe a size change in terms of the axis that actually moved. */
-function describeSize(change: SemanticChange): string {
-  const p = parseSize(change.details.prodValue);
-  const d = parseSize(change.details.devValue);
-  if (!p || !d) return change.description;
-  const dw = Math.abs(p.w - d.w) > 4;
-  const dh = Math.abs(p.h - d.h) > 4;
-  if (dw && !dh) return `Width changed from ${p.w}px to ${d.w}px`;
-  if (dh && !dw) return `Height changed from ${p.h}px to ${d.h}px`;
-  return `Size changed from ${p.w}×${p.h}px to ${d.w}×${d.h}px`;
-}
-
 /** rgb()/rgba() → #hex, with a trailing opacity note when not fully opaque. */
 function formatColor(value: string | undefined): string {
   if (!value) return "";
@@ -556,9 +502,7 @@ export function describeChanges(
       );
     } else {
       if (change.category === "color") description = describeColor(change);
-      else if (change.details.property === "dimensions") {
-        description = describeSize(change);
-      } else if (change.details.property === "textContent") {
+      else if (change.details.property === "textContent") {
         const from = change.details.prodValue ?? "";
         const to = change.details.devValue ?? "";
         if (from && to) {
