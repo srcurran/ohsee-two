@@ -3,7 +3,6 @@
 import { useMemo, useRef, useState } from "react";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
-import DiffViewer from "@/components/detail/DiffViewer";
 import SliderComparison from "@/components/detail/SliderComparison";
 import type { Project, Report } from "@/lib/types";
 import { PageDetailHeader } from "@/components/detail/PageDetailHeader";
@@ -74,8 +73,9 @@ export default function PageDetailPanel({
 
   const {
     viewMode,
-    setViewMode,
     changeViewMode,
+    diffMode,
+    setDiffMode,
     scrollRef,
     screenshotRef,
   } = usePageDetailViewMode({ pageId });
@@ -269,9 +269,11 @@ export default function PageDetailPanel({
                   <PageDetailViewToggle
                     viewMode={viewMode}
                     showingDev={showingDev}
+                    diffMode={diffMode}
                     changeViewMode={changeViewMode}
                     setForceDevLocked={setForceDevLocked}
                     setShowingDev={setShowingDev}
+                    setDiffMode={setDiffMode}
                   />
                 )}
                 {bpResult ? (
@@ -280,32 +282,35 @@ export default function PageDetailPanel({
                     className="page-detail-panel__screenshot"
                     style={{ maxWidth: activeBp }}
                   >
-                    {viewMode === "changes" ? (
-                      <DiffViewer
-                        prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
-                        devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
-                        highlightSrc={bpResult.highlightScreenshot ? `/api/screenshots/${bpResult.highlightScreenshot}` : undefined}
-                        alt={`Diff for ${currentPage.path}`}
-                        changes={bpResult.semanticChanges}
-                        highlightedChangeId={highlightedChangeId}
-                      />
-                    ) : (
-                      <SliderComparison
-                        prodSrc={`/api/screenshots/${bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot}`}
-                        devSrc={`/api/screenshots/${bpResult.alignedDevScreenshot ?? bpResult.devScreenshot}`}
-                        mode={viewMode}
-                        onModeChange={(m) => {
-                          changeViewMode(m);
-                          if (m !== "tap") {
-                            setForceDevLocked(false);
-                            setShowingDev(false);
-                          }
-                        }}
-                        onPressedChange={setShowingDev}
-                        forceDev={forceDevLocked}
-                        hideHeader
-                      />
-                    )}
+                    {/* Tap/Slider compare prod vs dev. The Diff toggle swaps
+                        the plain aligned screenshots for their change-
+                        highlighted variants (falling back to plain when a
+                        side has no highlight — e.g. zero-change pages). */}
+                    <SliderComparison
+                      prodSrc={`/api/screenshots/${
+                        diffMode && bpResult.highlightScreenshot
+                          ? bpResult.highlightScreenshot
+                          : bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot
+                      }`}
+                      devSrc={`/api/screenshots/${
+                        diffMode && bpResult.highlightDevScreenshot
+                          ? bpResult.highlightDevScreenshot
+                          : bpResult.alignedDevScreenshot ?? bpResult.devScreenshot
+                      }`}
+                      mode={viewMode}
+                      onModeChange={(m) => {
+                        changeViewMode(m);
+                        if (m !== "tap") {
+                          setForceDevLocked(false);
+                          setShowingDev(false);
+                        }
+                      }}
+                      onPressedChange={setShowingDev}
+                      forceDev={forceDevLocked}
+                      hideHeader
+                      changes={bpResult.semanticChanges}
+                      highlightedChangeId={highlightedChangeId}
+                    />
                   </div>
                 ) : (
                   <div className="page-detail-panel__empty">
@@ -322,11 +327,9 @@ export default function PageDetailPanel({
                   changeScope={changeScope}
                   onChangeClick={(id) => {
                     // Tapping a change item is a request to inspect it —
-                    // force the Changes view so the marker is visible
-                    // before DiffViewer scrolls it into view. The user
-                    // is asking to be repositioned (scrollIntoView in
-                    // DiffViewer), so don't snapshot scrollTop here.
-                    if (viewMode !== "changes") setViewMode("changes");
+                    // turn Diff on so the highlighted regions are visible,
+                    // then let SliderComparison scroll the change into view.
+                    setDiffMode(true);
                     setHighlightedChangeId(id);
                     setTimeout(() => setHighlightedChangeId(null), 3000);
                   }}

@@ -566,6 +566,7 @@ async function captureAndDiff(options: {
       const alignedProdPath = path.join(screenshotDir, `aligned-prod-${pageId}${prefix}-${bp}.png`);
       const alignedDevPath = path.join(screenshotDir, `aligned-dev-${pageId}${prefix}-${bp}.png`);
       const highlightPath = path.join(screenshotDir, `highlight-${pageId}${prefix}-${bp}.png`);
+      const highlightDevPath = path.join(screenshotDir, `highlight-dev-${pageId}${prefix}-${bp}.png`);
       const diffResult = await generateDiff(
         prodShot.filePath,
         devShot.filePath,
@@ -573,6 +574,7 @@ async function captureAndDiff(options: {
         alignedDevPath,
         undefined,
         highlightPath,
+        highlightDevPath,
       );
 
       const bpResult: BreakpointResult = {
@@ -582,6 +584,8 @@ async function captureAndDiff(options: {
         alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
         highlightScreenshot: diffResult.highlightImagePath
           ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
+        highlightDevScreenshot: diffResult.highlightDevImagePath
+          ? path.relative(dataBase, diffResult.highlightDevImagePath) : undefined,
         prodUrl: prodShot.url,
         devUrl: devShot.url,
         // changeCount is the number of semantic changes; until the semantic
@@ -692,6 +696,7 @@ async function captureAndDiffFlow(options: {
         const alignedProdPath = path.join(screenshotDir, `aligned-prod-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
         const alignedDevPath = path.join(screenshotDir, `aligned-dev-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
         const highlightPath = path.join(screenshotDir, `highlight-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
+        const highlightDevPath = path.join(screenshotDir, `highlight-dev-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
 
         const diffResult = await generateDiff(
           prodShot.filePath,
@@ -700,6 +705,7 @@ async function captureAndDiffFlow(options: {
           alignedDevPath,
           undefined,
           highlightPath,
+          highlightDevPath,
         );
 
         const bpResult: BreakpointResult = {
@@ -709,6 +715,8 @@ async function captureAndDiffFlow(options: {
           alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
           highlightScreenshot: diffResult.highlightImagePath
             ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
+          highlightDevScreenshot: diffResult.highlightDevImagePath
+            ? path.relative(dataBase, diffResult.highlightDevImagePath) : undefined,
           prodUrl: prodShot.url,
           devUrl: devShot.url,
           changeCount: diffResult.changeCount > 0 ? 1 : 0,
@@ -826,6 +834,7 @@ async function captureAndDiffComposition(options: {
         const alignedProdPath = path.join(screenshotDir, `aligned-prod-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
         const alignedDevPath = path.join(screenshotDir, `aligned-dev-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
         const highlightPath = path.join(screenshotDir, `highlight-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
+        const highlightDevPath = path.join(screenshotDir, `highlight-dev-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
 
         const diffResult = await generateDiff(
           prodShot.filePath,
@@ -834,6 +843,7 @@ async function captureAndDiffComposition(options: {
           alignedDevPath,
           undefined,
           highlightPath,
+          highlightDevPath,
         );
 
         const bpResult: BreakpointResult = {
@@ -843,6 +853,8 @@ async function captureAndDiffComposition(options: {
           alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
           highlightScreenshot: diffResult.highlightImagePath
             ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
+          highlightDevScreenshot: diffResult.highlightDevImagePath
+            ? path.relative(dataBase, diffResult.highlightDevImagePath) : undefined,
           prodUrl: prodShot.url,
           devUrl: devShot.url,
           changeCount: diffResult.changeCount > 0 ? 1 : 0,

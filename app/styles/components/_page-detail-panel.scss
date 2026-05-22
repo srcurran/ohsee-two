@@ -15,9 +15,11 @@
  *         <div .page-detail-panel__main>
  *           <div .page-detail-panel__screenshot-col [--sticky-header]>
  *             <div .page-detail-panel__view-toggle [--sticky]>   ← PageDetailViewToggle
- *               <button .page-detail-panel__view-label [--active]>    "Prod"
- *               <div .segmented> … </div>
- *               <button .page-detail-panel__view-label--right [--active]>  "Dev"
+ *               <div .page-detail-panel__view-toggle-group>
+ *                 <button .page-detail-panel__view-label [--active]>    "Prod"
+ *                 <div .segmented> … </div>
+ *                 <button .page-detail-panel__view-label--right [--active]>  "Dev"
+ *               <button .page-detail-panel__diff-toggle [--active]>  "Diff"
  *             <div .page-detail-panel__screenshot> … </div>
  *               — or —
  *             <div .page-detail-panel__empty>
@@ -136,10 +138,12 @@
         }
 
         .page-detail-panel__view-toggle {
-          display: flex;
+          /* Three tracks: the Prod/Tap-Slider/Dev group stays optically
+             centred (flanked by equal 1fr columns) while the Diff button
+             sits at the row's end. */
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
-          justify-content: center;
-          gap: var(--space-14);
           padding-bottom: var(--space-4);
           font-size: var(--font-size-base);
 
@@ -150,6 +154,44 @@
             align-self: stretch;
             background: var(--page-detail-panel-view-toggle-sticky-background);
             padding-top: var(--space-6);
+          }
+
+          .page-detail-panel__view-toggle-group {
+            grid-column: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-14);
+          }
+
+          .page-detail-panel__diff-toggle {
+            grid-column: 3;
+            justify-self: end;
+            margin-right: var(--space-6);
+            padding: var(--space-1) var(--space-3);
+            border: 1px solid var(--page-detail-panel-view-label-color);
+            border-radius: var(--radius-full);
+            background: transparent;
+            color: var(--page-detail-panel-view-label-color);
+            font: inherit;
+            cursor: pointer;
+            transition: var(--transition-colors);
+
+            &:hover {
+              color: var(--page-detail-panel-view-label-color-hover);
+              border-color: var(--page-detail-panel-view-label-color-hover);
+            }
+
+            &--active {
+              background: var(--page-detail-panel-view-label-color-active);
+              border-color: var(--page-detail-panel-view-label-color-active);
+              color: var(--page-detail-panel-view-toggle-sticky-background);
+
+              &:hover {
+                color: var(--page-detail-panel-view-toggle-sticky-background);
+                border-color: var(--page-detail-panel-view-label-color-active);
+              }
+            }
           }
 
           .page-detail-panel__view-label {

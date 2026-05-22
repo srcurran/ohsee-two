@@ -8,6 +8,8 @@
  *       <img .comparison__image>
  *     <div .comparison__divider>          ← slider mode
  *       <div .comparison__handle>
+ *     <div .comparison__anchors>          ← invisible scroll targets
+ *       <div .comparison__anchor>
  *
  *   <div .comparison-header>              ← Prod | segmented | Dev
  *     <span .comparison-header__label [--active]>
@@ -38,6 +40,21 @@
   .comparison__clip {
     position: absolute;
     inset: 0;
+  }
+
+  /* Invisible per-change scroll targets — `scrollIntoView` lands the
+     screenshot column on a change clicked in the sidebar. */
+  .comparison__anchors {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .comparison__anchor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
   }
 
   .comparison__divider {

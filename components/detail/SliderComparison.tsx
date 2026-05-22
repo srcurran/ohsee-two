@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import type { SemanticChange } from "@/lib/types";
 
 export type ComparisonMode = "slider" | "tap";
 
@@ -13,6 +14,10 @@ interface Props {
   hideHeader?: boolean;
   /** When true, locks the view to show the dev screenshot (overrides tap hold) */
   forceDev?: boolean;
+  /** Detected changes — used to scroll a clicked change into view. */
+  changes?: SemanticChange[];
+  /** The change to scroll into view, set when one is clicked in the sidebar. */
+  highlightedChangeId?: string | null;
 }
 
 export function ComparisonHeader({
@@ -50,6 +55,44 @@ export function ComparisonHeader({
   );
 }
 
+/**
+ * Invisible scroll anchors — one per change, positioned by the change's page
+ * Y as a fraction of the screenshot's natural height. Clicking a change in
+ * the sidebar scrolls its anchor (and so the change region) into view.
+ */
+function ChangeAnchors({
+  changes,
+  naturalHeight,
+  highlightedChangeId,
+}: {
+  changes: SemanticChange[];
+  naturalHeight: number;
+  highlightedChangeId?: string | null;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!highlightedChangeId || !ref.current || naturalHeight === 0) return;
+    const el = ref.current.querySelector(`[data-change-id="${highlightedChangeId}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightedChangeId, naturalHeight]);
+
+  if (naturalHeight === 0) return null;
+
+  return (
+    <div ref={ref} className="comparison__anchors" aria-hidden>
+      {changes.map((c) => (
+        <div
+          key={c.id}
+          data-change-id={c.id}
+          className="comparison__anchor"
+          style={{ top: `${(c.yPosition / naturalHeight) * 100}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function SliderComparison({
   prodSrc,
   devSrc,
@@ -58,10 +101,35 @@ export default function SliderComparison({
   onPressedChange,
   hideHeader,
   forceDev,
+  changes,
+  highlightedChangeId,
 }: Props) {
   const [internalMode, setInternalMode] = useState<ComparisonMode>("tap");
   const mode = controlledMode ?? internalMode;
   const setMode = onModeChange ?? setInternalMode;
+
+  // Natural pixel height of the screenshots — drives change-anchor placement.
+  // Measured off-DOM so it's independent of which reveal component is mounted.
+  // prod / dev / highlight all share dimensions per breakpoint, so a stale
+  // value across a Diff toggle is harmless; only a breakpoint switch resizes.
+  const [naturalHeight, setNaturalHeight] = useState(0);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setNaturalHeight(img.naturalHeight);
+    img.src = devSrc;
+    return () => {
+      img.onload = null;
+    };
+  }, [devSrc]);
+
+  const anchors =
+    changes && changes.length > 0 ? (
+      <ChangeAnchors
+        changes={changes}
+        naturalHeight={naturalHeight}
+        highlightedChangeId={highlightedChangeId}
+      />
+    ) : null;
 
   return (
     <div>
@@ -72,15 +140,21 @@ export default function SliderComparison({
       )}
 
       {mode === "tap" ? (
-        <TapReveal prodSrc={prodSrc} devSrc={devSrc} onPressedChange={onPressedChange} forceDev={forceDev} />
+        <TapReveal prodSrc={prodSrc} devSrc={devSrc} onPressedChange={onPressedChange} forceDev={forceDev} overlay={anchors} />
       ) : (
-        <SliderReveal prodSrc={prodSrc} devSrc={devSrc} />
+        <SliderReveal prodSrc={prodSrc} devSrc={devSrc} overlay={anchors} />
       )}
     </div>
   );
 }
 
-function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
+function TapReveal({
+  prodSrc,
+  devSrc,
+  onPressedChange,
+  forceDev,
+  overlay,
+}: Props & { overlay?: React.ReactNode }) {
   const [pressed, setPressed] = useState(false);
   // When Dev is locked, a tap should reveal Prod (inverse). XOR gives both:
   // locked-on-Prod press → show Dev; locked-on-Dev press → show Prod.
@@ -118,11 +192,16 @@ function TapReveal({ prodSrc, devSrc, onPressedChange, forceDev }: Props) {
         loading="lazy"
         decoding="async"
       />
+      {overlay}
     </div>
   );
 }
 
-function SliderReveal({ prodSrc, devSrc }: Props) {
+function SliderReveal({
+  prodSrc,
+  devSrc,
+  overlay,
+}: Props & { overlay?: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dividerPos, setDividerPos] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -194,6 +273,8 @@ function SliderReveal({ prodSrc, devSrc }: Props) {
           <span>&gt;</span>
         </div>
       </div>
+
+      {overlay}
     </div>
   );
 }

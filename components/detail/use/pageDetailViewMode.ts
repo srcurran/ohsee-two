@@ -1,12 +1,15 @@
-/** View-mode toggle (tap / slider / changes) plus scroll-position
- * preservation across mode swaps. Toggling swaps the screenshot column's
- * child; the new <img> reports zero height until it loads, during which gap
- * the browser clamps scrollTop. We snapshot scrollTop synchronously in
- * `changeViewMode` and re-apply it once the new content has grown. */
+/** View-mode toggle (tap / slider) plus a separate Diff toggle that swaps
+ * the plain screenshots for their change-highlighted variants. Also handles
+ * scroll-position preservation across mode swaps: toggling swaps the
+ * screenshot column's child, the new <img> reports zero height until it
+ * loads, and during that gap the browser clamps scrollTop. We snapshot
+ * scrollTop synchronously in `changeViewMode` and re-apply it once the new
+ * content has grown. (Toggling Diff keeps the same dimensions, so it needs
+ * no restoration.) */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type ViewMode = "tap" | "slider" | "changes";
+export type ViewMode = "tap" | "slider";
 
 interface UsePageDetailViewModeArgs {
   pageId: string;
@@ -16,6 +19,8 @@ interface UsePageDetailViewModeResult {
   viewMode: ViewMode;
   setViewMode: React.Dispatch<React.SetStateAction<ViewMode>>;
   changeViewMode: (next: ViewMode) => void;
+  diffMode: boolean;
+  setDiffMode: React.Dispatch<React.SetStateAction<boolean>>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   screenshotRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -23,15 +28,16 @@ interface UsePageDetailViewModeResult {
 export function usePageDetailViewMode({
   pageId,
 }: UsePageDetailViewModeArgs): UsePageDetailViewModeResult {
-  // Default to the Changes view — it's the primary thing users come here to
-  // see. Tap/Slider remain one click away in the segmented control.
-  const [viewMode, setViewMode] = useState<ViewMode>("changes");
+  // Default to the Tap comparison with Diff on — the change-highlighted
+  // screenshots are the primary thing users come here to see.
+  const [viewMode, setViewMode] = useState<ViewMode>("tap");
+  const [diffMode, setDiffMode] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const screenshotRef = useRef<HTMLDivElement>(null);
   const scrollTopRef = useRef(0);
   // Captured by changeViewMode before we flip viewMode so the restore effect
-  // below can put scrollTop back where it was once the new content (DiffViewer
-  // / SliderComparison) has loaded. Null when no restore is pending.
+  // below can put scrollTop back where it was once the new SliderComparison
+  // content has loaded. Null when no restore is pending.
   const pendingRestoreRef = useRef<number | null>(null);
 
   // Always change viewMode through this so scroll restoration is armed.
@@ -107,6 +113,8 @@ export function usePageDetailViewMode({
     viewMode,
     setViewMode,
     changeViewMode,
+    diffMode,
+    setDiffMode,
     scrollRef,
     screenshotRef,
   };
