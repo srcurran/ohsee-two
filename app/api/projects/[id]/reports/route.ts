@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import { readJsonFile, writeJsonFile } from "@/lib/data";
-import { userReportsDir, BREAKPOINTS } from "@/lib/constants";
+import { readJsonFile } from "@/lib/data";
+import { userReportsDir } from "@/lib/constants";
 import { requireUserId, handleApiError } from "@/lib/auth-helpers";
-import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
-import { readProjectsWithMigration } from "@/lib/site-test-migration";
-import { checkProjectUrlsReachable } from "@/lib/url-reachability";
-import { getTestSteps } from "@/lib/test-steps";
 import type { Report } from "@/lib/types";
 import path from "path";
 import { promises as fs } from "fs";
 
+// Reports are run through the test-scoped endpoint
+// (POST /api/projects/[id]/tests/[testId]/reports); this route only lists a
+// project's reports. The old project-level POST was removed — every report
+// now belongs to a site test.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -43,72 +42,6 @@ export async function GET(
 
     reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return NextResponse.json(reports);
-  } catch (err) {
-    return handleApiError(err, "report");
-  }
-}
-
-export async function POST(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const userId = await requireUserId();
-    const { id } = await params;
-    const projects = await readProjectsWithMigration(userId);
-    const project = projects.find((p) => p.id === id);
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    // Use the first/default test if available
-    const siteTest = project.tests?.[0];
-
-    // Preflight: confirm both URLs are reachable before we spin up a report.
-    // Without this the runner happily proceeds against an unreachable host
-    // (e.g. https://localhost typo'd against an http-only dev server),
-    // produces zero usable screenshots, and ends in "completed" — see
-    // lib/url-reachability.ts for the failure modes we surface.
-    const reachable = await checkProjectUrlsReachable(project.prodUrl, project.devUrl);
-    if (!reachable.ok) {
-      // `issues` is the structured field the client (buildRunErrorDetails)
-      // actually reads. `error` is the legacy single-string fallback.
-      return NextResponse.json(
-        { error: reachable.error, issues: reachable.issues },
-        { status: 400 },
-      );
-    }
-
-    // Cancel any running reports for this project before starting a new one
-    cancelRunningReportsForProject(id);
-
-    const reportId = uuidv4();
-    const bpCount = project.breakpoints?.length || BREAKPOINTS.length;
-    // Progress estimate: one capture per URL step × breakpoint × ~3 phases.
-    // Use the unified getTestSteps so tests with the new `steps[]` shape
-    // count correctly (their legacy `pages` field is empty). Fall back to
-    // project.pages for projects that have no test at all.
-    const urlStepCount = siteTest
-      ? getTestSteps(siteTest).filter((s) => s.type === "url").length
-      : project.pages.length;
-    const totalOps = urlStepCount * bpCount * 3;
-    const report: Report = {
-      id: reportId,
-      projectId: id,
-      ...(siteTest ? { siteTestId: siteTest.id } : {}),
-      createdAt: new Date().toISOString(),
-      status: "running",
-      progress: { completed: 0, total: totalOps },
-      pages: [],
-    };
-
-    const reportDir = path.join(userReportsDir(userId), reportId);
-    await writeJsonFile(path.join(reportDir, "report.json"), report);
-
-    // Run report asynchronously
-    runReport(project, reportId, userId, siteTest).catch(console.error);
-
-    return NextResponse.json({ reportId }, { status: 202 });
   } catch (err) {
     return handleApiError(err, "report");
   }

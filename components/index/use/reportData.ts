@@ -152,9 +152,20 @@ export function useReportData({
     // interpolation in Playwright script steps.
     const scriptCredentials = await resolveScriptCredentials(siteTest);
 
-    const url = report?.siteTestId
-      ? `/api/projects/${project.id}/tests/${report.siteTestId}/reports`
-      : `/api/projects/${project.id}/reports`;
+    // Always run through the test-scoped endpoint. Reports created before
+    // the test system carry no siteTestId — fall back to the project's
+    // first/default test (what such a run would resolve to anyway).
+    const testId = report?.siteTestId ?? project.tests?.[0]?.id;
+    if (!testId) {
+      setRunError(
+        buildRunErrorDetails(
+          { error: "This project has no test to run." },
+          project.id,
+        ),
+      );
+      return;
+    }
+    const url = `/api/projects/${project.id}/tests/${testId}/reports`;
     const fetchOpts: RequestInit = { method: "POST" };
     if (scriptCredentials) {
       fetchOpts.headers = { "Content-Type": "application/json" };
