@@ -1,8 +1,9 @@
 import type { Page } from "playwright";
 import type { CapturedElement, DomSnapshot } from "./types";
 
-// Captures content identity (alt / aria-label / src) alongside layout, so
-// change descriptions can name elements by what they are.
+// Captures content identity (alt / aria-label / src / placeholder)
+// alongside layout, so change descriptions can name elements by what they
+// are and matching can anchor text-less controls.
 
 /**
  * Significant tags to capture - semantic/content elements that carry
@@ -157,6 +158,10 @@ function extractElementsInPage(significantTags: string[]): CapturedElement[] {
     if (rawSrc && !rawSrc.startsWith("data:")) {
       const base = rawSrc.split(/[?#]/)[0].split("/").pop();
       if (base) entry.src = base.substring(0, 80);
+    }
+    const placeholder = el.getAttribute("placeholder");
+    if (placeholder && placeholder.trim()) {
+      entry.placeholder = placeholder.trim().substring(0, 120);
     }
 
     results.push(entry);

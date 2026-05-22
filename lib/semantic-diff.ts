@@ -187,22 +187,37 @@ interface ElementMatch {
   devOnly: CapturedElement[];
 }
 
-/** Collapsed direct text of an element, or "" when it has none. */
-function collapsedText(el: CapturedElement): string {
-  return el.textContent.trim().replace(/\s+/g, " ");
+/**
+ * Content identity of an element for matching: its collapsed direct text,
+ * or — for text-less controls and media — the next best stable signal
+ * (accessible name, input placeholder, image alt or source filename). This
+ * lets an <input> or <img> anchor to its real counterpart instead of being
+ * reported as removed+added when a structural edit shifts its selector.
+ */
+function contentIdentity(el: CapturedElement): string {
+  const text = el.textContent.trim().replace(/\s+/g, " ");
+  if (text) return text;
+  return (
+    el.ariaLabel?.trim() ||
+    el.placeholder?.trim() ||
+    el.alt?.trim() ||
+    el.src?.trim() ||
+    ""
+  );
 }
 
 /**
- * Direct text of every element's descendants, keyed by the ancestor's
+ * Content identity of every element's descendants, keyed by the ancestor's
  * selector, in document order and capped so identity keys stay bounded.
- * Lets a text-less container be identified by what it holds.
+ * Lets a text-less container be identified by what it holds — including
+ * form controls and media, which contribute their placeholder/alt.
  */
 function buildDescendantText(
   elements: CapturedElement[],
 ): Map<string, string[]> {
   const map = new Map<string, string[]>();
   for (const el of elements) {
-    const text = collapsedText(el);
+    const text = contentIdentity(el);
     if (!text) continue;
     const segs = el.selector.split(" > ");
     for (let i = 1; i < segs.length; i++) {
@@ -219,17 +234,18 @@ function buildDescendantText(
 }
 
 /**
- * Identity key for content-anchoring. A text-bearing element keys on its
- * own direct text; a text-less container keys on its descendants' text — so
- * a wrapper that survives a sibling deletion still matches by what it holds
- * rather than its shifted :nth-of-type selector. Returns null when there is
- * no text anywhere in the element's subtree.
+ * Identity key for content-anchoring. An element with content identity keys
+ * on it (own text, or a control's placeholder / media's alt); a text-less
+ * container keys on its descendants' identity — so a wrapper that survives a
+ * sibling deletion still matches by what it holds rather than its shifted
+ * :nth-of-type selector. Returns null when there is no identity anywhere in
+ * the element's subtree.
  */
 function anchorKey(
   el: CapturedElement,
   descendants: Map<string, string[]>,
 ): string | null {
-  const own = collapsedText(el);
+  const own = contentIdentity(el);
   if (own) return `t:${el.tag}:${JSON.stringify(own)}`;
   const desc = descendants.get(el.selector);
   if (desc && desc.length > 0) return `d:${el.tag}:${JSON.stringify(desc)}`;

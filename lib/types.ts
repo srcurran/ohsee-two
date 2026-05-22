@@ -282,6 +282,8 @@ export interface CapturedElement {
   ariaLabel?: string;
   /** `src` basename (no path, no query) — media identity fallback. */
   src?: string;
+  /** `placeholder` attribute — identity for text-less form controls. */
+  placeholder?: string;
 }
 
 export interface DomSnapshot {
