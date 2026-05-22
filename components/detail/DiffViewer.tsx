@@ -146,11 +146,18 @@ function DiffViewerComponent({
             draggable={false}
           />
         )}
-        {scale > 0 && (!hasHighlight || peek) &&
+        {scale > 0 &&
           markers.map((marker) => {
             const isHighlighted = highlightedChangeId
               ? marker.changes.some((c) => c.id === highlightedChangeId)
               : false;
+
+            // In highlight mode the markers are hidden by default — the pink
+            // overlay already carries the signal — and shown while peeking.
+            // The one exception is the marker the user just clicked in the
+            // sidebar: it must render even when hidden so the scroll-into-view
+            // effect has a target and the change can be pulsed.
+            if (hasHighlight && !peek && !isHighlighted) return null;
 
             return (
               <div
