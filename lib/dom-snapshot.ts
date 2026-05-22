@@ -100,7 +100,8 @@ function extractElementsInPage(significantTags: string[]): CapturedElement[] {
     // Skip invisible elements with no area
     if (!visible && rect.width === 0 && rect.height === 0) continue;
 
-    results.push({
+    // Content identity beyond text — for content-based change descriptions.
+    const entry: CapturedElement = {
       selector: buildSelector(el),
       tag: el.tagName.toLowerCase(),
       bounds: {
@@ -139,7 +140,19 @@ function extractElementsInPage(significantTags: string[]): CapturedElement[] {
       },
       textContent: getDirectText(el),
       isVisible: visible,
-    });
+    };
+
+    const alt = el.getAttribute("alt");
+    if (alt && alt.trim()) entry.alt = alt.trim().substring(0, 120);
+    const ariaLabel = el.getAttribute("aria-label");
+    if (ariaLabel && ariaLabel.trim()) entry.ariaLabel = ariaLabel.trim().substring(0, 120);
+    const rawSrc = el.getAttribute("src");
+    if (rawSrc && !rawSrc.startsWith("data:")) {
+      const base = rawSrc.split(/[?#]/)[0].split("/").pop();
+      if (base) entry.src = base.substring(0, 80);
+    }
+
+    results.push(entry);
   }
 
   return results;

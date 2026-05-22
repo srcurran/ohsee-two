@@ -314,9 +314,88 @@ export function aggregateAcrossElements(
 // Stage 4 — content-based descriptions
 // ---------------------------------------------------------------------------
 
-/** Direct text content of the element at `selector`, if any. */
-function elementText(elements: CapturedElement[], selector: string): string {
-  return elements.find((e) => e.selector === selector)?.textContent?.trim() ?? "";
+/** Tags that name a region of the page. */
+const LANDMARK_TAGS = new Set([
+  "header", "nav", "main", "footer", "section", "article", "aside", "form",
+]);
+
+/** Region landmarks whose own role names a location better than any heading
+ *  found nearby — headings inside page chrome are unreliable locators. */
+const CHROME_LANDMARKS = new Set(["header", "nav", "footer", "aside"]);
+
+/** Heading tags, used to name the section a change sits in. */
+const HEADING_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
+
+/** Media tags whose identity comes from alt / aria-label / src, not text. */
+const MEDIA_TAGS = new Set(["img", "svg", "video", "picture", "iframe"]);
+
+/** Plain-English noun for an HTML tag, so descriptions read in terms of what
+ *  an element *is* rather than naming the raw tag. */
+const TAG_NOUNS: Record<string, string> = {
+  img: "image", picture: "image", svg: "graphic", video: "video", iframe: "embed",
+  a: "link", button: "button",
+  input: "field", textarea: "field", select: "field",
+  p: "paragraph", li: "list item", ul: "list", ol: "list",
+  h1: "heading", h2: "heading", h3: "heading", h4: "heading", h5: "heading", h6: "heading",
+  nav: "navigation", header: "header", footer: "footer", aside: "sidebar",
+  section: "section", article: "section", main: "main content",
+  form: "form", table: "table", figure: "figure", blockquote: "quote",
+};
+
+function tagNoun(tag: string): string {
+  return TAG_NOUNS[tag] ?? "element";
+}
+
+function pluralNoun(noun: string): string {
+  return noun.endsWith("s") ? noun : `${noun}s`;
+}
+
+/**
+ * Human-readable location for a change — the named section or page region it
+ * sits in — derived by walking the DOM snapshot. Replaces showing a raw CSS
+ * selector. Returns "" when nothing better than the selector is available.
+ */
+function computeLocation(
+  selector: string,
+  elements: CapturedElement[],
+): string {
+  const target = selector.split(" > ");
+  let headingText = "";
+  let headingShared = -1;
+  let landmarkNoun = "";
+  let landmarkChrome = false;
+  let landmarkDepth = -1;
+
+  for (const e of elements) {
+    const segs = e.selector.split(" > ");
+    let shared = 0;
+    const max = Math.min(segs.length, target.length);
+    while (shared < max && segs[shared] === target[shared]) shared++;
+
+    if (HEADING_TAGS.has(e.tag)) {
+      const text = e.textContent?.trim();
+      if (text && shared > headingShared) {
+        headingShared = shared;
+        headingText = text;
+      }
+    }
+    // e is an ancestor of (or equal to) the target when all of its segments
+    // matched a prefix of the target's path.
+    if (
+      LANDMARK_TAGS.has(e.tag) &&
+      shared === segs.length &&
+      segs.length > landmarkDepth
+    ) {
+      landmarkDepth = segs.length;
+      landmarkNoun = tagNoun(e.tag);
+      landmarkChrome = CHROME_LANDMARKS.has(e.tag);
+    }
+  }
+
+  if (landmarkChrome) return `the ${landmarkNoun}`;
+  if (headingText) return `the “${truncate(headingText, 40)}” section`;
+  if (landmarkNoun) return `the ${landmarkNoun}`;
+  return "";
 }
 
 /** Distinct text content of descendants of `selector`, plus the total count. */
@@ -338,35 +417,49 @@ function descendantTexts(
   return { samples, total: seen.size };
 }
 
-/** Describe a structural change by the element's content, not its selector. */
+/** Describe a structural change by what the element *is* and contains —
+ *  leading with a plain noun (image, link, navigation) rather than its tag. */
 function describeStructural(
   change: SemanticChange,
   elements: CapturedElement[],
   verb: string,
 ): string {
-  const tag = change.tag;
+  const noun = tagNoun(change.tag);
   const count = change.instances?.length ?? 1;
 
   if (count > 1) {
     const first = change.instances![0].selector;
+    const el = elements.find((e) => e.selector === first);
     const sample =
-      elementText(elements, first) ||
+      el?.textContent?.trim() ||
+      el?.alt ||
+      el?.ariaLabel ||
       descendantTexts(elements, first, 1).samples[0] ||
       "";
     const eg = sample ? ` (e.g. “${truncate(sample, 40)}”)` : "";
-    return `${verb} ${count} <${tag}> elements${eg}`;
+    return `${verb} ${count} ${pluralNoun(noun)}${eg}`;
   }
 
-  const own = elementText(elements, change.selector);
-  if (own) return `${verb} <${tag}> “${truncate(own, 60)}”`;
+  const el = elements.find((e) => e.selector === change.selector);
 
+  // Media: identity is the alt text / accessible name / source filename.
+  if (MEDIA_TAGS.has(change.tag)) {
+    const name = el?.alt || el?.ariaLabel || el?.src || "";
+    return name ? `${verb} ${noun} “${truncate(name, 60)}”` : `${verb} ${noun}`;
+  }
+
+  // Text-bearing element: name it by its own text.
+  const own = el?.textContent?.trim() || el?.ariaLabel;
+  if (own) return `${verb} ${noun} “${truncate(own, 60)}”`;
+
+  // Container: name it by the content it holds.
   const { samples, total } = descendantTexts(elements, change.selector, 3);
   if (samples.length > 0) {
     const quoted = samples.map((s) => `“${truncate(s, 30)}”`).join(", ");
     const more = total > samples.length ? `, +${total - samples.length} more` : "";
-    return `${verb} <${tag}> — contained ${quoted}${more}`;
+    return `${verb} ${noun} containing ${quoted}${more}`;
   }
-  return `${verb} <${tag}>`;
+  return `${verb} ${noun}`;
 }
 
 /** Describe a size change in terms of the axis that actually moved. */
@@ -454,11 +547,30 @@ export function describeChanges(
       if (change.category === "color") description = describeColor(change);
       else if (change.details.property === "dimensions") {
         description = describeSize(change);
+      } else if (change.details.property === "textContent") {
+        const from = change.details.prodValue ?? "";
+        const to = change.details.devValue ?? "";
+        if (from && to) {
+          description = `Text changed from “${truncate(from, 45)}” to “${truncate(to, 45)}”`;
+        }
       }
       description = appendScope(description, change);
     }
 
-    return description === change.description ? change : { ...change, description };
+    // Locate the change by content rather than selector. Aggregated changes
+    // already carry an "N elements …" scope suffix, so skip a per-change
+    // location for them. Removals/restructures resolve against prod (gone
+    // from dev); additions and modifications against dev.
+    const aggregated = (change.instances?.length ?? 1) > 1;
+    const locElements = isAddition(change) ? dev.elements : prod.elements;
+    const location = aggregated
+      ? undefined
+      : computeLocation(change.selector, locElements) || undefined;
+
+    if (description === change.description && location === change.location) {
+      return change;
+    }
+    return { ...change, description, location };
   });
 }
 

@@ -6,18 +6,6 @@ import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 import { topLevelSelector } from "@/lib/change-identity";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
-/**
- * Trailing portion of `child` after stripping the parent prefix. Empty string
- * means the change is on the parent element itself, so the entry can hide its
- * selector line entirely (the group header already shows the parent).
- */
-function relativeSelector(parentSel: string, childSel: string): string {
-  if (childSel === parentSel) return "";
-  const prefix = parentSel + " > ";
-  if (childSel.startsWith(prefix)) return "> " + childSel.slice(prefix.length);
-  return childSel;
-}
-
 const SEVERITY_RANK: Record<ChangeSeverity, number> = { error: 0, warning: 1, info: 2 };
 
 const OPAQUE_ID = /^#(?:w-node-|wf-|node-|el-|block-)[a-f0-9-]+$/i;
@@ -27,13 +15,19 @@ function isOpaqueSelector(sel: string): boolean {
 }
 
 function groupLabel(group: SelectorGroup): string {
-  const sel = group.selector;
-  const parts = sel.split(" > ");
-  const meaningful = parts.filter((p) => !isOpaqueSelector(p.trim()));
-  if (meaningful.length > 0) {
-    return meaningful.slice(-2).join(" > ");
+  // Prefer the content-based location shared by the group's changes — set at
+  // detection time from the DOM snapshot ("the header", "the “Pricing”
+  // section"). The most common location across the group wins.
+  const counts = new Map<string, number>();
+  for (const c of group.changes) {
+    if (c.location) counts.set(c.location, (counts.get(c.location) ?? 0) + 1);
+  }
+  if (counts.size > 0) {
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
   }
 
+  // Fallback for older reports captured before `location` existed: a quoted
+  // snippet, then a de-opaqued selector, then a tag/category summary.
   const tags = new Set(group.changes.map((c) => c.tag));
   const textChange = group.changes.find(
     (c) => c.category === "content" || (c.category === "structural" && c.description.includes('"')),
@@ -42,6 +36,10 @@ function groupLabel(group: SelectorGroup): string {
     const quoted = textChange.description.match(/"([^"]{1,30})"/);
     if (quoted) return `<${textChange.tag}> "${quoted[1]}"`;
   }
+  const meaningful = group.selector
+    .split(" > ")
+    .filter((p) => !isOpaqueSelector(p.trim()));
+  if (meaningful.length > 0) return meaningful.slice(-2).join(" > ");
 
   const categories = [...new Set(group.changes.map((c) => {
     const cfg = CATEGORY_CONFIG[c.category];
@@ -326,9 +324,9 @@ function ChangeEntry({
   change: SemanticChange;
   changeScope?: ChangeScope;
   onClick?: () => void;
-  /** When set, the entry is rendered inside a ChangeGroup that already shows
-   *  this prefix in its header — we drop the visual chrome (border, bg) and
-   *  show only the trailing selector portion. */
+  /** When set, the entry is rendered inside a ChangeGroup whose header
+   *  already names the location — we drop the visual chrome and the
+   *  per-entry location line. */
   parentSelector?: string;
 }) {
   const cfg = CATEGORY_CONFIG[change.category];
@@ -336,12 +334,10 @@ function ChangeEntry({
   const interactiveCls = onClick ? "change-entry--interactive" : "";
   const groupedCls = parentSelector ? "change-entry--grouped" : "";
 
-  // In a group: show only the path under the group's parent selector (and
-  // omit when the change is on the parent itself — the header makes that
-  // obvious). Standalone: existing readable-selector behavior.
-  const displaySelector = parentSelector
-    ? relativeSelector(parentSelector, change.selector)
-    : readableSelector(change.selector);
+  // Locate the change by content ("the header", "the “Pricing” section").
+  // Inside a group the header already shows it, so only standalone entries
+  // render their own location line.
+  const locationLine = parentSelector ? undefined : change.location;
 
   // Scope badge — breakpoint-specific changes get a "N of M" annotation so
   // the user can distinguish universal changes from viewport-dependent ones.
@@ -372,18 +368,10 @@ function ChangeEntry({
             <span className="change-entry__scope">{scopeLabel}</span>
           )}
         </span>
-        {displaySelector && change.details.prodValue && change.details.devValue && (
-          <span className="change-entry__selector">{displaySelector}</span>
+        {locationLine && (
+          <span className="change-entry__selector">{locationLine}</span>
         )}
       </div>
     </div>
   );
-}
-
-function readableSelector(sel: string): string {
-  const parts = sel.split(" > ");
-  const meaningful = parts
-    .filter((p) => !p.match(/^div(:nth-of-type\(\d+\))?$/))
-    .slice(-3);
-  return meaningful.length > 0 ? meaningful.join(" > ") : parts.slice(-2).join(" > ");
 }

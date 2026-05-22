@@ -273,6 +273,12 @@ export interface CapturedElement {
   textContent: string;
   /** Whether the element is visible */
   isVisible: boolean;
+  /** `alt` attribute — image identity for content-based descriptions. */
+  alt?: string;
+  /** `aria-label` — accessible name for icon buttons / unlabelled controls. */
+  ariaLabel?: string;
+  /** `src` basename (no path, no query) — media identity fallback. */
+  src?: string;
 }
 
 export interface DomSnapshot {
@@ -321,4 +327,8 @@ export interface SemanticChange {
    *  stable representative; `yPosition` holds the topmost instance. Absent
    *  ⇒ a single-element change. */
   instances?: { selector: string; yPosition: number }[];
+  /** Human-readable location ("the header", "the “Pricing” section"),
+   *  derived from the DOM snapshot at detection time. Lets the UI locate a
+   *  change by content instead of showing a raw CSS selector. */
+  location?: string;
 }
