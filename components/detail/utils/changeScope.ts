@@ -13,7 +13,7 @@
  * entry annotations). */
 
 import type { BreakpointResult, SemanticChange } from "@/lib/types";
-import { changeGroupKey } from "@/lib/change-identity";
+import { changeGroupKey, topLevelSelector } from "@/lib/change-identity";
 
 export interface ChangeScope {
   /** Is this individual change universal across all captured breakpoints? */
@@ -24,6 +24,10 @@ export interface ChangeScope {
   totalBps: number;
   /** Number of breakpoint-specific (non-universal) changes at each bp. */
   specificCountPerBp: Record<string, number>;
+  /** Unique element groups with only universal changes at each bp. */
+  universalGroupCountPerBp: Record<string, number>;
+  /** Unique element groups with any specific changes at each bp. */
+  specificGroupCountPerBp: Record<string, number>;
 }
 
 export function classifyChanges(
@@ -64,6 +68,29 @@ export function classifyChanges(
     specificCountPerBp[bp] = specific;
   }
 
+  // Grouped counts: group changes by top-level selector per bp, then classify
+  // each group as universal (ALL changes in the group are universal) or
+  // specific (ANY change is specific). Matches the header badge logic.
+  const universalGroupCountPerBp: Record<string, number> = {};
+  const specificGroupCountPerBp: Record<string, number> = {};
+  for (const bp of semanticBps) {
+    const selectorBucket = new Map<string, boolean>(); // true = all universal so far
+    for (const c of bpData[bp].semanticChanges!) {
+      const top = topLevelSelector(c.selector);
+      const isUni = universalKeys.has(changeGroupKey(c));
+      const prev = selectorBucket.get(top);
+      selectorBucket.set(top, prev === undefined ? isUni : prev && isUni);
+    }
+    let uni = 0;
+    let spec = 0;
+    for (const allUniversal of selectorBucket.values()) {
+      if (allUniversal) uni++;
+      else spec++;
+    }
+    universalGroupCountPerBp[bp] = uni;
+    specificGroupCountPerBp[bp] = spec;
+  }
+
   // Build the lookup cache for the callbacks
   const cache = new Map<string, boolean>();
   const countCache = new Map<string, number>();
@@ -88,5 +115,5 @@ export function classifyChanges(
     return val;
   };
 
-  return { isUniversal, bpCountFor, totalBps, specificCountPerBp };
+  return { isUniversal, bpCountFor, totalBps, specificCountPerBp, universalGroupCountPerBp, specificGroupCountPerBp };
 }

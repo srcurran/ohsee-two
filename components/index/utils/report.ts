@@ -64,10 +64,11 @@ export interface BpChangeStats {
    *  Used to detect deviation even when the same pages have changes at
    *  different breakpoints — e.g. 3 changes at 1440 vs 2 at 1024. */
   changeCount: number;
-  /** Changes unique to this breakpoint (not universal across all bps).
-   *  Set by the detail panel's cross-breakpoint classifier. When present,
-   *  the deviation dot uses this instead of changeCount for smarter
-   *  highlighting of viewport-specific issues. */
+  /** Unique element groups with only universal changes at this breakpoint.
+   *  Set by the detail panel's cross-breakpoint classifier. */
+  universalCount?: number;
+  /** Unique element groups with breakpoint-specific changes at this
+   *  breakpoint. Set by the detail panel's cross-breakpoint classifier. */
   specificCount?: number;
 }
 

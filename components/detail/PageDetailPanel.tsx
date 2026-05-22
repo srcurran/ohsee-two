@@ -157,7 +157,11 @@ export default function PageDetailPanel({
   const bpChangeCountsWithScope = useMemo(() => {
     const merged = { ...bpChangeCounts };
     for (const [bp, stats] of Object.entries(merged)) {
-      merged[bp] = { ...stats, specificCount: changeScope.specificCountPerBp[bp] ?? 0 };
+      merged[bp] = {
+        ...stats,
+        universalCount: changeScope.universalGroupCountPerBp[bp] ?? 0,
+        specificCount: changeScope.specificGroupCountPerBp[bp] ?? 0,
+      };
     }
     return merged;
   }, [bpChangeCounts, changeScope]);

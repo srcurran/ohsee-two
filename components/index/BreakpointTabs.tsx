@@ -20,19 +20,15 @@ export default function BreakpointTabs({ active, onChange, changeCounts, breakpo
         {bps.map((bp) => {
           const isActive = active === bp;
           const stats = changeCounts?.[String(bp)];
-          // When scope-aware specific counts are available (detail panel),
+          // When scope-aware grouped counts are available (detail panel),
           // show type-based dots: outline = universal, filled = specific.
           // Falls back to a single filled dot for the report overview
           // (deviation comparison against the active breakpoint).
           const hasScope = stats?.specificCount !== undefined;
-          const specificCount = stats?.specificCount ?? 0;
-          const universalCount = hasScope
-            ? (stats?.changeCount ?? 0) - specificCount
-            : 0;
 
-          // Detail panel: show dots per change type on non-active bps
-          const showUniversalDot = !isActive && hasScope && universalCount > 0;
-          const showSpecificDot = !isActive && hasScope && specificCount > 0;
+          // Detail panel: dots per change type (always visible, including active)
+          const showUniversalDot = hasScope && (stats?.universalCount ?? 0) > 0;
+          const showSpecificDot = hasScope && (stats?.specificCount ?? 0) > 0;
 
           // Report overview fallback: single dot when counts deviate
           const deviates =
