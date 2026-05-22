@@ -15,6 +15,16 @@
   align-items: center;
   gap: var(--space-4);
   padding-block: var(--space-10);
+
+  /* Fixed, viewport-centered — used for the capture-in-progress indicator
+     so it stays put instead of riding the bottom of the growing grid. */
+  &--overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: var(--z-10);
+  }
 }
 
 .loader-text {

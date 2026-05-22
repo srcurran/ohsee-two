@@ -229,10 +229,10 @@ function ReportPageGridComponent({
         </div>
       )}
 
-      {/* While a capture runs, a centered spinner sits at the growing edge
-          of the grid (or fills the area before the first page lands). */}
+      {/* While a capture runs, a spinner is pinned to the viewport centre
+          so it stays put rather than riding the bottom of the growing grid. */}
       {isRunning && (
-        <div className="loader-centered">
+        <div className="loader-centered loader-centered--overlay">
           <div className="loader-spinner" />
           <p className="loader-text">Capturing…</p>
         </div>
