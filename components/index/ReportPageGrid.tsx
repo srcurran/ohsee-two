@@ -5,7 +5,7 @@
  * fallbacks for the zero-page case live here too, since they only ever
  * render in place of this grid. */
 
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
 import type { Report, ReportPage, SemanticChange } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
@@ -49,6 +49,63 @@ function summarizeChanges(
     }))
     .sort((a, b) => b.count - a.count);
   return entries.slice(0, 3);
+}
+
+/** Page-tile thumbnail with a shimmer placeholder shown until the image is
+ *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
+ *  browser fires `load` before it has decoded them, so a plain <img> flashes
+ *  a blank box. The <img> is always mounted (so `decode()` can run on the
+ *  real element); the skeleton sits on top of it until that decode resolves. */
+function PageTileThumb({
+  thumbSrc,
+  alt,
+}: {
+  thumbSrc: string | null;
+  alt: string;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!thumbSrc) return;
+    setReady(false);
+    const img = imgRef.current;
+    if (!img) return;
+    let cancelled = false;
+    const settle = () => {
+      if (!cancelled) setReady(true);
+    };
+    // decode() resolves once the element is decoded and safe to paint
+    // without a flash; it rejects on a decode error — reveal the <img>
+    // anyway so the browser can show its own broken-image state.
+    img.decode().then(settle).catch(settle);
+    return () => {
+      cancelled = true;
+    };
+  }, [thumbSrc]);
+
+  if (!thumbSrc) {
+    return (
+      <div className="page-tile__thumb">
+        <div className="page-tile__thumb-empty">No screenshot</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-tile__thumb">
+      {!ready && (
+        <div className="page-tile__thumb-skeleton" aria-hidden="true" />
+      )}
+      <img
+        ref={imgRef}
+        src={thumbSrc}
+        alt={alt}
+        className="page-tile__thumb-img"
+        decoding="async"
+      />
+    </div>
+  );
 }
 
 interface ReportPageGridProps {
@@ -131,19 +188,7 @@ function ReportPageGridComponent({
         className="page-tile animate-card-in"
         style={{ animationDelay: `${index * 50}ms` }}
       >
-        <div className="page-tile__thumb">
-          {thumbSrc ? (
-            <img
-              src={thumbSrc}
-              alt={page.stepLabel || page.path}
-              className="page-tile__thumb-img"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <div className="page-tile__thumb-empty">No screenshot</div>
-          )}
-        </div>
+        <PageTileThumb thumbSrc={thumbSrc} alt={page.stepLabel || page.path} />
         <div className="page-tile__footer">
           <div className="page-tile__footer-text">
             <span className="page-tile__label">
@@ -181,6 +226,15 @@ function ReportPageGridComponent({
           <div className="page-grid">
             {report.pages.map((page, i) => renderPageCard(page, i))}
           </div>
+        </div>
+      )}
+
+      {/* While a capture runs, a centered spinner sits at the growing edge
+          of the grid (or fills the area before the first page lands). */}
+      {isRunning && (
+        <div className="loader-centered">
+          <div className="loader-spinner" />
+          <p className="loader-text">Capturing…</p>
         </div>
       )}
 

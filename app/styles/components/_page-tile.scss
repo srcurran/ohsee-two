@@ -53,6 +53,23 @@
       border-radius: var(--radius-xs);
     }
 
+    /* Shimmer placeholder shown while the thumbnail image streams in —
+       communicates that the card is loading rather than blank. */
+    .page-tile__thumb-skeleton {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      border-radius: var(--radius-xs);
+      background: linear-gradient(
+        100deg,
+        var(--page-tile-thumb-background) 35%,
+        color-mix(in srgb, var(--page-tile-thumb-background), #000 6%) 50%,
+        var(--page-tile-thumb-background) 65%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.4s var(--ease-standard) infinite;
+    }
+
     .page-tile__thumb-empty {
       display: flex;
       width: 100%;
