@@ -1,5 +1,5 @@
-/* ChangeList — filter pills + change entries with left severity border.
- * Four sibling top-level classes; structure mirrors the JSX tree:
+/* ChangeList — filter pills + a flat list of change entries, each with a
+ * left severity border. Structure mirrors the JSX tree:
  *
  *   <div .change-list>
  *     <div .change-list__header>
@@ -7,20 +7,13 @@
  *     <div .change-list__filters [--scroll]>
  *       <div .change-list__filters-track>     ← pill buttons (uses .pill)
  *     <div .change-list__items>
- *       (.change-entry or .change-group per group)
+ *       (.change-entry per detected change)
  *
- *   <div .change-entry [--error|--info|--ok] [--interactive] [--grouped]>
+ *   <div .change-entry [--error|--info|--ok] [--interactive]>
  *     <span .change-entry__icon>
  *     <div .change-entry__body>
  *       <span .change-entry__description>
  *       <span .change-entry__selector>
- *
- *   <div .change-group [--error|--info]>
- *     <div .change-group__header>
- *       <span .change-group__selector>
- *       <span .change-group__count>
- *     <div .change-group__items>
- *       (.change-entry--grouped …)
  *
  *   <div .change-notice>                       ← empty-state callout
  *     <span .change-notice__icon>
@@ -113,25 +106,6 @@
     }
   }
 
-  /* Nested in a ChangeGroup — the parent card carries the severity border
-     and background; the child sheds its own chrome and uses thin separators
-     between siblings instead. Padding-left matches the group header so icons
-     and selector text line up vertically. */
-  &--grouped {
-    border-left: none;
-    background: transparent;
-    padding-left: var(--space-3);
-    border-bottom: 1px solid color-mix(in srgb, var(--change-entry-divider) 60%, transparent);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &.change-entry--interactive:hover {
-      background: color-mix(in srgb, var(--change-entry-hover-tint) 4%, transparent);
-    }
-  }
-
   .change-entry__icon {
     margin-top: var(--space-0-5);
     display: flex;
@@ -174,83 +148,6 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-  }
-}
-
-/* ChangeGroup — wraps multiple changes that share a top-level selector.
-   The group carries the unified severity border + background so the children
-   inside (which use .change-entry--grouped) read as one card. */
-.change-group {
-  display: flex;
-  flex-direction: column;
-  border-left: 3px solid var(--change-group-border-info);
-  background: var(--change-group-background);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-
-  &--error { border-left-color: var(--change-group-border-error); }
-  &--info  { border-left-color: var(--change-group-border-info); }
-
-  &--collapsed .change-group__header {
-    border-bottom: none;
-  }
-
-  .change-group__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    border-bottom: 1px solid color-mix(in srgb, var(--change-group-divider) 60%, transparent);
-    width: 100%;
-    background: none;
-    border-top: none;
-    border-right: none;
-    border-left: none;
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-
-    &:hover {
-      background: color-mix(in srgb, var(--change-entry-hover-tint) 4%, transparent);
-    }
-
-    .change-group__chevron {
-      flex-shrink: 0;
-      font-size: var(--font-size-base);
-      color: var(--change-group-selector-color);
-      transition: transform 0.15s ease;
-
-      &--open {
-        transform: rotate(90deg);
-      }
-    }
-
-    .change-group__selector {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: var(--font-size-sm);
-      color: var(--change-group-selector-color);
-    }
-
-    .change-group__count {
-      flex-shrink: 0;
-      min-width: 22px;
-      padding: 0 var(--space-1-5);
-      border-radius: var(--radius-full);
-      background: color-mix(in srgb, var(--change-group-count-tint) 8%, transparent);
-      text-align: center;
-      font-size: var(--font-size-xs);
-      font-weight: var(--weight-semibold);
-      color: var(--change-group-count-color);
-    }
-  }
-
-  .change-group__items {
-    display: flex;
-    flex-direction: column;
   }
 }
 

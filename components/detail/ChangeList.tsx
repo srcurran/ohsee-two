@@ -1,89 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { SemanticChange, ChangeCategory, ChangeSeverity } from "@/lib/types";
+import type { SemanticChange, ChangeCategory } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
-import { topLevelSelector } from "@/lib/change-identity";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
-
-const SEVERITY_RANK: Record<ChangeSeverity, number> = { error: 0, warning: 1, info: 2 };
-
-const OPAQUE_ID = /^#(?:w-node-|wf-|node-|el-|block-)[a-f0-9-]+$/i;
-
-function isOpaqueSelector(sel: string): boolean {
-  return OPAQUE_ID.test(sel) || /^div(:nth-of-type\(\d+\))?$/.test(sel);
-}
-
-function groupLabel(group: SelectorGroup): string {
-  // Prefer the content-based location shared by the group's changes — set at
-  // detection time from the DOM snapshot ("the header", "the “Pricing”
-  // section"). The most common location across the group wins.
-  const counts = new Map<string, number>();
-  for (const c of group.changes) {
-    if (c.location) counts.set(c.location, (counts.get(c.location) ?? 0) + 1);
-  }
-  if (counts.size > 0) {
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-  }
-
-  // Fallback for older reports captured before `location` existed: a quoted
-  // snippet, then a de-opaqued selector, then a tag/category summary.
-  const tags = new Set(group.changes.map((c) => c.tag));
-  const textChange = group.changes.find(
-    (c) => c.category === "content" || (c.category === "structural" && c.description.includes('"')),
-  );
-  if (textChange) {
-    const quoted = textChange.description.match(/"([^"]{1,30})"/);
-    if (quoted) return `<${textChange.tag}> "${quoted[1]}"`;
-  }
-  const meaningful = group.selector
-    .split(" > ")
-    .filter((p) => !isOpaqueSelector(p.trim()));
-  if (meaningful.length > 0) return meaningful.slice(-2).join(" > ");
-
-  const categories = [...new Set(group.changes.map((c) => {
-    const cfg = CATEGORY_CONFIG[c.category];
-    return cfg?.label ?? c.category;
-  }))];
-  const tagList = [...tags].map((t) => `<${t}>`).join(", ");
-  return `${tagList} — ${categories.join(", ")}`;
-}
-
-interface SelectorGroup {
-  key: string;
-  selector: string;
-  severity: ChangeSeverity;
-  changes: SemanticChange[];
-}
-
-/**
- * Bucket changes by their content-based location (falling back to top-level
- * selector for older reports without one), so everything in "the “Pricing”
- * section" reads as a single group. Single-change buckets render flat;
- * multi-change buckets render as a parent card. Insertion order is preserved
- * so groups appear where their first change would have.
- */
-function groupBySelector(changes: SemanticChange[]): SelectorGroup[] {
-  const groups = new Map<string, SelectorGroup>();
-  for (const change of changes) {
-    const key = change.location || topLevelSelector(change.selector);
-    const existing = groups.get(key);
-    if (existing) {
-      existing.changes.push(change);
-      if (SEVERITY_RANK[change.severity] < SEVERITY_RANK[existing.severity]) {
-        existing.severity = change.severity;
-      }
-    } else {
-      groups.set(key, {
-        key,
-        selector: key,
-        severity: change.severity,
-        changes: [change],
-      });
-    }
-  }
-  return [...groups.values()];
-}
 
 interface ChangeListProps {
   changes: SemanticChange[];
@@ -106,22 +26,19 @@ export default function ChangeList({ changes, changeScope, onChangeClick }: Chan
     moved: boolean;
   } | null>(null);
 
-  const allGroups = useMemo(() => groupBySelector(changes), [changes]);
-
-  // Count by group (unique affected elements) rather than individual
-  // property changes — "margin-left + margin-right + shift + resize" on
-  // one element is 1 change, not 4.
-  const { sortedCategories, categoryCounts, totalGroupCount } = useMemo(() => {
+  // Count each detected change individually. Noise reduction in the
+  // detection pipeline means changes are already de-duplicated to one
+  // entry per real edit, so there's nothing left to group.
+  const { sortedCategories, categoryCounts, totalCount } = useMemo(() => {
     const definedOrder = Object.keys(CATEGORY_CONFIG) as ChangeCategory[];
     const counts: Record<ChangeCategory, number> = {} as Record<ChangeCategory, number>;
     for (const cat of definedOrder) counts[cat] = 0;
-    for (const group of allGroups) {
-      const cats = new Set(group.changes.map((c) => c.category));
-      for (const cat of cats) counts[cat] = (counts[cat] || 0) + 1;
+    for (const change of changes) {
+      counts[change.category] = (counts[change.category] || 0) + 1;
     }
     const sorted = [...definedOrder].sort((a, b) => counts[b] - counts[a]);
-    return { sortedCategories: sorted, categoryCounts: counts, totalGroupCount: allGroups.length };
-  }, [allGroups]);
+    return { sortedCategories: sorted, categoryCounts: counts, totalCount: changes.length };
+  }, [changes]);
 
   const filtered = useMemo(
     () =>
@@ -130,7 +47,6 @@ export default function ChangeList({ changes, changeScope, onChangeClick }: Chan
         : changes.filter((c) => c.category === activeFilter),
     [activeFilter, changes],
   );
-  const groups = useMemo(() => groupBySelector(filtered), [filtered]);
 
   // Early return must follow every hook above so hook order stays stable
   // across renders (changes can go empty ⇄ non-empty).
@@ -224,7 +140,7 @@ export default function ChangeList({ changes, changeScope, onChangeClick }: Chan
             onClick={() => setActiveFilter("all")}
             className={`pill ${activeFilter === "all" ? "pill--active" : ""}`}
           >
-            All ({totalGroupCount})
+            All ({totalCount})
           </button>
           {sortedCategories.map((cat) => {
             const cfg = CATEGORY_CONFIG[cat];
@@ -252,67 +168,15 @@ export default function ChangeList({ changes, changeScope, onChangeClick }: Chan
       </div>
 
       <div className="change-list__items">
-        {groups.map((group) =>
-          group.changes.length === 1 ? (
-            <ChangeEntry
-              key={group.changes[0].id}
-              change={group.changes[0]}
-              changeScope={changeScope}
-              onClick={onChangeClick ? () => onChangeClick(group.changes[0].id) : undefined}
-            />
-          ) : (
-            <ChangeGroup
-              key={group.key}
-              group={group}
-              changeScope={changeScope}
-              onChangeClick={onChangeClick}
-            />
-          ),
-        )}
+        {filtered.map((change) => (
+          <ChangeEntry
+            key={change.id}
+            change={change}
+            changeScope={changeScope}
+            onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
+          />
+        ))}
       </div>
-    </div>
-  );
-}
-
-function ChangeGroup({
-  group,
-  changeScope,
-  onChangeClick,
-}: {
-  group: SelectorGroup;
-  changeScope?: ChangeScope;
-  onChangeClick?: (id: string) => void;
-}) {
-  const [collapsed, setCollapsed] = useState(true);
-  const severityMod = SEVERITY_CSS_MODIFIERS[group.severity] || SEVERITY_CSS_MODIFIERS.info;
-  return (
-    <div className={`change-group change-group--${severityMod}${collapsed ? " change-group--collapsed" : ""}`}>
-      <button
-        className="change-group__header"
-        onClick={() => setCollapsed((c) => !c)}
-        type="button"
-      >
-        <span className={`change-group__chevron${collapsed ? "" : " change-group__chevron--open"}`}>
-          ›
-        </span>
-        <span className="change-group__selector" title={groupLabel(group)}>
-          {groupLabel(group)}
-        </span>
-        <span className="change-group__count">{group.changes.length}</span>
-      </button>
-      {!collapsed && (
-        <div className="change-group__items">
-          {group.changes.map((change) => (
-            <ChangeEntry
-              key={change.id}
-              change={change}
-              changeScope={changeScope}
-              onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
-              parentSelector={group.selector}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -321,25 +185,17 @@ function ChangeEntry({
   change,
   changeScope,
   onClick,
-  parentSelector,
 }: {
   change: SemanticChange;
   changeScope?: ChangeScope;
   onClick?: () => void;
-  /** When set, the entry is rendered inside a ChangeGroup whose header
-   *  already names the location — we drop the visual chrome and the
-   *  per-entry location line. */
-  parentSelector?: string;
 }) {
   const cfg = CATEGORY_CONFIG[change.category];
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
-  const groupedCls = parentSelector ? "change-entry--grouped" : "";
 
   // Locate the change by content ("the header", "the “Pricing” section").
-  // Inside a group the header already shows it, so only standalone entries
-  // render their own location line.
-  const locationLine = parentSelector ? undefined : change.location;
+  const locationLine = change.location;
 
   // Scope badge — breakpoint-specific changes get a "N of M" annotation so
   // the user can distinguish universal changes from viewport-dependent ones.
@@ -354,7 +210,7 @@ function ChangeEntry({
   return (
     <div
       onClick={onClick}
-      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${groupedCls}`}
+      className={`change-entry change-entry--${severityMod} ${interactiveCls}`}
     >
       <span
         className="change-entry__icon"

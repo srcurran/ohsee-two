@@ -104,21 +104,5 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-
-    .page-tile__tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-1);
-    }
-
-    .page-tile__tag {
-      font-size: var(--font-size-xs);
-      line-height: var(--line-none);
-      padding: 2px var(--space-1);
-      border-radius: var(--radius-xs);
-      background: var(--page-tile-tag-background);
-      color: var(--page-tile-tag-color);
-      white-space: nowrap;
-    }
   }
 }

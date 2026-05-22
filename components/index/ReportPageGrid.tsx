@@ -194,15 +194,6 @@ function ReportPageGridComponent({
             <span className="page-tile__label">
               {page.stepLabel || page.path}
             </span>
-            {tags.length > 0 && (
-              <div className="page-tile__tags">
-                {tags.map((t) => (
-                  <span key={t.label} className="page-tile__tag">
-                    {t.count} {t.label}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
           <ChangeBadge
             count={changeCount}
