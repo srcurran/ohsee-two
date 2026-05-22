@@ -99,36 +99,51 @@ export function suppressNestedStructural(
 }
 
 /**
- * Drop changes that are pure downstream effects of another change.
+ * Drop changes that are pure downstream effects of another change on the
+ * same element:
  *
- * This is now just line-height: it is proportionally derived from font-size,
- * so when font-size also changed on the same element the line-height delta
- * carries no independent signal.
- *
- * (Position shifts and rendered size deltas are no longer produced at all —
- * `generateSemanticDiff` only emits intentional min/max box-property edits,
- * so there is nothing downstream to suppress there.)
+ *  • line-height — proportionally derived from font-size, so when font-size
+ *    also changed it carries no independent signal.
+ *  • horizontal margin — equal left/right margins sitting next to a
+ *    max-width / min-width change are `margin: 0 auto` centering.
+ *    getComputedStyle reports the *used* pixel value, so "0px → 60px" is the
+ *    auto-margin re-resolving because the width was constrained — the
+ *    max-width edit is the real change, the margin is its consequence.
  */
 export function suppressDownstream(
   changes: SemanticChange[],
 ): SemanticChange[] {
-  const propsBySelector = new Map<string, Set<string>>();
+  const bySelector = new Map<string, SemanticChange[]>();
   for (const c of changes) {
-    let set = propsBySelector.get(c.selector);
-    if (!set) {
-      set = new Set();
-      propsBySelector.set(c.selector, set);
-    }
-    if (c.details.property) set.add(c.details.property);
+    const group = bySelector.get(c.selector);
+    if (group) group.push(c);
+    else bySelector.set(c.selector, [c]);
   }
+  const changeAt = (selector: string, property: string) =>
+    bySelector.get(selector)?.find((c) => c.details.property === property);
 
   return changes.filter((c) => {
-    if (
-      c.details.property === "line-height" &&
-      propsBySelector.get(c.selector)?.has("font-size")
-    ) {
+    const p = c.details.property;
+
+    if (p === "line-height" && changeAt(c.selector, "font-size")) {
       return false;
     }
+
+    if (p === "margin-left" || p === "margin-right") {
+      const widthConstrained =
+        changeAt(c.selector, "max-width") || changeAt(c.selector, "min-width");
+      const opposite = changeAt(
+        c.selector,
+        p === "margin-left" ? "margin-right" : "margin-left",
+      );
+      // Symmetric (equal both sides) ⇒ the `margin: 0 auto` centering idiom.
+      const symmetric =
+        !!opposite &&
+        opposite.details.prodValue === c.details.prodValue &&
+        opposite.details.devValue === c.details.devValue;
+      if (widthConstrained && symmetric) return false;
+    }
+
     return true;
   });
 }
