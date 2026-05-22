@@ -1,11 +1,8 @@
 import sharp from "sharp";
 import pixelmatch from "pixelmatch";
-import { PNG } from "pngjs";
-import { promises as fs } from "fs";
 import { sliceIntoStrips, computeStripHash, alignStrips } from "./diff-strips";
 
 export interface DiffResult {
-  diffImagePath: string;
   alignedProdImagePath: string;
   alignedDevImagePath: string;
   highlightImagePath: string;
@@ -143,10 +140,16 @@ async function stitchStrips(
     .toFile(outputPath);
 }
 
+/**
+ * Compare prod vs dev screenshots and produce: a pair of vertically-aligned
+ * prod/dev images (matching content sits at the same Y, gaps filled blank)
+ * for the comparison viewer, and a highlight image (prod with changed
+ * regions tinted). The raw pixelmatch diff is consumed for the change count
+ * and the highlight mask — it is not itself written to disk.
+ */
 export async function generateDiff(
   prodImagePath: string,
   devImagePath: string,
-  outputPath: string,
   alignedProdPath: string,
   alignedDevPath: string,
   stripHeight?: number,
@@ -160,7 +163,7 @@ export async function generateDiff(
 
   // If images are very small, just do direct pixelmatch
   if (prodMeta.height! < sh * 3 && devMeta.height! < sh * 3) {
-    return directDiff(prodImagePath, devImagePath, outputPath, alignedProdPath, alignedDevPath, width, highlightPath);
+    return directDiff(prodImagePath, devImagePath, alignedProdPath, alignedDevPath, width, highlightPath);
   }
 
   // Slice into strips
@@ -180,10 +183,8 @@ export async function generateDiff(
   // Align strips
   const alignments = alignStrips(prodHashes, devHashes);
 
-  // Process each alignment and build output strips — all normalized to `width` wide
-  const outputStrips: Buffer[] = [];
-  const outputStripHeights: number[] = [];
-  // Aligned prod/dev strips for comparison viewer
+  // Aligned prod/dev strips for the comparison viewer — all normalized to
+  // `width` wide.
   const alignedProdStrips: Buffer[] = [];
   const alignedDevStrips: Buffer[] = [];
   const alignedStripHeights: number[] = [];
@@ -216,9 +217,6 @@ export async function generateDiff(
         { threshold: 0.1 }
       );
 
-      outputStrips.push(devPng);
-      outputStripHeights.push(h);
-
       // Aligned: both images get their strip at the same Y
       alignedProdStrips.push(prodPng);
       alignedDevStrips.push(devPng);
@@ -237,9 +235,6 @@ export async function generateDiff(
       const devIdx = alignment.devIndex!;
       const h = Math.min(sh, devStrips.totalHeight - devIdx * sh);
       const strip = await extractStrip(devImagePath, devIdx * sh, devMeta.width!, h, width, h);
-
-      outputStrips.push(strip);
-      outputStripHeights.push(h);
 
       // Aligned: blank in prod, real in dev
       const blankStrip = Buffer.alloc(width * h * 4, 0); // transparent
@@ -279,16 +274,14 @@ export async function generateDiff(
     }
   }
 
-  // Stitch all output images
-  if (outputStrips.length === 0) {
+  // Nothing aligned at all — write blank placeholders and bail.
+  if (alignedProdStrips.length === 0) {
     const blank = sharp({ create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png();
     await Promise.all([
-      blank.clone().toFile(outputPath),
       blank.clone().toFile(alignedProdPath),
       blank.clone().toFile(alignedDevPath),
     ]);
     return {
-      diffImagePath: outputPath,
       alignedProdImagePath: alignedProdPath,
       alignedDevImagePath: alignedDevPath,
       highlightImagePath: highlightPath ?? "",
@@ -298,9 +291,8 @@ export async function generateDiff(
     };
   }
 
-  // Stitch in parallel: diff, aligned prod, aligned dev, and highlight
+  // Stitch in parallel: aligned prod, aligned dev, and highlight
   const stitchJobs: Promise<void>[] = [
-    stitchStrips(outputStrips, outputStripHeights, width, outputPath),
     stitchStrips(alignedProdStrips, alignedStripHeights, width, alignedProdPath),
     stitchStrips(alignedDevStrips, alignedStripHeights, width, alignedDevPath),
   ];
@@ -312,7 +304,6 @@ export async function generateDiff(
   const changePercentage = totalPixels > 0 ? (changeCount / totalPixels) * 100 : 0;
 
   return {
-    diffImagePath: outputPath,
     alignedProdImagePath: alignedProdPath,
     alignedDevImagePath: alignedDevPath,
     highlightImagePath: (highlightPath && changeCount > 0) ? highlightPath : "",
@@ -353,7 +344,6 @@ async function extractStrip(
 async function directDiff(
   prodImagePath: string,
   devImagePath: string,
-  outputPath: string,
   alignedProdPath: string,
   alignedDevPath: string,
   targetWidth: number,
@@ -378,9 +368,8 @@ async function directDiff(
     { threshold: 0.1 }
   );
 
-  // Save diff (dev image), and aligned versions (just resized originals for small images)
+  // Aligned versions — for small images these are just the resized originals.
   const writes: Promise<void>[] = [
-    sharp(devResized, { raw: { width, height, channels: 4 } }).png().toFile(outputPath).then(() => {}),
     sharp(prodResized, { raw: { width, height, channels: 4 } }).png().toFile(alignedProdPath).then(() => {}),
     sharp(devResized, { raw: { width, height, channels: 4 } }).png().toFile(alignedDevPath).then(() => {}),
   ];
@@ -397,7 +386,6 @@ async function directDiff(
 
   const totalPixels = width * height;
   return {
-    diffImagePath: outputPath,
     alignedProdImagePath: alignedProdPath,
     alignedDevImagePath: alignedDevPath,
     highlightImagePath: (highlightPath && numDiff > 0) ? highlightPath : "",

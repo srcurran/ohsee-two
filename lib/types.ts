@@ -214,7 +214,6 @@ export interface ReportPage {
 export interface BreakpointResult {
   prodScreenshot: string;
   devScreenshot: string;
-  diffScreenshot: string;
   alignedProdScreenshot?: string;
   alignedDevScreenshot?: string;
   /** Prod screenshot with changed pixels tinted — used as the page-card thumbnail. */

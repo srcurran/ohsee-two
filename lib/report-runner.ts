@@ -563,14 +563,12 @@ async function captureAndDiff(options: {
     const devShot = devResults.find((r) => r.breakpoint === bp);
 
     if (prodShot && devShot) {
-      const diffPath = path.join(screenshotDir, `diff-${pageId}${prefix}-${bp}.png`);
       const alignedProdPath = path.join(screenshotDir, `aligned-prod-${pageId}${prefix}-${bp}.png`);
       const alignedDevPath = path.join(screenshotDir, `aligned-dev-${pageId}${prefix}-${bp}.png`);
       const highlightPath = path.join(screenshotDir, `highlight-${pageId}${prefix}-${bp}.png`);
       const diffResult = await generateDiff(
         prodShot.filePath,
         devShot.filePath,
-        diffPath,
         alignedProdPath,
         alignedDevPath,
         undefined,
@@ -580,14 +578,15 @@ async function captureAndDiff(options: {
       const bpResult: BreakpointResult = {
         prodScreenshot: path.relative(dataBase, prodShot.filePath),
         devScreenshot: path.relative(dataBase, devShot.filePath),
-        diffScreenshot: path.relative(dataBase, diffPath),
         alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
         alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
         highlightScreenshot: diffResult.highlightImagePath
           ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
         prodUrl: prodShot.url,
         devUrl: devShot.url,
-        changeCount: diffResult.changeCount,
+        // changeCount is the number of semantic changes; until the semantic
+        // diff runs it falls back to a binary "pixels changed" flag.
+        changeCount: diffResult.changeCount > 0 ? 1 : 0,
         totalPixels: diffResult.totalPixels,
         changePercentage: diffResult.changePercentage,
         pixelChangeCount: diffResult.changeCount,
@@ -602,7 +601,7 @@ async function captureAndDiff(options: {
           );
           bpResult.semanticChanges = semanticResult.changes;
           bpResult.changeSummary = semanticResult.summary;
-          bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
+          bpResult.changeCount = semanticResult.issueCount;
         } catch (err) {
           console.error(`Semantic diff failed for ${prodUrl} at ${bp}px:`, err);
         }
@@ -690,7 +689,6 @@ async function captureAndDiffFlow(options: {
       const devShot = devResults.find((r) => r.stepId === step.id && r.breakpoint === bp);
 
       if (prodShot && devShot) {
-        const diffPath = path.join(screenshotDir, `diff-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
         const alignedProdPath = path.join(screenshotDir, `aligned-prod-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
         const alignedDevPath = path.join(screenshotDir, `aligned-dev-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
         const highlightPath = path.join(screenshotDir, `highlight-flow-${flow.id}-${step.id}${prefix}-${bp}.png`);
@@ -698,7 +696,6 @@ async function captureAndDiffFlow(options: {
         const diffResult = await generateDiff(
           prodShot.filePath,
           devShot.filePath,
-          diffPath,
           alignedProdPath,
           alignedDevPath,
           undefined,
@@ -708,14 +705,13 @@ async function captureAndDiffFlow(options: {
         const bpResult: BreakpointResult = {
           prodScreenshot: path.relative(dataBase, prodShot.filePath),
           devScreenshot: path.relative(dataBase, devShot.filePath),
-          diffScreenshot: path.relative(dataBase, diffPath),
           alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
           alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
           highlightScreenshot: diffResult.highlightImagePath
             ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
           prodUrl: prodShot.url,
           devUrl: devShot.url,
-          changeCount: diffResult.changeCount,
+          changeCount: diffResult.changeCount > 0 ? 1 : 0,
           totalPixels: diffResult.totalPixels,
           changePercentage: diffResult.changePercentage,
           pixelChangeCount: diffResult.changeCount,
@@ -729,7 +725,7 @@ async function captureAndDiffFlow(options: {
             );
             bpResult.semanticChanges = semanticResult.changes;
             bpResult.changeSummary = semanticResult.summary;
-            bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
+            bpResult.changeCount = semanticResult.issueCount;
           } catch (err) {
             console.error(`Semantic diff failed for flow "${flow.name}" step "${step.id}" at ${bp}px:`, err);
           }
@@ -827,7 +823,6 @@ async function captureAndDiffComposition(options: {
       const devShot = devMap.get(stepId)?.get(bp);
 
       if (prodShot && devShot) {
-        const diffPath = path.join(screenshotDir, `diff-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
         const alignedProdPath = path.join(screenshotDir, `aligned-prod-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
         const alignedDevPath = path.join(screenshotDir, `aligned-dev-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
         const highlightPath = path.join(screenshotDir, `highlight-comp-${composition.id}-${stepId}${prefix}-${bp}.png`);
@@ -835,7 +830,6 @@ async function captureAndDiffComposition(options: {
         const diffResult = await generateDiff(
           prodShot.filePath,
           devShot.filePath,
-          diffPath,
           alignedProdPath,
           alignedDevPath,
           undefined,
@@ -845,14 +839,13 @@ async function captureAndDiffComposition(options: {
         const bpResult: BreakpointResult = {
           prodScreenshot: path.relative(dataBase, prodShot.filePath),
           devScreenshot: path.relative(dataBase, devShot.filePath),
-          diffScreenshot: path.relative(dataBase, diffPath),
           alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
           alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
           highlightScreenshot: diffResult.highlightImagePath
             ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
           prodUrl: prodShot.url,
           devUrl: devShot.url,
-          changeCount: diffResult.changeCount,
+          changeCount: diffResult.changeCount > 0 ? 1 : 0,
           totalPixels: diffResult.totalPixels,
           changePercentage: diffResult.changePercentage,
           pixelChangeCount: diffResult.changeCount,
@@ -866,7 +859,7 @@ async function captureAndDiffComposition(options: {
             );
             bpResult.semanticChanges = semanticResult.changes;
             bpResult.changeSummary = semanticResult.summary;
-            bpResult.changeCount = Math.max(bpResult.pixelChangeCount ?? 0, semanticResult.issueCount);
+            bpResult.changeCount = semanticResult.issueCount;
           } catch (err) {
             console.error(`Semantic diff failed for composition "${composition.name}" step "${stepId}" at ${bp}px:`, err);
           }
