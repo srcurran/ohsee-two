@@ -38,7 +38,8 @@ export function buildContextOptions(
 
 /**
  * Prepare a page for a clean screenshot capture:
- * kill animations, scroll to trigger lazy content, wait for fonts.
+ * kill animations, expand inner scrollers so fullPage catches their
+ * content, scroll to trigger lazy content, wait for fonts.
  */
 export async function prepareForScreenshot(page: Page, settleMs = 1000): Promise<void> {
   await page.addStyleTag({
@@ -50,9 +51,39 @@ export async function prepareForScreenshot(page: Page, settleMs = 1000): Promise
   });
 
   await dismissPopups(page);
+  await expandInnerScrollers(page);
   await autoScroll(page);
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(settleMs);
+}
+
+/**
+ * Reset every scrollable container to the top and let its content flow into
+ * the document. Pages with an inner scrolling region (a modal whose body
+ * scrolls inside a 100vh shell, for instance) otherwise come out of
+ * Playwright's `fullPage: true` capped at the viewport height — and prod vs
+ * dev catch them at different inner scroll positions, painting the diff
+ * pink top-to-bottom for the same content. Opening the box up makes both
+ * sides capture the same baseline: the full content from the top.
+ */
+async function expandInnerScrollers(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>("*"))) {
+      const cs = getComputedStyle(el);
+      const scrollableY = cs.overflowY === "auto" || cs.overflowY === "scroll";
+      const scrollableX = cs.overflowX === "auto" || cs.overflowX === "scroll";
+      if (!scrollableY && !scrollableX) continue;
+      el.scrollTop = 0;
+      el.scrollLeft = 0;
+      el.style.setProperty("overflow", "visible", "important");
+      el.style.setProperty("max-height", "none", "important");
+      // A fixed height (e.g. 100vh on a modal shell) still caps the box;
+      // let it grow to its content so the inner cards extend into flow.
+      if (cs.height !== "auto") {
+        el.style.setProperty("height", "auto", "important");
+      }
+    }
+  });
 }
 
 async function autoScroll(page: Page): Promise<void> {
