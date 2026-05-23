@@ -106,6 +106,15 @@
     }
   }
 
+  /* Cross-breakpoint entries that don't apply to the active viewport —
+     still visible (the user wanted them shown) but visually receded so
+     the in-viewport ones stand out. Same affordance as a filter pill
+     with a zero count, applied per entry. */
+  &--dimmed {
+    opacity: 0.4;
+    cursor: default;
+  }
+
   .change-entry__icon {
     margin-top: var(--space-0-5);
     display: flex;

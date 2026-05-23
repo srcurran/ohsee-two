@@ -4,7 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
 import SliderComparison from "@/components/detail/SliderComparison";
-import type { Project, Report } from "@/lib/types";
+import type { Project, Report, SemanticChange } from "@/lib/types";
+import { changeGroupKey } from "@/lib/change-identity";
 import { PageDetailHeader } from "@/components/detail/PageDetailHeader";
 import { PageDetailViewToggle } from "@/components/detail/PageDetailViewToggle";
 import { PageDetailChanges } from "@/components/detail/PageDetailChanges";
@@ -123,6 +124,34 @@ export default function PageDetailPanel({
     () => classifyChanges(activeBpData),
     [activeBpData],
   );
+  // Every detected change across every breakpoint, deduped by group key so a
+  // change that appears at three viewports is one entry. Active-breakpoint
+  // instances are preferred as the representative (so the description/y/
+  // location match what the user can actually see). The Change list dims
+  // entries whose breakpoint set doesn't include the current viewport.
+  const crossBpChanges = useMemo<SemanticChange[]>(() => {
+    const seen = new Set<string>();
+    const out: SemanticChange[] = [];
+    const activeStr = String(activeBp);
+    for (const c of activeBpData[activeStr]?.semanticChanges ?? []) {
+      const k = changeGroupKey(c);
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push(c);
+      }
+    }
+    for (const [bp, r] of Object.entries(activeBpData)) {
+      if (bp === activeStr) continue;
+      for (const c of r.semanticChanges ?? []) {
+        const k = changeGroupKey(c);
+        if (!seen.has(k)) {
+          seen.add(k);
+          out.push(c);
+        }
+      }
+    }
+    return out.sort((a, b) => a.yPosition - b.yPosition);
+  }, [activeBpData, activeBp]);
   // Change counts at the active breakpoint — drives the header badge.
   // Each change is counted individually (no per-selector grouping) so the
   // header total matches the page-card badge and the Detected Changes list.
@@ -323,7 +352,9 @@ export default function PageDetailPanel({
 
               {bpResult && (
                 <PageDetailChanges
-                  bpResult={bpResult}
+                  changes={crossBpChanges}
+                  hasPixelDiff={(bpResult.pixelChangeCount ?? 0) > 0}
+                  activeBp={activeBp}
                   changeScope={changeScope}
                   onChangeClick={(id) => {
                     // Tapping a change item is a request to inspect it —

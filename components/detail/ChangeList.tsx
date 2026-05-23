@@ -8,6 +8,10 @@ import type { ChangeScope } from "@/components/detail/utils/changeScope";
 interface ChangeListProps {
   changes: SemanticChange[];
   summary?: Record<string, number>;
+  /** When set, entries whose change doesn't apply to this breakpoint render
+   *  dimmed and non-interactive — same affordance as a filter pill with a
+   *  zero count, applied per entry. */
+  activeBp?: number;
   changeScope?: ChangeScope;
   onChangeClick?: (id: string) => void;
 }
@@ -16,7 +20,7 @@ interface ChangeListProps {
 // suppress the trailing click on whichever pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
 
-export default function ChangeList({ changes, changeScope, onChangeClick }: ChangeListProps) {
+export default function ChangeList({ changes, activeBp, changeScope, onChangeClick }: ChangeListProps) {
   const [activeFilter, setActiveFilter] = useState<ChangeCategory | "all">("all");
   const filtersRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -168,14 +172,28 @@ export default function ChangeList({ changes, changeScope, onChangeClick }: Chan
       </div>
 
       <div className="change-list__items">
-        {filtered.map((change) => (
-          <ChangeEntry
-            key={change.id}
-            change={change}
-            changeScope={changeScope}
-            onClick={onChangeClick ? () => onChangeClick(change.id) : undefined}
-          />
-        ))}
+        {filtered.map((change) => {
+          // A change is "for this viewport" if its scope (the set of
+          // breakpoints it appears at) includes the active one. Anything
+          // else renders dimmed and non-interactive — same idea as a
+          // filter pill with a zero count, applied per entry.
+          const dimmed =
+            activeBp !== undefined &&
+            changeScope?.bpsFor(change).includes(String(activeBp)) === false;
+          return (
+            <ChangeEntry
+              key={change.id}
+              change={change}
+              changeScope={changeScope}
+              dimmed={dimmed}
+              onClick={
+                onChangeClick && !dimmed
+                  ? () => onChangeClick(change.id)
+                  : undefined
+              }
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -184,15 +202,18 @@ export default function ChangeList({ changes, changeScope, onChangeClick }: Chan
 function ChangeEntry({
   change,
   changeScope,
+  dimmed,
   onClick,
 }: {
   change: SemanticChange;
   changeScope?: ChangeScope;
+  dimmed?: boolean;
   onClick?: () => void;
 }) {
   const cfg = CATEGORY_CONFIG[change.category];
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
+  const dimmedCls = dimmed ? "change-entry--dimmed" : "";
 
   // Locate the change by content ("the header", "the “Pricing” section").
   const locationLine = change.location;
@@ -214,7 +235,7 @@ function ChangeEntry({
   return (
     <div
       onClick={onClick}
-      className={`change-entry change-entry--${severityMod} ${interactiveCls}`}
+      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls}`}
     >
       <span
         className="change-entry__icon"

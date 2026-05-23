@@ -1,34 +1,45 @@
 /** Right-hand changes pane for the PageDetailPanel: renders the ChangeList
- * when there are semantic changes, the "no structural changes" entry when
- * only pixel diffs were found, and the "no differences" entry otherwise. */
+ * when there are semantic changes anywhere across the page's breakpoints,
+ * the "no structural changes" entry when only pixel diffs were found at
+ * the active breakpoint, and the "no differences" entry otherwise. */
 
 "use client";
 
 import ChangeList from "@/components/detail/ChangeList";
-import type { BreakpointResult } from "@/lib/types";
+import type { SemanticChange } from "@/lib/types";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
 interface PageDetailChangesProps {
-  bpResult: BreakpointResult;
+  /** Cross-breakpoint changes for the page, deduped to one entry per
+   *  logical change. ChangeList dims those that don't apply to the
+   *  current viewport. */
+  changes: SemanticChange[];
+  /** Active breakpoint — used by ChangeList to decide which entries to dim. */
+  activeBp: number;
+  /** Whether the active breakpoint has any pixel diff (drives the empty-
+   *  state message when there are zero semantic changes anywhere). */
+  hasPixelDiff: boolean;
   changeScope?: ChangeScope;
   onChangeClick: (id: string) => void;
 }
 
 export function PageDetailChanges({
-  bpResult,
+  changes,
+  activeBp,
+  hasPixelDiff,
   changeScope,
   onChangeClick,
 }: PageDetailChangesProps) {
   return (
     <div className="page-detail-panel__changes">
-      {bpResult.semanticChanges && bpResult.semanticChanges.length > 0 ? (
+      {changes.length > 0 ? (
         <ChangeList
-          changes={bpResult.semanticChanges}
-          summary={bpResult.changeSummary}
+          changes={changes}
+          activeBp={activeBp}
           changeScope={changeScope}
           onChangeClick={onChangeClick}
         />
-      ) : bpResult.pixelChangeCount && bpResult.pixelChangeCount > 0 ? (
+      ) : hasPixelDiff ? (
         <div className="change-entry change-entry--ok">
           <span className="change-entry__icon">✓</span>
           <div className="change-entry__body">
