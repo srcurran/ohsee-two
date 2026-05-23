@@ -9,6 +9,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
 import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
+import { changeGroupKey } from "@/lib/change-identity";
 
 /** Page-tile thumbnail with a shimmer placeholder shown until the image is
  *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
@@ -82,8 +83,21 @@ function ReportPageGridComponent({
 }: ReportPageGridProps) {
   const renderPageCard = (page: ReportPage, index: number) => {
     const bpResult = getPageBp(page, String(activeBp), activeVariant);
-    const changeCount = bpResult?.semanticChanges?.length ?? 0;
     const hasScreenshot = !!bpResult?.prodScreenshot;
+
+    // Total unique changes across every breakpoint for this page. Counting
+    // per active-bp would make the badge jump around as the user switches
+    // viewports even though the underlying issue list is the same — this
+    // matches the detail panel's header badge and the Detected Changes list.
+    const bpData =
+      activeVariant && page.variants?.[activeVariant]
+        ? page.variants[activeVariant]
+        : page.breakpoints;
+    const uniqueKeys = new Set<string>();
+    for (const r of Object.values(bpData)) {
+      for (const c of r.semanticChanges ?? []) uniqueKeys.add(changeGroupKey(c));
+    }
+    const changeCount = uniqueKeys.size;
 
     // Prefer the highlight image (prod with changed pixels tinted) when
     // available — it gives an at-a-glance view of what changed. Falls

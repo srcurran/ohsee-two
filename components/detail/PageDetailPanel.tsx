@@ -152,13 +152,10 @@ export default function PageDetailPanel({
     }
     return out.sort((a, b) => a.yPosition - b.yPosition);
   }, [activeBpData, activeBp]);
-  // Total change count at the active breakpoint — drives the header badge.
-  // Each change is counted individually so the number matches the page-card
-  // badge and the Detected Changes list.
-  const activeBpChangeCount = useMemo(
-    () => activeBpData[String(initialBp)]?.semanticChanges?.length ?? 0,
-    [activeBpData, initialBp],
-  );
+  // Total unique change count across every breakpoint — the header badge
+  // shows the same number as the Detected Changes list and the page-card
+  // badge, regardless of which viewport tab is active.
+  const totalChangeCount = crossBpChanges.length;
   // Merge scope-aware specific counts into the per-breakpoint stats so the
   // deviation dots in BreakpointTabs can distinguish universal changes from
   // breakpoint-specific ones.
@@ -242,7 +239,7 @@ export default function PageDetailPanel({
                 "dev",
               )}
               noData={!bpResult?.prodScreenshot}
-              changeCount={activeBpChangeCount}
+              changeCount={totalChangeCount}
               activeBp={activeBp}
               prevPage={prevPage}
               nextPage={nextPage}
