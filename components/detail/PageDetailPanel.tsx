@@ -185,11 +185,14 @@ export default function PageDetailPanel({
 
   const bpResult = activeBpData[String(activeBp)];
 
+  // Keep the leading slash so the title matches how the page renders in the
+  // grid card ("/post/foyer-and-nayya", not "post/foyer-and-nayya").
+  // The root path is the only exception — "index" reads better than "/".
   const pageName = currentPage.stepLabel
     ? currentPage.stepLabel
     : currentPage.path === "/"
       ? "index"
-      : currentPage.path.replace(/^\//, "");
+      : currentPage.path;
 
   return (
     <>

@@ -1,11 +1,12 @@
 import type { Report, ReportPage, BreakpointResult } from "@/lib/types";
 import type { BpChangeStats } from "@/components/index/utils/report";
 
-/** Human-readable label for a page: explicit step label > index > path. */
+/** Human-readable label for a page: explicit step label > index > the full
+ * path (leading slash kept so headers match the report-grid cards). */
 export function formatPageName(page: ReportPage): string {
   if (page.stepLabel) return page.stepLabel;
   if (page.path === "/") return "index";
-  return page.path.replace(/^\//, "");
+  return page.path;
 }
 
 /** Picks the variant's breakpoint map when a variant is active and has data

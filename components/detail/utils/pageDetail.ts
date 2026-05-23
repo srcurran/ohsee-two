@@ -38,13 +38,14 @@ export function resolvePageUrl(
 }
 
 /** Display label for a page — step label for flow steps, "index" for "/",
- * otherwise the path with the leading slash stripped. */
+ * otherwise the full path (leading slash kept so the label matches how the
+ * page appears in the report-grid card). */
 export function getPageLabel(page: ReportPage): string {
   return page.stepLabel
     ? page.stepLabel
     : page.path === "/"
       ? "index"
-      : page.path.replace(/^\//, "");
+      : page.path;
 }
 
 /** Sorted union of every breakpoint width that appears in any page of the
