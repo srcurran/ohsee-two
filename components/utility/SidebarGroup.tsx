@@ -2,7 +2,6 @@
 
 import { memo, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import ProjectFavicon from "@/components/utility/ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
 import { useViewedReports } from "@/lib/viewed-reports";
@@ -83,7 +82,6 @@ function SidebarGroupComponent({
           onClick={() => onProjectClick(project, reports)}
           className="sidebar__header"
         >
-          <ProjectFavicon url={project.prodUrl} fallbackUrl={project.devUrl} />
           <span className="sidebar__title">{project.name || domain}</span>
         </button>
 

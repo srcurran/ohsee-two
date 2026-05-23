@@ -3,7 +3,7 @@
  *   <aside .sidebar [--modifiers]>
  *     <nav .sidebar__nav>
  *       <div .sidebar__group [--active]>
- *         <button .sidebar__header>      ← project name + favicon
+ *         <button .sidebar__header>      ← project name (label is the click target)
  *         <div .sidebar__tests>
  *           <div .sidebar__test [--active]> … </div>   ← per test
  *           <button .sidebar__show-more>
