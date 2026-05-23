@@ -58,24 +58,27 @@ export async function prepareForScreenshot(page: Page, settleMs = 1000): Promise
 }
 
 /**
- * Reset every scrollable container to the top and let its content flow into
- * the document. Pages with an inner scrolling region (a modal whose body
- * scrolls inside a 100vh shell, for instance) otherwise come out of
- * Playwright's `fullPage: true` capped at the viewport height — and prod vs
- * dev catch them at different inner scroll positions, painting the diff
- * pink top-to-bottom for the same content. Opening the box up makes both
- * sides capture the same baseline: the full content from the top.
+ * Reset vertically scrollable containers to the top and let their content
+ * flow into the document. Pages with an inner scrolling region (a modal
+ * whose body scrolls inside a 100vh shell, for instance) otherwise come
+ * out of Playwright's `fullPage: true` capped at the viewport height —
+ * and prod vs dev catch them at different inner scroll positions, painting
+ * the diff pink top-to-bottom for the same content. Opening the vertical
+ * box up makes both sides capture the same baseline.
+ *
+ * Horizontal scrolling is left alone: a row carousel, sticky logo strip,
+ * or marquee with `overflow-x: hidden` is part of the legitimate visual
+ * layout, and unbleeding it floods the page with overlapping content.
  */
 async function expandInnerScrollers(page: Page): Promise<void> {
   await page.evaluate(() => {
     for (const el of Array.from(document.querySelectorAll<HTMLElement>("*"))) {
       const cs = getComputedStyle(el);
-      const scrollableY = cs.overflowY === "auto" || cs.overflowY === "scroll";
-      const scrollableX = cs.overflowX === "auto" || cs.overflowX === "scroll";
-      if (!scrollableY && !scrollableX) continue;
+      if (cs.overflowY !== "auto" && cs.overflowY !== "scroll") continue;
       el.scrollTop = 0;
-      el.scrollLeft = 0;
-      el.style.setProperty("overflow", "visible", "important");
+      // Only the vertical axis is opened — overflow-x stays untouched so
+      // horizontal carousels and clipping containers keep their layout.
+      el.style.setProperty("overflow-y", "visible", "important");
       el.style.setProperty("max-height", "none", "important");
       // A fixed height (e.g. 100vh on a modal shell) still caps the box;
       // let it grow to its content so the inner cards extend into flow.
