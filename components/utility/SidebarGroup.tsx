@@ -156,9 +156,14 @@ function SidebarTestRow({
   const opacity = dotOpacity(lastRanAt);
   // Solid dot until the user opens the latest report — once they do,
   // switch to a 2-pixel outline. A new run creates a new report id, so
-  // the indicator naturally resets to solid for fresh results.
+  // the indicator naturally resets to solid for fresh results. A
+  // running report never reads as viewed: there's nothing final to have
+  // seen yet, so the dot stays solid until the run completes.
   const viewedReports = useViewedReports();
-  const viewed = !!latestReport && viewedReports.has(latestReport.id);
+  const viewed =
+    !!latestReport &&
+    dotMod !== "running" &&
+    viewedReports.has(latestReport.id);
 
   return (
     <div

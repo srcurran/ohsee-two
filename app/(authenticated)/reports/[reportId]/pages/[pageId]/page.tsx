@@ -37,10 +37,14 @@ function PageDetailInner() {
   usePageRouteKeyboardNav(report, params.pageId, activeBp);
 
   // Landing on a per-page detail counts as viewing the parent report — the
-  // sidebar dot flips from solid to outlined.
+  // sidebar dot flips from solid to outlined. A still-running report
+  // doesn't have final results to "view" yet, so wait for the status to
+  // settle before marking.
   useEffect(() => {
-    if (params.reportId) markReportViewed(params.reportId);
-  }, [params.reportId]);
+    if (params.reportId && report && report.status !== "running") {
+      markReportViewed(params.reportId);
+    }
+  }, [params.reportId, report]);
 
   const handleBpChange = (bp: number) => {
     const p = new URLSearchParams(searchParams.toString());

@@ -63,11 +63,15 @@ function ReportPageInner() {
     }
   }, [notFound, router]);
 
-  // Opening a report flips the sidebar dot from solid to outlined. A new
-  // run creates a new report id, so this naturally resets per run.
+  // Opening a completed report flips the sidebar dot from solid to
+  // outlined. A run that's still capturing isn't yet "viewable" — wait
+  // for the status to settle before marking, so a refresh-after-finish
+  // flips the dot the moment there's something final to read.
   useEffect(() => {
-    if (params.reportId) markReportViewed(params.reportId);
-  }, [params.reportId]);
+    if (params.reportId && report && report.status !== "running") {
+      markReportViewed(params.reportId);
+    }
+  }, [params.reportId, report]);
 
   // Push a custom titlebar header (project eyebrow + project-settings icon)
   // into the 36px drag region. Memoized so the slot doesn't reset on every
