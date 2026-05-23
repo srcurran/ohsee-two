@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
+import { changeGroupKey } from "@/lib/change-identity";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
 interface ChangeListProps {
@@ -181,8 +182,13 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
             activeBp !== undefined &&
             changeScope?.bpsFor(change).includes(String(activeBp)) === false;
           return (
+            // Key on the stable logical-change identity rather than
+            // `change.id`: per-bp ids restart from sc-1 each breakpoint,
+            // so the cross-breakpoint list can otherwise collide ids
+            // between different logical changes — and React then paints
+            // phantom rows that only clear on a full refresh.
             <ChangeEntry
-              key={change.id}
+              key={changeGroupKey(change)}
               change={change}
               changeScope={changeScope}
               dimmed={dimmed}
