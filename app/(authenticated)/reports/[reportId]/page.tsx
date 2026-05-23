@@ -143,7 +143,6 @@ function ReportPageInner() {
             allReports={allReports}
             headerTitle={headerTitle}
             activeBp={activeBp}
-            changeStats={bpChangeCounts[String(activeBp)]}
             onRun={runNow}
             onCancel={cancel}
             onOpenSettings={openSettings}
