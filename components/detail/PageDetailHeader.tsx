@@ -17,8 +17,6 @@ interface PageDetailHeaderProps {
   devUrl: string;
   noData: boolean;
   changeCount: number;
-  universalCount: number;
-  specificCount: number;
   activeBp: number;
   prevPage: ReportPage | null;
   nextPage: ReportPage | null;
@@ -35,8 +33,6 @@ export function PageDetailHeader({
   devUrl,
   noData,
   changeCount,
-  universalCount,
-  specificCount,
   activeBp,
   prevPage,
   nextPage,
@@ -51,13 +47,7 @@ export function PageDetailHeader({
     >
       <div className="page-detail-panel__title-group">
         <PageTitleMenu label={pageName} prodUrl={prodUrl} devUrl={devUrl} />
-        <HeaderBadge
-          noData={noData}
-          changeCount={changeCount}
-          universalCount={universalCount}
-          specificCount={specificCount}
-          activeBp={activeBp}
-        />
+        <HeaderBadge noData={noData} changeCount={changeCount} />
       </div>
 
       <div className="page-detail-panel__nav">
@@ -163,21 +153,15 @@ function PageTitleMenu({
   );
 }
 
-/** Badge + label pairs for the detail header. Each entry is a small circle
- * (same visual as the card badges) followed by a text label so the meaning
- * is unambiguous. Falls back to a single badge for zero/no-data states. */
+/** Single filled badge with the total change count — the in-list scope
+ * labels (universal vs viewport-specific) carry the breakdown, so the
+ * header just needs the total at a glance. */
 function HeaderBadge({
   noData,
   changeCount,
-  universalCount,
-  specificCount,
-  activeBp,
 }: {
   noData: boolean;
   changeCount: number;
-  universalCount: number;
-  specificCount: number;
-  activeBp: number;
 }) {
   if (noData) {
     return <span className="badge badge--lg badge--neutral">&mdash;</span>;
@@ -185,31 +169,6 @@ function HeaderBadge({
   if (changeCount === 0) {
     return <span className="badge badge--lg badge--success">0</span>;
   }
-
-  const hasSplit = universalCount > 0 || specificCount > 0;
-  if (hasSplit && (universalCount + specificCount) > 0) {
-    return (
-      <div className="header-badge-group">
-        {universalCount > 0 && (
-          <span className="header-badge-group__entry">
-            <span className="badge badge--warning-outline">
-              {universalCount > 50 ? "50+" : universalCount}
-            </span>
-            <span className="header-badge-group__label">all breakpoints</span>
-          </span>
-        )}
-        {specificCount > 0 && (
-          <span className="header-badge-group__entry">
-            <span className="badge badge--warning">
-              {specificCount > 50 ? "50+" : specificCount}
-            </span>
-            <span className="header-badge-group__label">{activeBp}px only</span>
-          </span>
-        )}
-      </div>
-    );
-  }
-
   return (
     <span className="badge badge--lg badge--warning">
       {changeCount > 50 ? "50+" : changeCount}

@@ -152,26 +152,13 @@ export default function PageDetailPanel({
     }
     return out.sort((a, b) => a.yPosition - b.yPosition);
   }, [activeBpData, activeBp]);
-  // Change counts at the active breakpoint — drives the header badge.
-  // Each change is counted individually (no per-selector grouping) so the
-  // header total matches the page-card badge and the Detected Changes list.
-  const { activeBpChangeCount, headerUniversalCount, headerSpecificCount } =
-    useMemo(() => {
-      const bpR = activeBpData[String(initialBp)];
-      if (!bpR?.semanticChanges)
-        return { activeBpChangeCount: 0, headerUniversalCount: 0, headerSpecificCount: 0 };
-      let uni = 0;
-      let spec = 0;
-      for (const c of bpR.semanticChanges) {
-        if (changeScope.isUniversal(c)) uni++;
-        else spec++;
-      }
-      return {
-        activeBpChangeCount: uni + spec,
-        headerUniversalCount: uni,
-        headerSpecificCount: spec,
-      };
-    }, [activeBpData, initialBp, changeScope]);
+  // Total change count at the active breakpoint — drives the header badge.
+  // Each change is counted individually so the number matches the page-card
+  // badge and the Detected Changes list.
+  const activeBpChangeCount = useMemo(
+    () => activeBpData[String(initialBp)]?.semanticChanges?.length ?? 0,
+    [activeBpData, initialBp],
+  );
   // Merge scope-aware specific counts into the per-breakpoint stats so the
   // deviation dots in BreakpointTabs can distinguish universal changes from
   // breakpoint-specific ones.
@@ -253,8 +240,6 @@ export default function PageDetailPanel({
               )}
               noData={!bpResult?.prodScreenshot}
               changeCount={activeBpChangeCount}
-              universalCount={headerUniversalCount}
-              specificCount={headerSpecificCount}
               activeBp={activeBp}
               prevPage={prevPage}
               nextPage={nextPage}

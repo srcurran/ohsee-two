@@ -3,6 +3,7 @@
  * back through the shell. */
 
 import type { Report, ReportPage, BreakpointResult } from "@/lib/types";
+import { classifyChanges } from "@/components/detail/utils/changeScope";
 
 /** Host name (sans `www.`) from a URL, with raw fallback for bad inputs. */
 export function getDomain(url: string): string {
@@ -72,7 +73,11 @@ export interface BpChangeStats {
   specificCount?: number;
 }
 
-/** Per-breakpoint change stats: how many pages have changes vs total pages. */
+/** Per-breakpoint change stats: how many pages have changes vs total pages.
+ *  When passed a full Report, also classifies each page's changes (universal
+ *  across all bps vs viewport-specific) and aggregates the scope counts —
+ *  this drives the breakpoint-tab dot mode (outline vs filled) on both the
+ *  report grid and the detail panel. */
 export function computeBpChangeCounts(
   reportOrBpData: Report | Record<string, BreakpointResult>,
   activeVariant?: string | null,
@@ -86,12 +91,23 @@ export function computeBpChangeCounts(
         activeVariant && page.variants?.[activeVariant]
           ? page.variants[activeVariant]
           : page.breakpoints;
+      const scope = classifyChanges(bpData);
       for (const [bp, result] of Object.entries(bpData)) {
-        if (!stats[bp]) stats[bp] = { changed: 0, total: 0, changeCount: 0 };
+        if (!stats[bp])
+          stats[bp] = {
+            changed: 0,
+            total: 0,
+            changeCount: 0,
+            universalCount: 0,
+            specificCount: 0,
+          };
         stats[bp].total++;
         const n = result.semanticChanges?.length ?? 0;
         if (n > 0) stats[bp].changed++;
         stats[bp].changeCount += n;
+        const spec = scope.specificCountPerBp[bp] ?? 0;
+        stats[bp].specificCount = (stats[bp].specificCount ?? 0) + spec;
+        stats[bp].universalCount = (stats[bp].universalCount ?? 0) + (n - spec);
       }
     }
   } else {

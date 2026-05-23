@@ -9,7 +9,6 @@ import { memo, useEffect, useRef, useState } from "react";
 import ChangeBadge from "@/components/index/ChangeBadge";
 import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
-import { changeGroupKey } from "@/lib/change-identity";
 
 /** Page-tile thumbnail with a shimmer placeholder shown until the image is
  *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
@@ -86,38 +85,6 @@ function ReportPageGridComponent({
     const changeCount = bpResult?.semanticChanges?.length ?? 0;
     const hasScreenshot = !!bpResult?.prodScreenshot;
 
-    // Split the change count into universal (appears at every captured
-    // breakpoint) vs breakpoint-specific, matched by the coarse group key.
-    // Each change is counted individually — no per-selector grouping — so
-    // the total matches the Detected Changes list.
-    const bpData = activeVariant && page.variants?.[activeVariant]
-      ? page.variants[activeVariant]
-      : page.breakpoints;
-    const bpsWithSemantic = Object.values(bpData).filter(
-      (r) => r.semanticChanges !== undefined,
-    );
-    let universalCount = 0;
-    let specificCount = 0;
-    if (bpResult?.semanticChanges && bpsWithSemantic.length > 1) {
-      // Build key → bp count across ALL breakpoints
-      const keyToBpCount = new Map<string, number>();
-      for (const r of bpsWithSemantic) {
-        const seen = new Set<string>();
-        for (const c of r.semanticChanges!) {
-          const k = changeGroupKey(c);
-          if (!seen.has(k)) { seen.add(k); keyToBpCount.set(k, (keyToBpCount.get(k) ?? 0) + 1); }
-        }
-      }
-      const totalBps = bpsWithSemantic.length;
-      for (const c of bpResult.semanticChanges) {
-        const isUniversal = (keyToBpCount.get(changeGroupKey(c)) ?? 0) >= totalBps;
-        if (isUniversal) universalCount++;
-        else specificCount++;
-      }
-    } else {
-      // Single breakpoint or no semantic data — all counts are "universal"
-      universalCount = changeCount;
-    }
     // Prefer the highlight image (prod with changed pixels tinted) when
     // available — it gives an at-a-glance view of what changed. Falls
     // back to the plain prod screenshot for zero-change pages or older
@@ -142,12 +109,7 @@ function ReportPageGridComponent({
               {page.stepLabel || page.path}
             </span>
           </div>
-          <ChangeBadge
-            count={changeCount}
-            universalCount={universalCount}
-            specificCount={specificCount}
-            noData={!hasScreenshot}
-          />
+          <ChangeBadge count={changeCount} noData={!hasScreenshot} />
         </div>
       </button>
     );
