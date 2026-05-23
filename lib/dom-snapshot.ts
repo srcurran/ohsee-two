@@ -87,6 +87,14 @@ function extractElementsInPage(significantTags: string[]): CapturedElement[] {
 
   for (const el of allElements) {
     const tag = el.tagName.toLowerCase();
+
+    // Skip SVG internals — <g>, <path>, <rect>, etc. are graphics primitives,
+    // not page structure. Webflow/Figma exports give them ids ("HouseLine",
+    // "Vector") that would otherwise sneak past the significance filter and
+    // surface as "Restructured element" noise whenever the icon's internal
+    // child order shifts. The <svg> element itself stays captured.
+    if (tag !== "svg" && el.closest("svg")) continue;
+
     const sig = isSignificant(el);
 
     // For non-significant elements (mainly divs), check if they are
