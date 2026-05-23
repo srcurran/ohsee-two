@@ -553,12 +553,45 @@ function describeOne(
   return { description, location };
 }
 
+/**
+ * Does this restructured element carry any content identity worth labelling?
+ * A `<div>` shuffled inside an opaque wrapper with no text, alt, or
+ * descendant content would only ever describe as bare "Restructured element"
+ * — actionable to no one. Such changes are dropped before description so the
+ * list isn't padded with non-news.
+ */
+function restructureHasIdentity(
+  change: SemanticChange,
+  prod: DomSnapshot,
+  dev: DomSnapshot,
+): boolean {
+  const prefix = change.selector + " > ";
+  const inProd = prod.elements.some(
+    (e) => e.selector === change.selector || e.selector.startsWith(prefix),
+  );
+  const elements = inProd ? prod.elements : dev.elements;
+  const focus =
+    (change.instances?.length ?? 1) > 1
+      ? change.instances![0].selector
+      : change.selector;
+  const el = elements.find((e) => e.selector === focus);
+  if (!el) return false;
+  if (MEDIA_TAGS.has(el.tag)) return !!(el.alt || el.ariaLabel || el.src);
+  if (el.textContent?.trim() || el.ariaLabel?.trim()) return true;
+  return descendantTexts(elements, focus, 1).samples.length > 0;
+}
+
 export function describeChanges(
   changes: SemanticChange[],
   prod: DomSnapshot,
   dev: DomSnapshot,
 ): SemanticChange[] {
-  return changes.map((change) => {
+  const filtered = changes.filter(
+    (c) =>
+      c.details.property !== "dom-restructure" ||
+      restructureHasIdentity(c, prod, dev),
+  );
+  return filtered.map((change) => {
     const { description, location } = describeOne(change, prod, dev, truncate);
     const full = describeOne(change, prod, dev, keepFull);
     // Only keep the full copies when shortening actually happened — they
