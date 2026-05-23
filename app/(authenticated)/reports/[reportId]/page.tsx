@@ -14,6 +14,7 @@ import { ReportPageGrid } from "@/components/index/ReportPageGrid";
 import { Icon } from "@/components/utility/Icon";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
+import { markReportViewed } from "@/lib/viewed-reports";
 import {
   computeBpChangeCounts,
   computeReportBreakpoints,
@@ -61,6 +62,12 @@ function ReportPageInner() {
       router.replace("/");
     }
   }, [notFound, router]);
+
+  // Opening a report flips the sidebar dot from solid to outlined. A new
+  // run creates a new report id, so this naturally resets per run.
+  useEffect(() => {
+    if (params.reportId) markReportViewed(params.reportId);
+  }, [params.reportId]);
 
   // Push a custom titlebar header (project eyebrow + project-settings icon)
   // into the 36px drag region. Memoized so the slot doesn't reset on every

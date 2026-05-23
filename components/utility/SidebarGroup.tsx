@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import ProjectFavicon from "@/components/utility/ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
+import { useViewedReports } from "@/lib/viewed-reports";
 import type { Project, Report, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
 import {
@@ -153,6 +154,11 @@ function SidebarTestRow({
       ? formatRelativeTimeShort(test.lastRunAt)
       : null;
   const opacity = dotOpacity(lastRanAt);
+  // Solid dot until the user opens the latest report — once they do,
+  // switch to a 2-pixel outline. A new run creates a new report id, so
+  // the indicator naturally resets to solid for fresh results.
+  const viewedReports = useViewedReports();
+  const viewed = !!latestReport && viewedReports.has(latestReport.id);
 
   return (
     <div
@@ -160,7 +166,7 @@ function SidebarTestRow({
       className={`sidebar__test ${active ? "sidebar__test--active" : ""}`}
     >
       <span
-        className={`status-dot status-dot--${dotMod}`}
+        className={`status-dot status-dot--${dotMod}${viewed ? " status-dot--viewed" : ""}`}
         style={opacity < 1 ? { opacity } : undefined}
       />
       <span className="sidebar__test-label">{test.name}</span>

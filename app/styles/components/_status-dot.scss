@@ -1,4 +1,7 @@
-/* StatusDot — small colored circle indicator. */
+/* StatusDot — small colored circle indicator. Each variant sets the
+ * --status-dot-color custom property; the base rule uses it for the solid
+ * fill, and the `--viewed` modifier swaps the fill for an inset 2px ring
+ * (so a viewed report reads as an outlined dot, an unviewed one as solid). */
 
 .status-dot {
   display: inline-block;
@@ -6,11 +9,22 @@
   height: 10px;
   flex-shrink: 0;
   border-radius: var(--radius-full);
+  background: var(--status-dot-color, transparent);
 
-  &--success { background: var(--status-dot-success-background); }
-  &--warning { background: var(--status-dot-warning-background); }
-  &--disabled { background: var(--status-dot-disabled-background); }
-  &--inactive { background: var(--status-dot-inactive-background); }
-  &--error    { background: var(--status-dot-error-background); }
-  &--running  { background: var(--status-dot-running-background); animation: breathe 2s ease-in-out infinite; }
+  &--success  { --status-dot-color: var(--status-dot-success-background); }
+  &--warning  { --status-dot-color: var(--status-dot-warning-background); }
+  &--disabled { --status-dot-color: var(--status-dot-disabled-background); }
+  &--inactive { --status-dot-color: var(--status-dot-inactive-background); }
+  &--error    { --status-dot-color: var(--status-dot-error-background); }
+  &--running  {
+    --status-dot-color: var(--status-dot-running-background);
+    animation: breathe 2s ease-in-out infinite;
+  }
+
+  /* Inset shadow rather than `border` keeps the dot's outer dimensions
+     constant — adding a border would have nudged sibling text on toggle. */
+  &--viewed {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--status-dot-color);
+  }
 }

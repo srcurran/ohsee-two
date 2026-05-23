@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
@@ -20,6 +20,7 @@ import {
   getReportVariants,
 } from "@/components/detail/utils/pageRoute";
 import { countUniqueSemanticChanges } from "@/lib/change-identity";
+import { markReportViewed } from "@/lib/viewed-reports";
 
 function PageDetailInner() {
   const params = useParams<{ reportId: string; pageId: string }>();
@@ -34,6 +35,12 @@ function PageDetailInner() {
 
   usePageTitle(project ? project.name || getDomain(project.prodUrl) : null);
   usePageRouteKeyboardNav(report, params.pageId, activeBp);
+
+  // Landing on a per-page detail counts as viewing the parent report — the
+  // sidebar dot flips from solid to outlined.
+  useEffect(() => {
+    if (params.reportId) markReportViewed(params.reportId);
+  }, [params.reportId]);
 
   const handleBpChange = (bp: number) => {
     const p = new URLSearchParams(searchParams.toString());
