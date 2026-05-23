@@ -11,7 +11,6 @@ import PageDetailPanel from "@/components/detail/PageDetailPanel";
 import { ReportHeader } from "@/components/index/ReportHeader";
 import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
 import { ReportPageGrid } from "@/components/index/ReportPageGrid";
-import { Icon } from "@/components/utility/Icon";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
 import { markReportViewed } from "@/lib/viewed-reports";
@@ -73,23 +72,21 @@ function ReportPageInner() {
     }
   }, [params.reportId, report]);
 
-  // Push a custom titlebar header (project eyebrow + project-settings icon)
-  // into the 36px drag region. Memoized so the slot doesn't reset on every
-  // render. Must be called unconditionally before any early return.
+  // Push a custom titlebar header (project label, clickable to open
+  // settings) into the 36px drag region. Memoized so the slot doesn't
+  // reset on every render. Must be called unconditionally before any
+  // early return.
   const projectLabel = project ? (project.name || getDomain(project.prodUrl)) : null;
   const pageHeaderNode = useMemo(() => {
     if (!project || !projectLabel) return null;
     return (
-      <>
-        <span className="report__project-label">{projectLabel}</span>
-        <button
-          onClick={() => openProjectSettings(project.id)}
-          className="icon-btn icon-btn--sm"
-          title="Project settings"
-        >
-          <Icon name="project-menu" size={20} />
-        </button>
-      </>
+      <button
+        onClick={() => openProjectSettings(project.id)}
+        className="report__project-label report__project-label--button"
+        title="Project settings"
+      >
+        {projectLabel}
+      </button>
     );
   }, [project, projectLabel, openProjectSettings]);
   usePageHeader(pageHeaderNode);

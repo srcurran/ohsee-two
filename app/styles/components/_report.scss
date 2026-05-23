@@ -20,14 +20,31 @@
  *           <div .report__flow-header>
  *             <h3 .report__flow-title> … </h3>
  *
- *   <span .report__project-label> — injected into the titlebar slot via
- *     usePageHeader, so it renders OUTSIDE the .report subtree. Kept at the
- *     top level here so the descendant selector still matches.
+ *   <button .report__project-label .report__project-label--button> —
+ *     injected into the titlebar slot via usePageHeader, so it renders
+ *     OUTSIDE the .report subtree. Kept at the top level here so the
+ *     descendant selector still matches. The label itself opens project
+ *     settings (no separate icon button beside it).
  */
 
 .report__project-label {
   font-size: var(--font-size-lg);
   color: var(--report-project-label-color);
+
+  &--button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    transition: var(--transition-colors);
+
+    &:hover {
+      color: var(--report-project-label-color-hover, var(--neutral-dark-900));
+    }
+  }
 }
 
 .report {
