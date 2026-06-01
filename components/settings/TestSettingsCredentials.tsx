@@ -1,7 +1,7 @@
-/** Credentials section inside the test-settings overlay — toggle for
- * minting an auth session before capture and an inline vault editor so
- * the user doesn't have to bounce to Settings → Credentials to add a new
- * keychain entry. */
+/** Credentials section inside the test-settings overlay and the new-test
+ * wizard — a toggle for signing in before capture and a dropdown for picking
+ * (or creating) the vault credential used for auth + $EMAIL$/$PASSWORD$/$OTP$
+ * script interpolation. */
 
 "use client";
 
@@ -20,6 +20,9 @@ interface CredentialsSectionProps {
   hasTemplateVars?: boolean;
 }
 
+/** Sentinel <option> value that opens the create-credential editor. */
+const CREATE_SENTINEL = "__create__";
+
 export function CredentialsSection({
   credentials,
   onChange,
@@ -27,8 +30,6 @@ export function CredentialsSection({
 }: CredentialsSectionProps) {
   const enabled = credentials?.enabled === true;
 
-  // Vault state — mirrors the new-test wizard so users can manage
-  // credentials inline without losing context.
   const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(
     null,
   );
@@ -52,6 +53,33 @@ export function CredentialsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const selectedKey = credentials?.vaultEntryId ?? "";
+  const selectedEntry =
+    vaultEntries?.find((e) => e.key === selectedKey) ?? null;
+
+  const handleSelect = (value: string) => {
+    if (value === CREATE_SENTINEL) {
+      setEditingEntry(null);
+      setCredEditorOpen(true);
+      return;
+    }
+    onChange({ ...credentials, vaultEntryId: value || undefined });
+  };
+
+  const removeSelected = () => {
+    const ohsee = getOhsee();
+    if (!ohsee || !selectedEntry) return;
+    ohsee.vault
+      .delete(selectedEntry.key)
+      .then(() => {
+        onChange({ ...credentials, vaultEntryId: undefined });
+        refreshVault();
+      })
+      .catch((err: unknown) => {
+        setVaultError(err instanceof Error ? err.message : String(err));
+      });
+  };
+
   return (
     <div className="credentials-section">
       <label className="credentials-section__row">
@@ -61,7 +89,7 @@ export function CredentialsSection({
           onChange={(e) => {
             const next = { ...credentials, enabled: e.target.checked };
             // Auto-select first vault entry when enabling if none is
-            // selected — saves the user an extra click.
+            // selected — saves the user an extra step.
             if (
               e.target.checked &&
               !credentials?.vaultEntryId &&
@@ -74,159 +102,75 @@ export function CredentialsSection({
           }}
           className="checkbox"
         />
-        <span>Mint a session cookie before each capture (require auth)</span>
+        <span>Sign in before capturing (for pages behind a login)</span>
       </label>
 
       {isElectronRuntime() && (
-        <div
-          className="credentials-section__row"
-          style={{
-            flexDirection: "column",
-            alignItems: "stretch",
-            gap: "var(--space-2)",
-          }}
-        >
-          <label className="credentials-section__label">Vault credentials</label>
+        <div className="credentials-section__vault">
+          <label
+            className="credentials-section__label"
+            htmlFor="credentials-select"
+          >
+            Credential
+          </label>
+          <div className="credentials-section__vault-row">
+            <select
+              id="credentials-select"
+              className="credentials-section__select"
+              value={selectedKey}
+              onChange={(e) => handleSelect(e.target.value)}
+            >
+              <option value="">No credential</option>
+              {vaultEntries?.map((entry) => (
+                <option key={entry.key} value={entry.key}>
+                  {entry.label}
+                  {entry.hasTotp ? " · 2FA" : ""}
+                </option>
+              ))}
+              <option value={CREATE_SENTINEL}>+ Create new credential…</option>
+            </select>
+            {selectedEntry && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--text"
+                  onClick={() => {
+                    setEditingEntry(selectedEntry);
+                    setCredEditorOpen(true);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--text credentials-section__remove"
+                  onClick={removeSelected}
+                >
+                  Remove
+                </button>
+              </>
+            )}
+          </div>
 
           {vaultError && (
-            <p
-              className="credentials-section__hint"
-              style={{ color: "var(--status-error-500)" }}
-            >
+            <p className="credentials-section__hint credentials-section__hint--error">
               {vaultError}
             </p>
           )}
 
-          {vaultEntries === null ? (
-            <p className="credentials-section__hint">Loading…</p>
-          ) : vaultEntries.length === 0 ? (
+          {selectedKey ? (
             <p className="credentials-section__hint">
-              No credentials stored yet — add one below to reference in your flow.
+              Used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>,{" "}
+              <code>$OTP$</code> in scripts.
             </p>
           ) : (
-            <ul
-              style={{
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-1)",
-              }}
-            >
-              {vaultEntries.map((entry) => {
-                const selected = credentials?.vaultEntryId === entry.key;
-                return (
-                  <li
-                    key={entry.key}
-                    onClick={() =>
-                      onChange({
-                        ...credentials,
-                        vaultEntryId: selected ? undefined : entry.key,
-                      })
-                    }
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-2)",
-                      padding: "var(--space-1-5) var(--space-2)",
-                      borderRadius: "var(--radius-sm)",
-                      cursor: "pointer",
-                      background: selected ? "var(--tint-4)" : "transparent",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: "50%",
-                        border: `2px solid ${selected ? "var(--brand-500)" : "var(--neutral-dark-300)"}`,
-                        background: selected ? "var(--brand-500)" : "transparent",
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {selected && (
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }} />
-                      )}
-                    </span>
-                    <span style={{ flex: 1, fontSize: "var(--font-size-md)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
-                    <code
-                      style={{
-                        fontSize: "var(--font-size-sm)",
-                        color: "var(--neutral-dark-500)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {entry.key}
-                      {entry.hasTotp ? " · 2FA" : ""}
-                    </code>
-                    <button
-                      type="button"
-                      className="btn btn--text"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingEntry(entry);
-                        setCredEditorOpen(true);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--text"
-                      style={{ color: "var(--status-error-500)" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const ohsee = getOhsee();
-                        if (!ohsee) return;
-                        ohsee.vault.delete(entry.key).then(() => {
-                          if (credentials?.vaultEntryId === entry.key) {
-                            onChange({ ...credentials, vaultEntryId: undefined });
-                          }
-                          refreshVault();
-                        }).catch((err: unknown) => {
-                          setVaultError(err instanceof Error ? err.message : String(err));
-                        });
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            hasTemplateVars && (
+              <p className="credentials-section__hint credentials-section__hint--warning">
+                Your scripts use <code>$EMAIL$</code>, <code>$PASSWORD$</code>,
+                or <code>$OTP$</code> — select a credential to bind it.
+              </p>
+            )
           )}
-
-          {credentials?.vaultEntryId && (
-            <p className="credentials-section__hint">
-              Selected credential will be used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>, <code>$OTP$</code> in scripts.
-            </p>
-          )}
-
-          {hasTemplateVars && !credentials?.vaultEntryId && (
-            <p
-              className="credentials-section__hint"
-              style={{ color: "var(--status-warning-500)" }}
-            >
-              Your scripts use <code>$EMAIL$</code>, <code>$PASSWORD$</code>, or <code>$OTP$</code> but no vault credential is selected — click one above to bind it.
-            </p>
-          )}
-
-          <div>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingEntry(null);
-                setCredEditorOpen(true);
-              }}
-              className="btn btn--ghost"
-            >
-              + Add credential
-            </button>
-          </div>
         </div>
       )}
 
@@ -237,10 +181,13 @@ export function CredentialsSection({
             setCredEditorOpen(false);
             setEditingEntry(null);
           }}
-          onSaved={() => {
+          onSaved={(key) => {
+            const wasCreating = !editingEntry;
             setCredEditorOpen(false);
             setEditingEntry(null);
             refreshVault();
+            // Auto-bind a freshly created credential.
+            if (wasCreating) onChange({ ...credentials, vaultEntryId: key });
           }}
           onError={setVaultError}
         />

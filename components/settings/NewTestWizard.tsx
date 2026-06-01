@@ -476,6 +476,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
               <CodegenRecorder
                 defaultUrl={projectUrls[0]}
                 label="Record with Playwright"
+                className="btn btn--outline"
                 onScriptCaptured={(script) => {
                   setRecordedScript(script);
                   setScriptEditorOpen(true);

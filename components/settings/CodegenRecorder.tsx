@@ -10,6 +10,9 @@ type Props = {
   onScriptCaptured: (script: string) => void;
   /** Optional label override for the trigger button. */
   label?: string;
+  /** Optional class override for the trigger button — defaults to the inline
+   *  chip style; pass a `btn` variant to match surrounding buttons. */
+  className?: string;
 };
 
 type RecordingState =
@@ -19,7 +22,7 @@ type RecordingState =
   | { status: "fetching" }
   | { status: "error"; message: string };
 
-export default function CodegenRecorder({ defaultUrl, onScriptCaptured, label }: Props) {
+export default function CodegenRecorder({ defaultUrl, onScriptCaptured, label, className }: Props) {
   const [state, setState] = useState<RecordingState>({ status: "idle" });
   const [mounted, setMounted] = useState(false);
 
@@ -92,8 +95,9 @@ export default function CodegenRecorder({ defaultUrl, onScriptCaptured, label }:
   return (
     <>
       <button
+        type="button"
         onClick={() => setState({ status: "prompting", url: defaultUrl })}
-        className="flow-chip flow-chip--accent"
+        className={className ?? "flow-chip flow-chip--accent"}
       >
         ⏺ {label ?? "Record with Playwright"}
       </button>
