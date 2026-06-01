@@ -12,7 +12,7 @@ import { Icon } from "@/components/utility/Icon";
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();
   const router = useRouter();
-  const { openTestSettings } = useSidebar();
+  const { openTestSettings, openNewTestWizard } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [test, setTest] = useState<SiteTest | null>(null);
   const [running, setRunning] = useState(false);
@@ -67,6 +67,25 @@ export default function TestPage() {
   const hasCompositions = (test.compositions?.length ?? 0) > 0;
   const hasFlows = (test.flows?.length ?? 0) > 0;
   const canRun = hasSteps || hasPages || hasCompositions || hasFlows;
+
+  // A draft test hasn't finished the creation wizard — steer the user back
+  // to finish it rather than offering a run/settings dead-end.
+  if (test.draft) {
+    return (
+      <div className="empty-state">
+        <h1 className="empty-state__title">{test.name}</h1>
+        <p className="empty-state__body">
+          This test isn&apos;t finished yet. Pick up where you left off.
+        </p>
+        <button
+          onClick={() => openNewTestWizard(params.id, { testId: params.testId })}
+          className="btn btn--primary"
+        >
+          Finish creating test
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="empty-state">

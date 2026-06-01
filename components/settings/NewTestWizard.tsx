@@ -1,107 +1,181 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
 import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/settings/Wizard";
-import { CredentialEditor, type VaultEntryMeta } from "@/components/settings/CredentialEditor";
+import { CredentialsSection } from "@/components/settings/TestSettingsCredentials";
+import { Icon } from "@/components/utility/Icon";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";
-import { getOhsee, isElectronRuntime, trackReportCompletion } from "@/lib/electron";
+import { trackReportCompletion } from "@/lib/electron";
 import { resolveScriptCredentials } from "@/lib/vault-resolve";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, TestStep, TestCredentials } from "@/lib/types";
 
 interface Props {
   projectId: string;
-  /** Optional — when provided, the wizard skips its own first step (name)
-   *  and renders the steps editor directly. Used for the post-create
-   *  handoff from NewProjectWizard. */
+  /** Optional pre-filled name (project→test handoff). */
   initialName?: string;
+  /** When provided, resume an in-progress draft instead of creating a new
+   *  test — hydrates from the stored test and starts at the details step. */
+  testId?: string;
   onClose: () => void;
 }
 
-type WizardStep = 1 | 2 | 3 | 4;
-const TOTAL_STEPS = 4;
+type WizardStep = 1 | 2 | 3;
+const TOTAL_STEPS = 3;
+type TestType = "simple" | "advanced";
 
 /**
- * Four-step new-test flow:
- *   1. Name
- *   2. Steps editor — add paths or Playwright scripts. The Playwright path
- *      swaps in the shared ScriptStepEditor.
- *   3. Screen sizes / variants — BreakpointEditor + light/dark/auto checkboxes.
- *   4. Credentials — opt-in session-cookie minting + copy-from-other-test.
- *      Primary action is "Run test" which creates the test, kicks off a
- *      report, and navigates to the new report page.
+ * Three-step new-test flow with incremental save. The test record is created
+ * the moment a name is entered (Step 1), so it shows up as a tab immediately
+ * and every later action persists onto it:
+ *   1. Name              — POSTs the test (simple + draft) and reveals it.
+ *   2. Details           — breakpoints + dark/light variants (saved on change).
+ *   3. Screens decision  — pick Simple (URL paths) or Advanced (Playwright
+ *                          scripts + auth). Finishing clears the draft flag.
+ *
+ * Saving is incremental, so closing mid-wizard leaves a usable draft; the
+ * test page surfaces a "Finish creating test" CTA to resume here.
  */
-export default function NewTestWizard({ projectId, initialName, onClose }: Props) {
+export default function NewTestWizard({ projectId, initialName, testId, onClose }: Props) {
   const router = useRouter();
-  const { refreshProjects, openTestSettings } = useSidebar();
+  const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
-  const [step, setStep] = useState<WizardStep>(initialName ? 2 : 1);
+
+  // The persisted test id. Set after Step 1's POST, or seeded from `testId`
+  // when resuming a draft. Mirrored into a ref so the stable persist()
+  // closure always sees the latest id.
+  const [savedTestId, setSavedTestId] = useState<string | null>(testId ?? null);
+  const savedTestIdRef = useRef<string | null>(testId ?? null);
+  const setTestId = (id: string) => {
+    savedTestIdRef.current = id;
+    setSavedTestId(id);
+  };
+
+  const [step, setStep] = useState<WizardStep>(testId ? 2 : 1);
   const [name, setName] = useState(initialName ?? "");
 
-  // Step 2 state: steps list + inline path adder + script-editor swap
-  const [steps, setSteps] = useState<TestStep[]>([]);
-  const [pathInput, setPathInput] = useState("");
-  const [scriptEditorOpen, setScriptEditorOpen] = useState(false);
+  // Step 3: chosen test type (null = show the simple/advanced fork).
+  const [chosenType, setChosenType] = useState<TestType | null>(null);
 
-  // Step 3 state: breakpoints + variants
+  // Editing state, hydrated from the draft on resume.
+  const [steps, setSteps] = useState<TestStep[]>([]);
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
   const [variantIds, setVariantIds] = useState<string[]>([]);
-
-  // Step 4 state: credentials
   const [credentials, setCredentials] = useState<TestCredentials | undefined>(undefined);
-  // Vault entries shown inline on step 4 so users can add credentials
-  // without leaving the wizard and losing the in-progress test config.
-  const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(null);
-  const [editingEntry, setEditingEntry] = useState<VaultEntryMeta | null>(null);
-  const [credEditorOpen, setCredEditorOpen] = useState(false);
-  const [vaultError, setVaultError] = useState<string | null>(null);
 
-  const refreshVault = useCallback(async () => {
-    const ohsee = getOhsee();
-    if (!ohsee) return;
-    try {
-      setVaultEntries(await ohsee.vault.list());
-      setVaultError(null);
-    } catch (err) {
-      setVaultError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
-
-  // Load vault entries once the user reaches the credentials step.
-  useEffect(() => {
-    if (step === 4 && vaultEntries === null && isElectronRuntime()) {
-      refreshVault();
-    }
-  }, [step, vaultEntries, refreshVault]);
+  // Simple-path adder
+  const [pathInput, setPathInput] = useState("");
+  const pathRef = useRef<HTMLInputElement>(null);
+  // Advanced script editor swap
+  const [scriptEditorOpen, setScriptEditorOpen] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Load the project (URLs for path resolution) and, when resuming, hydrate
+  // the in-progress draft into local state.
   useEffect(() => {
     fetch(`/api/projects/${projectId}`)
       .then((r) => r.json())
-      .then((p: Project) => setProject(p));
-  }, [projectId]);
+      .then((p: Project) => {
+        setProject(p);
+        if (!testId) return;
+        const t = p.tests?.find((x) => x.id === testId);
+        if (!t) return;
+        setName(t.name);
+        setSteps(t.steps ?? []);
+        if (t.breakpoints?.length) setBreakpoints(t.breakpoints);
+        setVariantIds((t.variants ?? []).map((v) => v.id));
+        setCredentials(t.credentials);
+        setChosenType(t.testType ?? "simple");
+      });
+  }, [projectId, testId]);
 
   const projectUrls = project ? [project.prodUrl, project.devUrl] : [];
   const pathResolved = pathInput.trim() ? resolveProjectPath(pathInput, projectUrls) : null;
 
+  /** Merge a patch onto the saved test. Re-reads the project first so we
+   *  never clobber sibling tests created in parallel. */
+  const persist = useCallback(
+    async (patch: Partial<SiteTest>) => {
+      const id = savedTestIdRef.current;
+      if (!id) return;
+      const latest: Project = await fetch(`/api/projects/${projectId}`).then((r) => r.json());
+      const tests = (latest.tests || []).map((t) =>
+        t.id === id ? { ...t, ...patch } : t,
+      );
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tests }),
+      });
+    },
+    [projectId],
+  );
+
+  // ── Step 1 → create the test ───────────────────────────────────────────
+  const handleCreate = async () => {
+    if (savedTestId) {
+      // Already created (e.g. user stepped back); just advance.
+      setStep(2);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/tests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() || "Untitled test", testType: "simple", draft: true }),
+      });
+      if (!res.ok) return;
+      const test: SiteTest = await res.json();
+      setTestId(test.id);
+      refreshProjects();
+      setStep(2);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Step 2 actions (save on change) ────────────────────────────────────
+  const handleBreakpoints = (bps: number[]) => {
+    setBreakpoints(bps);
+    persist({ breakpoints: bps });
+  };
+  const toggleVariant = (id: string, checked: boolean) => {
+    const next = checked ? [...variantIds, id] : variantIds.filter((v) => v !== id);
+    setVariantIds(next);
+    persist({ variants: BUILT_IN_VARIANTS.filter((v) => next.includes(v.id)) });
+  };
+
+  // ── Step 3 type choice ─────────────────────────────────────────────────
+  const chooseType = (type: TestType) => {
+    setChosenType(type);
+    persist({ testType: type });
+  };
+
+  // ── Step editing (save on change) ──────────────────────────────────────
+  const commitSteps = (next: TestStep[]) => {
+    setSteps(next);
+    persist({ steps: next });
+  };
   const addPath = () => {
     if (!pathResolved?.ok) return;
-    setSteps((cur) => [
-      ...cur,
+    commitSteps([
+      ...steps,
       { id: crypto.randomUUID(), type: "url", url: pathResolved.path, captureScreenshot: true },
     ]);
     setPathInput("");
+    // Keep focus on the field so multiple paths can be added rapidly.
+    requestAnimationFrame(() => pathRef.current?.focus());
   };
-
   const addScript = (scriptName: string, script: string) => {
-    setSteps((cur) => [
-      ...cur,
+    commitSteps([
+      ...steps,
       {
         id: crypto.randomUUID(),
         type: "microtest",
@@ -112,57 +186,43 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
     ]);
     setScriptEditorOpen(false);
   };
-
   const removeStep = (id: string) => {
-    setSteps((cur) => cur.filter((s) => s.id !== id));
+    commitSteps(steps.filter((s) => s.id !== id));
   };
 
-  const handleRunTest = async () => {
-    if (!project) return;
+  // ── Finish: Save (close to test page) or Run (kick off a report) ───────
+  const finish = async (run: boolean) => {
+    if (!savedTestId) return;
     setSubmitting(true);
     try {
-      // Create the test.
-      const testRes = await fetch(`/api/projects/${projectId}/tests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || "Untitled test" }),
-      });
-      if (!testRes.ok) return;
-      const test = await testRes.json();
-
-      // Persist all wizard state onto the new test via the project PUT.
-      // Reload latest first so we don't clobber siblings created in
-      // parallel.
-      const latest = await fetch(`/api/projects/${projectId}`).then((r) => r.json());
-      const patch: Partial<SiteTest> = {
+      await persist({
+        draft: false,
+        testType: chosenType ?? "simple",
         steps,
         breakpoints,
         variants: BUILT_IN_VARIANTS.filter((v) => variantIds.includes(v.id)),
         credentials,
-      };
-      const latestTests = (latest.tests || []).map((t: { id: string }) =>
-        t.id === test.id ? { ...t, ...patch } : t,
-      );
-      await fetch(`/api/projects/${projectId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tests: latestTests }),
       });
-
       refreshProjects();
 
-      // Kick off a run for this specific test. Resolve vault
-      // credentials for $EMAIL$ / $PASSWORD$ / $OTP$ interpolation.
-      const savedTest = latestTests.find((t: { id: string }) => t.id === test.id);
-      const scriptCreds = await resolveScriptCredentials(savedTest);
-      const runFetchOpts: RequestInit = { method: "POST" };
+      if (!run) {
+        onClose();
+        router.push(`/projects/${projectId}/tests/${savedTestId}`);
+        return;
+      }
+
+      // Resolve vault credentials for $EMAIL$ / $PASSWORD$ / $OTP$.
+      const latest: Project = await fetch(`/api/projects/${projectId}`).then((r) => r.json());
+      const savedTest = latest.tests?.find((t) => t.id === savedTestId);
+      const scriptCreds = savedTest ? await resolveScriptCredentials(savedTest) : null;
+      const runOpts: RequestInit = { method: "POST" };
       if (scriptCreds) {
-        runFetchOpts.headers = { "Content-Type": "application/json" };
-        runFetchOpts.body = JSON.stringify({ scriptCredentials: scriptCreds });
+        runOpts.headers = { "Content-Type": "application/json" };
+        runOpts.body = JSON.stringify({ scriptCredentials: scriptCreds });
       }
       const runRes = await fetch(
-        `/api/projects/${projectId}/tests/${test.id}/reports`,
-        runFetchOpts,
+        `/api/projects/${projectId}/tests/${savedTestId}/reports`,
+        runOpts,
       );
       if (runRes.ok) {
         const { reportId } = await runRes.json();
@@ -170,9 +230,9 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
         onClose();
         router.push(`/reports/${reportId}`);
       } else {
-        // Fall back: open the test in settings if the run couldn't start.
+        // Couldn't start — drop the user on the test page to retry.
         onClose();
-        openTestSettings(projectId, test.id);
+        router.push(`/projects/${projectId}/tests/${savedTestId}`);
       }
     } finally {
       setSubmitting(false);
@@ -188,7 +248,8 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
         totalSteps={TOTAL_STEPS}
         nextLabel="Next"
         nextDisabled={!name.trim()}
-        onNext={() => setStep(2)}
+        busy={submitting}
+        onNext={handleCreate}
         onClose={onClose}
       >
         <MaterialField
@@ -196,82 +257,166 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && name.trim()) setStep(2);
+            if (e.key === "Enter" && name.trim()) handleCreate();
           }}
-          placeholder="Onboarding"
+          placeholder="Marketing pages"
           autoFocus
         />
       </Wizard>
     );
   }
 
-  // ── Step 2: Steps editor ───────────────────────────────────────────────
+  // ── Step 2: Details (breakpoints + variants) ───────────────────────────
   if (step === 2) {
-    if (scriptEditorOpen) {
-      return (
-        <Wizard
-          title="New test"
-          step={2}
-          totalSteps={TOTAL_STEPS}
-          // ScriptStepEditor renders its own primary; suppress wizard's
-          // by leaving Next disabled. Footer still shows Previous/step
-          // count for orientation.
-          nextLabel="Save"
-          nextDisabled
-          onPrev={() => setScriptEditorOpen(false)}
-          onNext={() => {}}
-          onClose={onClose}
-        >
-          <ScriptStepEditor
-            editing={null}
-            onSave={addScript}
-            onCancel={() => setScriptEditorOpen(false)}
-            primaryLabel="Add step"
-          />
-        </Wizard>
-      );
-    }
     return (
       <Wizard
         title="New test"
         step={2}
         totalSteps={TOTAL_STEPS}
         nextLabel="Next"
-        nextDisabled={steps.length === 0}
         onPrev={() => setStep(1)}
         onNext={() => setStep(3)}
         onClose={onClose}
       >
         <div className="wizard__fields">
-          <h3 className="wizard__section-title">Test steps</h3>
-
-          {steps.length === 0 ? (
-            <p className="wizard__hint">
-              Add a path to capture, or write a Playwright script to navigate
-              the app before capturing.
-            </p>
-          ) : (
-            <ul className="wizard__step-list">
-              {steps.map((s) => (
-                <li key={s.id} className="wizard__step-item">
-                  <span className="wizard__step-label">
-                    {s.type === "url" ? s.url : (s.name || "Playwright step")}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeStep(s.id)}
-                    className="btn btn--text"
-                    aria-label="Remove"
-                  >
-                    Remove
-                  </button>
-                </li>
+          <h3 className="wizard__section-title">Screen sizes &amp; modes</h3>
+          <BreakpointEditor breakpoints={breakpoints} onChange={handleBreakpoints} />
+          <div className="wizard__variants">
+            <p className="wizard__variants-label">Variants</p>
+            <div className="variant-list">
+              {BUILT_IN_VARIANTS.map((v) => (
+                <label key={v.id} className="variant-option">
+                  <input
+                    type="checkbox"
+                    checked={variantIds.includes(v.id)}
+                    onChange={(e) => toggleVariant(v.id, e.target.checked)}
+                    className="checkbox"
+                  />
+                  {v.label}
+                </label>
               ))}
-            </ul>
-          )}
+            </div>
+          </div>
+        </div>
+      </Wizard>
+    );
+  }
 
+  // ── Step 3: Screens decision tree ──────────────────────────────────────
+  // 3 (fork): pick Simple or Advanced.
+  if (chosenType === null) {
+    return (
+      <Wizard
+        title="New test"
+        step={3}
+        totalSteps={TOTAL_STEPS}
+        hideNext
+        onPrev={() => setStep(2)}
+        onNext={() => {}}
+        onClose={onClose}
+      >
+        <div className="wizard__fields">
+          <h3 className="wizard__section-title">How should this test capture screens?</h3>
+          <div className="type-fork">
+            <button type="button" className="type-fork__card" onClick={() => chooseType("simple")}>
+              <Icon name="globe" size={24} />
+              <span className="type-fork__title">Simple</span>
+              <span className="type-fork__desc">
+                A list of URL paths compared against your prod and dev sites.
+                Best for marketing pages and other non-linear content.
+              </span>
+            </button>
+            <button type="button" className="type-fork__card" onClick={() => chooseType("advanced")}>
+              <Icon name="playwright" size={24} />
+              <span className="type-fork__title">Advanced</span>
+              <span className="type-fork__desc">
+                Playwright scripts for flows, interactions, and authenticated
+                pages. Record a session or write a script.
+              </span>
+            </button>
+          </div>
+        </div>
+      </Wizard>
+    );
+  }
+
+  // 3a / 3b (editor): footer is Back / Save / Run.
+  const hasTemplateVars = steps.some(
+    (s) => s.type === "microtest" && s.script && /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
+  );
+
+  // Advanced: script editor swap.
+  if (chosenType === "advanced" && scriptEditorOpen) {
+    return (
+      <Wizard
+        title="New test"
+        step={3}
+        totalSteps={TOTAL_STEPS}
+        hideNext
+        onPrev={() => setScriptEditorOpen(false)}
+        onNext={() => {}}
+        onClose={onClose}
+      >
+        <ScriptStepEditor
+          editing={null}
+          onSave={addScript}
+          onCancel={() => setScriptEditorOpen(false)}
+          primaryLabel="Add step"
+          defaultUrl={projectUrls[0]}
+        />
+      </Wizard>
+    );
+  }
+
+  return (
+    <Wizard
+      title="New test"
+      step={3}
+      totalSteps={TOTAL_STEPS}
+      secondaryLabel="Save"
+      onSecondary={() => finish(false)}
+      nextLabel="Run test"
+      nextDisabled={steps.length === 0}
+      busy={submitting}
+      onPrev={() => setChosenType(null)}
+      onNext={() => finish(true)}
+      onClose={onClose}
+    >
+      <div className="wizard__fields">
+        <h3 className="wizard__section-title">
+          {chosenType === "simple" ? "URL paths" : "Playwright steps"}
+        </h3>
+
+        {steps.length === 0 ? (
+          <p className="wizard__hint">
+            {chosenType === "simple"
+              ? "Add the paths you want to capture (e.g. /, /pricing)."
+              : "Add a Playwright script to navigate the app before capturing."}
+          </p>
+        ) : (
+          <ul className="wizard__step-list">
+            {steps.map((s) => (
+              <li key={s.id} className="wizard__step-item">
+                <span className="wizard__step-label">
+                  {s.type === "url" ? s.url : s.name || "Playwright step"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeStep(s.id)}
+                  className="btn btn--text"
+                  aria-label="Remove"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {chosenType === "simple" ? (
           <div className="wizard__add-row">
             <MaterialField
+              ref={pathRef}
               label="Path"
               value={pathInput}
               onChange={(e) => setPathInput(e.target.value)}
@@ -295,242 +440,26 @@ export default function NewTestWizard({ projectId, initialName, onClose }: Props
               Add path
             </button>
           </div>
-
-          <button
-            type="button"
-            className="btn btn--outline"
-            onClick={() => setScriptEditorOpen(true)}
-          >
-            Add Playwright script
-          </button>
-        </div>
-      </Wizard>
-    );
-  }
-
-  // ── Step 3: Screen sizes / variants ────────────────────────────────────
-  if (step === 3) {
-    return (
-      <Wizard
-        title="New test"
-        step={3}
-        totalSteps={TOTAL_STEPS}
-        nextLabel="Next"
-        onPrev={() => setStep(2)}
-        onNext={() => setStep(4)}
-        onClose={onClose}
-      >
-        <div className="wizard__fields">
-          <h3 className="wizard__section-title">Screen sizes &amp; modes</h3>
-          <BreakpointEditor breakpoints={breakpoints} onChange={setBreakpoints} />
-          <div className="wizard__variants">
-            <p className="wizard__variants-label">Variants</p>
-            <div className="variant-list">
-              {BUILT_IN_VARIANTS.map((v) => {
-                const active = variantIds.includes(v.id);
-                return (
-                  <label key={v.id} className="variant-option">
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={(e) => {
-                        const next = e.target.checked
-                          ? [...variantIds, v.id]
-                          : variantIds.filter((id) => id !== v.id);
-                        setVariantIds(next);
-                      }}
-                      className="checkbox"
-                    />
-                    {v.label}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </Wizard>
-    );
-  }
-
-  // ── Step 4: Credentials + Run test ─────────────────────────────────────
-  const credEnabled = credentials?.enabled === true;
-  return (
-    <Wizard
-      title="New test"
-      step={4}
-      totalSteps={TOTAL_STEPS}
-      nextLabel="Run test"
-      busy={submitting}
-      onPrev={() => setStep(3)}
-      onNext={handleRunTest}
-      onClose={onClose}
-    >
-      <div className="wizard__fields">
-        <h3 className="wizard__section-title">Credentials</h3>
-
-        <label className="credentials-section__row">
-          <input
-            type="checkbox"
-            checked={credEnabled}
-            onChange={(e) =>
-              setCredentials({ ...credentials, enabled: e.target.checked })
-            }
-            className="checkbox"
-          />
-          <span>Mint a session cookie before each capture (require auth)</span>
-        </label>
-
-        {/* Vault entry list + add button — users can add credentials to
-         * the local Keychain vault without leaving the wizard. Only
-         * shown in the Electron runtime, since the vault is
-         * Keychain-backed. */}
-        {isElectronRuntime() && (
-          <div className="credentials-section__row" style={{ flexDirection: "column", alignItems: "stretch", gap: "var(--space-2)" }}>
-            <label className="credentials-section__label">Vault credentials</label>
-
-            {vaultError && (
-              <p className="credentials-section__hint" style={{ color: "var(--status-error-500)" }}>
-                {vaultError}
-              </p>
-            )}
-
-            {vaultEntries === null ? (
-              <p className="credentials-section__hint">Loading…</p>
-            ) : vaultEntries.length === 0 ? (
-              <p className="credentials-section__hint">
-                No credentials stored yet — add one below to reference in your flow.
-              </p>
-            ) : (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                {vaultEntries.map((entry) => {
-                  const selected = credentials?.vaultEntryId === entry.key;
-                  return (
-                    <li
-                      key={entry.key}
-                      onClick={() =>
-                        setCredentials({
-                          ...credentials,
-                          vaultEntryId: selected ? undefined : entry.key,
-                        })
-                      }
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "var(--space-2)",
-                        padding: "var(--space-1-5) var(--space-2)",
-                        borderRadius: "var(--radius-sm)",
-                        cursor: "pointer",
-                        background: selected ? "var(--tint-4)" : "transparent",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: "50%",
-                          border: `2px solid ${selected ? "var(--brand-500)" : "var(--neutral-dark-300)"}`,
-                          background: selected ? "var(--brand-500)" : "transparent",
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {selected && (
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "white" }} />
-                        )}
-                      </span>
-                      <span style={{ flex: 1, fontSize: "var(--font-size-md)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
-                      <code style={{ fontSize: "var(--font-size-sm)", color: "var(--neutral-dark-500)", flexShrink: 0 }}>{entry.key}{entry.hasTotp ? " · 2FA" : ""}</code>
-                      <button
-                        type="button"
-                        className="btn btn--text"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingEntry(entry);
-                          setCredEditorOpen(true);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--text"
-                        style={{ color: "var(--status-error-500)" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const ohsee = getOhsee();
-                          if (!ohsee) return;
-                          ohsee.vault.delete(entry.key).then(() => {
-                            if (credentials?.vaultEntryId === entry.key) {
-                              setCredentials({ ...credentials, vaultEntryId: undefined });
-                            }
-                            refreshVault();
-                          }).catch((err: unknown) => {
-                            setVaultError(err instanceof Error ? err.message : String(err));
-                          });
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            {credentials?.vaultEntryId && (
-              <p className="credentials-section__hint">
-                Selected credential will be used for <code>$EMAIL$</code>, <code>$PASSWORD$</code>, <code>$OTP$</code> in scripts.
-              </p>
-            )}
-
-            {!credentials?.vaultEntryId &&
-              steps.some(
-                (s) =>
-                  s.type === "microtest" &&
-                  s.script &&
-                  /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
-              ) && (
-              <p
-                className="credentials-section__hint"
-                style={{ color: "var(--status-warning-500)" }}
-              >
-                Your scripts use <code>$EMAIL$</code>, <code>$PASSWORD$</code>, or <code>$OTP$</code> but no vault credential is selected — click one above to bind it.
-              </p>
-            )}
-
-            <div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingEntry(null);
-                  setCredEditorOpen(true);
-                }}
-                className="btn btn--ghost"
-              >
-                + Add credential
-              </button>
-            </div>
-          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="btn btn--outline"
+              onClick={() => setScriptEditorOpen(true)}
+            >
+              Add Playwright script
+            </button>
+            <CredentialsSection
+              credentials={credentials}
+              onChange={(next) => {
+                setCredentials(next);
+                persist({ credentials: next });
+              }}
+              hasTemplateVars={hasTemplateVars}
+            />
+          </>
         )}
       </div>
-
-      {credEditorOpen && (
-        <CredentialEditor
-          existing={editingEntry}
-          onClose={() => {
-            setCredEditorOpen(false);
-            setEditingEntry(null);
-          }}
-          onSaved={() => {
-            setCredEditorOpen(false);
-            setEditingEntry(null);
-            refreshVault();
-          }}
-          onError={setVaultError}
-        />
-      )}
     </Wizard>
   );
 }

@@ -89,6 +89,45 @@
       }
     }
 
+    /* Simple/advanced choice cards on the Screens decision step. */
+    .type-fork {
+      display: flex;
+      gap: var(--space-3);
+
+      .type-fork__card {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+        padding: var(--space-4);
+        text-align: left;
+        border: 1px solid var(--wizard-step-item-border);
+        border-radius: var(--radius-lg);
+        background: transparent;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--wizard-step-label-color);
+        transition: var(--transition-colors);
+
+        &:hover {
+          border-color: var(--brand-500);
+          background: var(--tint-4);
+        }
+
+        .type-fork__title {
+          font-size: var(--font-size-lg);
+          font-weight: var(--weight-bold);
+        }
+
+        .type-fork__desc {
+          font-size: var(--font-size-md);
+          color: var(--wizard-hint-color);
+          line-height: var(--line-base);
+        }
+      }
+    }
+
     .wizard__add-row {
       display: flex;
       align-items: flex-start;

@@ -14,6 +14,13 @@ interface Props {
   /** When true (e.g. while a request is in flight), the primary button reads
    *  the same label but renders disabled with a loading affordance. */
   busy?: boolean;
+  /** Optional secondary action rendered as an outline button left of the
+   *  primary — e.g. "Save" sitting beside "Run" on the final step. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
+  /** Hide the primary button entirely — used when the step's own body
+   *  carries the forward action (e.g. a simple/advanced choice screen). */
+  hideNext?: boolean;
   onPrev?: () => void;
   onNext: () => void;
   onClose: () => void;
@@ -36,6 +43,9 @@ export default function Wizard({
   nextLabel = "Next",
   nextDisabled,
   busy,
+  secondaryLabel,
+  onSecondary,
+  hideNext,
   onPrev,
   onNext,
   onClose,
@@ -78,14 +88,26 @@ export default function Wizard({
             >
               Previous
             </button> ) : null }
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={onNext}
-              disabled={nextDisabled || busy}
-            >
-              {busy ? "…" : nextLabel}
-            </button>
+            {secondaryLabel && onSecondary ? (
+              <button
+                type="button"
+                className="btn btn--outline"
+                onClick={onSecondary}
+                disabled={busy}
+              >
+                {secondaryLabel}
+              </button>
+            ) : null}
+            {!hideNext && (
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={onNext}
+                disabled={nextDisabled || busy}
+              >
+                {busy ? "…" : nextLabel}
+              </button>
+            )}
           </div>
         </div>
       </div>

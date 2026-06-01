@@ -132,6 +132,7 @@ function NewTestWizardHost() {
     <NewTestWizard
       projectId={newTestWizard.projectId}
       initialName={newTestWizard.initialName}
+      testId={newTestWizard.testId}
       onClose={closeNewTestWizard}
     />
   );

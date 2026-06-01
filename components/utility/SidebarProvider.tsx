@@ -37,10 +37,14 @@ interface SidebarContextValue {
   newProjectWizardOpen: boolean;
   openNewProjectWizard: () => void;
   closeNewProjectWizard: () => void;
-  /** New-test wizard state — projectId and optional pre-filled name (set
-   *  during the project→test handoff). */
-  newTestWizard: { projectId: string; initialName?: string } | null;
-  openNewTestWizard: (projectId: string, initialName?: string) => void;
+  /** New-test wizard state — projectId, an optional pre-filled name (set
+   *  during the project→test handoff), and an optional testId to resume an
+   *  in-progress draft via "Finish creating test". */
+  newTestWizard: { projectId: string; initialName?: string; testId?: string } | null;
+  openNewTestWizard: (
+    projectId: string,
+    opts?: { initialName?: string; testId?: string },
+  ) => void;
   closeNewTestWizard: () => void;
   /** null = still loading, false = zero projects, true = has projects. */
   hasProjects: boolean | null;
@@ -118,7 +122,7 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
   const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
   const [newProjectWizardOpen, setNewProjectWizardOpen] = useState(false);
-  const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string } | null>(null);
+  const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string; testId?: string } | null>(null);
   const [hasProjects, setHasProjects] = useState<boolean | null>(null);
   const pathname = usePathname();
 
@@ -154,8 +158,8 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const openNewProjectWizard = useCallback(() => setNewProjectWizardOpen(true), []);
   const closeNewProjectWizard = useCallback(() => setNewProjectWizardOpen(false), []);
   const openNewTestWizard = useCallback(
-    (projectId: string, initialName?: string) =>
-      setNewTestWizardState({ projectId, initialName }),
+    (projectId: string, opts?: { initialName?: string; testId?: string }) =>
+      setNewTestWizardState({ projectId, ...opts }),
     [],
   );
   const closeNewTestWizard = useCallback(() => setNewTestWizardState(null), []);
