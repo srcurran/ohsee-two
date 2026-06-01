@@ -9,6 +9,18 @@ export interface TestVariant {
 export interface SiteTest {
   id: string;
   name: string;
+  /** How this test sources its screens:
+   *  - "simple": a non-linear list of URL paths compared against the site's
+   *    shared prod/dev base (good for marketing sites).
+   *  - "advanced": Playwright scripts/flows with optional auth.
+   *  A test can be converted simple → advanced (one-way, never back).
+   *  Absent on legacy records; classified on first read by
+   *  readProjectsWithMigration. */
+  testType?: "simple" | "advanced";
+  /** True while the creation wizard hasn't been finished. Drives the
+   *  "Finish creating test" CTA. Cleared when the user completes the wizard
+   *  (Save/Run on the final step). */
+  draft?: boolean;
   pages: PageEntry[];
   flows: FlowEntry[];
   /** Micro-test compositions (new-style flows using reusable script steps) */

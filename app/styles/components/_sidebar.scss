@@ -68,10 +68,17 @@
        * elsewhere. */
       &--active { background: var(--sidebar-group-background-active); }
 
+      .sidebar__header-row {
+        display: flex;
+        align-items: center;
+      }
+
       .sidebar__header {
         display: flex;
         align-items: center;
         gap: var(--space-2);
+        flex: 1;
+        min-width: 0;
         padding-inline: var(--space-1);
         cursor: pointer;
         transition: var(--transition-opacity);
@@ -81,6 +88,25 @@
 
         &:hover { opacity: 0.8; }
       }
+
+      .sidebar__group-action {
+        flex-shrink: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: var(--radius-xs);
+        transition: var(--transition-opacity);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--sidebar-action-color);
+
+        &:hover { background: var(--sidebar-action-background-hover); }
+      }
+
+      &:hover .sidebar__group-action { display: inline-flex; }
 
       .sidebar__title {
         font-size: var(--font-size-lg);

@@ -72,6 +72,38 @@ export function inlineMicroTests(project: Project): boolean {
 }
 
 /**
+ * Classify each test as "simple" or "advanced" if it isn't already tagged.
+ * A test is "advanced" when it carries any Playwright content (microtest
+ * steps, legacy flows, or compositions); otherwise it's "simple" (URL-only,
+ * or empty — empty tests are most likely fresh simple drafts). Mixed tests
+ * (both URL and script content) classify as "advanced", matching the
+ * one-way simple → advanced rule. Non-destructive: only sets `testType`;
+ * the URL-step → script rewrite happens later at convert time.
+ * Returns true if anything changed.
+ */
+export function classifyTestTypes(project: Project): boolean {
+  let changed = false;
+
+  for (const test of project.tests || []) {
+    if (test.testType) continue;
+
+    let hasScript: boolean;
+    if (test.steps && test.steps.length > 0) {
+      // Unified steps supersede pages/flows/compositions.
+      hasScript = test.steps.some((s) => s.type === "microtest");
+    } else {
+      hasScript =
+        (test.flows?.length ?? 0) > 0 || (test.compositions?.length ?? 0) > 0;
+    }
+
+    test.testType = hasScript ? "advanced" : "simple";
+    changed = true;
+  }
+
+  return changed;
+}
+
+/**
  * Migrate all projects for a user. Reads, migrates in-memory, persists if changed.
  */
 export async function migrateAllProjects(userId: string): Promise<void> {
@@ -104,6 +136,9 @@ export async function readProjectsWithMigration(userId: string): Promise<Project
       changed = true;
     }
     if (inlineMicroTests(project)) {
+      changed = true;
+    }
+    if (classifyTestTypes(project)) {
       changed = true;
     }
   }

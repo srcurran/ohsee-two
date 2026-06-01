@@ -19,6 +19,7 @@ export default function Sidebar() {
     collapsed,
     ready,
     openSettings,
+    openProjectSettings,
     openTestSettings,
     openNewProjectWizard,
     openNewTestWizard,
@@ -90,6 +91,7 @@ export default function Sidebar() {
                 onProjectClick={handleProjectClick}
                 onTestClick={handleTestClick}
                 onAddTest={openNewTestWizard}
+                onOpenProjectSettings={openProjectSettings}
                 onOpenTestSettings={openTestSettings}
                 onDragStart={drag.onDragStart}
                 onDragEnter={drag.onDragEnter}
