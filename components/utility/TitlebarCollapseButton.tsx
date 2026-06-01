@@ -21,7 +21,9 @@ import { IS_ELECTRON_BUILD } from "@/lib/electron";
  * button instead of initiating a window drag in Electron.
  */
 export default function TitlebarCollapseButton() {
-  const { collapsed, toggleCollapsed, ready } = useSidebar();
+  const { collapsed, toggleCollapsed, ready, hasProjects } = useSidebar();
+
+  if (hasProjects === false) return null;
 
   const stateMod = collapsed
     ? IS_ELECTRON_BUILD

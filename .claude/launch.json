@@ -35,6 +35,15 @@
         "OHSEE_LOCAL_USER_ID=preview NEXT_PUBLIC_OHSEE_ELECTRON=true OHSEE_DATA_DIR=./data-preview npx next dev --port 4002"
       ],
       "port": 4002
+    },
+    {
+      "name": "empty-state",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "OHSEE_LOCAL_USER_ID=empty OHSEE_DATA_DIR=./data-empty npx next dev --port 4003"
+      ],
+      "port": 4003
     }
   ]
 }

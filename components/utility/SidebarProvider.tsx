@@ -42,6 +42,9 @@ interface SidebarContextValue {
   newTestWizard: { projectId: string; initialName?: string } | null;
   openNewTestWizard: (projectId: string, initialName?: string) => void;
   closeNewTestWizard: () => void;
+  /** null = still loading, false = zero projects, true = has projects. */
+  hasProjects: boolean | null;
+  setHasProjects: (v: boolean | null) => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -70,6 +73,8 @@ const SidebarContext = createContext<SidebarContextValue>({
   newTestWizard: null,
   openNewTestWizard: () => {},
   closeNewTestWizard: () => {},
+  hasProjects: null,
+  setHasProjects: () => {},
 });
 
 export function useSidebar() {
@@ -114,6 +119,7 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
   const [newProjectWizardOpen, setNewProjectWizardOpen] = useState(false);
   const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string } | null>(null);
+  const [hasProjects, setHasProjects] = useState<boolean | null>(null);
   const pathname = usePathname();
 
   // Coalesce rapid refreshProjects() calls into one refetch. Multiple
@@ -251,6 +257,8 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       newTestWizard,
       openNewTestWizard,
       closeNewTestWizard,
+      hasProjects,
+      setHasProjects,
     }),
     [
       refreshKey,
@@ -278,6 +286,8 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       newTestWizard,
       openNewTestWizard,
       closeNewTestWizard,
+      hasProjects,
+      setHasProjects,
     ],
   );
 

@@ -63,4 +63,10 @@
     justify-content: center;
     gap: var(--space-3);
   }
+
+  .empty-state__settings {
+    position: fixed;
+    bottom: var(--space-5);
+    left: var(--space-5);
+  }
 }
