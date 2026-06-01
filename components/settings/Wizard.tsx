@@ -51,7 +51,6 @@ export default function Wizard({
     >
       <div className="modal__panel modal__panel--md">
         <div className="wizard__head">
-          <h2 className="wizard__title">{title}</h2>
           <button
             type="button"
             className="icon-btn"
@@ -70,6 +69,7 @@ export default function Wizard({
             {step}/{totalSteps}
           </span>
           <div className="wizard__footer-actions">
+            { showPrev ? (
             <button
               type="button"
               className="btn btn--outline wizard__btn-prev"
@@ -77,7 +77,7 @@ export default function Wizard({
               disabled={!showPrev || busy}
             >
               Previous
-            </button>
+            </button> ) : null }
             <button
               type="button"
               className="btn btn--primary"

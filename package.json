@@ -17,7 +17,16 @@
     "electron:pack": "npm run electron:build && electron-builder --mac --arm64 --config.mac.identity=null"
   },
   "electronmon": {
-    "patterns": [".electron-out/**/*"],
+    "patterns": [
+      ".electron-out/**/*",
+      "!app/**/*",
+      "!components/**/*",
+      "!lib/**/*",
+      "!public/**/*",
+      "!.next/**/*",
+      "!data/**/*",
+      "!data-electron-dev/**/*"
+    ],
     "logLevel": "quiet"
   },
   "build": {
