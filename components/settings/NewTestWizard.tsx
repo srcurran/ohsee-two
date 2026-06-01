@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
 import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
+import CodegenRecorder from "@/components/settings/CodegenRecorder";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/settings/Wizard";
 import { CredentialsSection } from "@/components/settings/TestSettingsCredentials";
@@ -13,7 +14,7 @@ import { resolveProjectPath } from "@/lib/url-utils";
 import { trackReportCompletion } from "@/lib/electron";
 import { resolveScriptCredentials } from "@/lib/vault-resolve";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
-import type { Project, SiteTest, TestStep, TestCredentials } from "@/lib/types";
+import type { Project, SiteTest, TestStep, TestCredentials, UserSettings } from "@/lib/types";
 
 interface Props {
   projectId: string;
@@ -71,8 +72,10 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
   // Simple-path adder
   const [pathInput, setPathInput] = useState("");
   const pathRef = useRef<HTMLInputElement>(null);
-  // Advanced script editor swap
+  // Advanced script editor swap. `recordedScript` seeds the editor when the
+  // user captures a session with the Playwright recorder.
   const [scriptEditorOpen, setScriptEditorOpen] = useState(false);
+  const [recordedScript, setRecordedScript] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -94,6 +97,19 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         setChosenType(t.testType ?? "simple");
       });
   }, [projectId, testId]);
+
+  // Seed breakpoints + variants from the user's defaults for a brand-new
+  // test (skip when resuming a draft — that hydrates from the test above).
+  useEffect(() => {
+    if (testId) return;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((s: UserSettings) => {
+        if (s.defaultBreakpoints?.length) setBreakpoints(s.defaultBreakpoints);
+        if (s.defaultVariants) setVariantIds(s.defaultVariants);
+      })
+      .catch(() => {});
+  }, [testId]);
 
   const projectUrls = project ? [project.prodUrl, project.devUrl] : [];
   const pathResolved = pathInput.trim() ? resolveProjectPath(pathInput, projectUrls) : null;
@@ -279,7 +295,6 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         onClose={onClose}
       >
         <div className="wizard__fields">
-          <h3 className="wizard__section-title">Screen sizes &amp; modes</h3>
           <BreakpointEditor breakpoints={breakpoints} onChange={handleBreakpoints} />
           <div className="wizard__variants">
             <p className="wizard__variants-label">Variants</p>
@@ -316,7 +331,6 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         onClose={onClose}
       >
         <div className="wizard__fields">
-          <h3 className="wizard__section-title">How should this test capture screens?</h3>
           <div className="type-fork">
             <button type="button" className="type-fork__card" onClick={() => chooseType("simple")}>
               <Icon name="globe" size={24} />
@@ -353,14 +367,27 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         step={3}
         totalSteps={TOTAL_STEPS}
         hideNext
-        onPrev={() => setScriptEditorOpen(false)}
+        onPrev={() => {
+          setScriptEditorOpen(false);
+          setRecordedScript(null);
+        }}
         onNext={() => {}}
         onClose={onClose}
       >
         <ScriptStepEditor
-          editing={null}
-          onSave={addScript}
-          onCancel={() => setScriptEditorOpen(false)}
+          editing={
+            recordedScript
+              ? { id: "__recorded", type: "microtest", script: recordedScript }
+              : null
+          }
+          onSave={(scriptName, script) => {
+            addScript(scriptName, script);
+            setRecordedScript(null);
+          }}
+          onCancel={() => {
+            setScriptEditorOpen(false);
+            setRecordedScript(null);
+          }}
           primaryLabel="Add step"
           defaultUrl={projectUrls[0]}
         />
@@ -383,10 +410,6 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
       onClose={onClose}
     >
       <div className="wizard__fields">
-        <h3 className="wizard__section-title">
-          {chosenType === "simple" ? "URL paths" : "Playwright steps"}
-        </h3>
-
         {steps.length === 0 ? (
           <p className="wizard__hint">
             {chosenType === "simple"
@@ -442,13 +465,23 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              className="btn btn--outline"
-              onClick={() => setScriptEditorOpen(true)}
-            >
-              Add Playwright script
-            </button>
+            <div className="wizard__action-row">
+              <button
+                type="button"
+                className="btn btn--outline"
+                onClick={() => setScriptEditorOpen(true)}
+              >
+                Add Playwright script
+              </button>
+              <CodegenRecorder
+                defaultUrl={projectUrls[0]}
+                label="Record with Playwright"
+                onScriptCaptured={(script) => {
+                  setRecordedScript(script);
+                  setScriptEditorOpen(true);
+                }}
+              />
+            </div>
             <CredentialsSection
               credentials={credentials}
               onChange={(next) => {

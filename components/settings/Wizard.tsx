@@ -4,7 +4,9 @@ import { type ReactNode } from "react";
 import { Icon } from "@/components/utility/Icon";
 
 interface Props {
-  title: string;
+  /** Accepted for call-site clarity; the header is icon-only so it isn't
+   *  rendered. */
+  title?: string;
   step: number;
   totalSteps: number;
   /** Right-side primary button label. */
@@ -37,7 +39,6 @@ interface Props {
  * Keeps state ownership in one place and avoids fighting with react keys.
  */
 export default function Wizard({
-  title,
   step,
   totalSteps,
   nextLabel = "Next",
@@ -61,6 +62,17 @@ export default function Wizard({
     >
       <div className="modal__panel modal__panel--md">
         <div className="wizard__head">
+          {showPrev ? (
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={onPrev}
+              aria-label="Back"
+              title="Back"
+            >
+              <Icon name="chevron-left" size={20} />
+            </button>
+          ) : null}
           <button
             type="button"
             className="icon-btn"
@@ -79,15 +91,6 @@ export default function Wizard({
             {step}/{totalSteps}
           </span>
           <div className="wizard__footer-actions">
-            { showPrev ? (
-            <button
-              type="button"
-              className="btn btn--outline wizard__btn-prev"
-              onClick={onPrev}
-              disabled={!showPrev || busy}
-            >
-              Previous
-            </button> ) : null }
             {secondaryLabel && onSecondary ? (
               <button
                 type="button"

@@ -27,11 +27,10 @@
 }
 .wizard__head {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-1);
   width: 100%;
-
 }
 
 .wizard__body {
@@ -128,6 +127,13 @@
       }
     }
 
+    /* Side-by-side actions, e.g. "Add Playwright script" + "Record". */
+    .wizard__action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+
     .wizard__add-row {
       display: flex;
       align-items: flex-start;
@@ -163,13 +169,5 @@
   .wizard__footer-actions {
     display: flex;
     gap: var(--space-3);
-
-    /* Size the Previous button to match .btn--primary so the two
-       buttons sit as a visually balanced pair. */
-    .wizard__btn-prev {
-      border-radius: var(--radius-lg);
-      padding-inline: var(--space-8);
-      font-size: var(--font-size-lg);
-    }
   }
 }
