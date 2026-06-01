@@ -72,7 +72,9 @@ export default function Wizard({
             >
               <Icon name="chevron-left" size={20} />
             </button>
-          ) : null}
+          ) : (
+            <span aria-hidden />
+          )}
           <button
             type="button"
             className="icon-btn"
