@@ -248,14 +248,6 @@ export default function PageDetailPanel({
               onClose={handleClose}
             />
 
-            <div>
-              <VariantTabs
-                variants={reportVariants}
-                active={activeVariant}
-                onChange={onVariantChange}
-              />
-            </div>
-
             <div
               className="page-detail-panel__breakpoints animate-card-in"
               style={{ animationDelay: "15ms" }}
@@ -266,6 +258,11 @@ export default function PageDetailPanel({
                 changeCounts={bpChangeCountsWithScope}
                 breakpoints={reportBreakpoints}
                 align="start"
+              />
+              <VariantTabs
+                variants={reportVariants}
+                active={activeVariant}
+                onChange={onVariantChange}
               />
             </div>
 

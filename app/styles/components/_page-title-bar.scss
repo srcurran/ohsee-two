@@ -18,7 +18,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-base);
     font-weight: var(--weight-semibold);
     color: var(--page-title-bar-label-color);
   }
@@ -29,7 +29,7 @@
      and no-drag so only buttons/links steal the drag handle. */
   &--custom {
     justify-content: flex-start;
-    padding: 0 var(--space-6);
+    padding: 0 var(--space-5);
     gap: var(--space-2);
 
     > * {

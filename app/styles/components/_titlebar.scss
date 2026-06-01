@@ -17,7 +17,7 @@
      the sidebar is also a drag handle, but below TitlebarCollapseButton
      (z-toast) and PageTitleBar (z-modal — pointer-events:none, so drag
      still passes through). */
-  z-index: var(--z-60);
+  z-index: var(--z-sticky);
   -webkit-app-region: drag;
   app-region: drag;
 }

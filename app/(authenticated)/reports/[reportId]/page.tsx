@@ -151,12 +151,6 @@ function ReportPageInner() {
 
           <ReportStatusBanner report={report} />
 
-          <VariantTabs
-            variants={reportVariants}
-            active={activeVariant}
-            onChange={handleVariantChange}
-          />
-
           <div className="report__breakpoints">
             <BreakpointTabs
               active={activeBp}
@@ -164,6 +158,11 @@ function ReportPageInner() {
               changeCounts={bpChangeCounts}
               breakpoints={reportBreakpoints}
               align="start"
+            />
+            <VariantTabs
+              variants={reportVariants}
+              active={activeVariant}
+              onChange={handleVariantChange}
             />
           </div>
         </div>

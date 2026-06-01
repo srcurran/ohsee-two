@@ -9,17 +9,13 @@ interface Props {
 export default function VariantTabs({ variants, active, onChange }: Props) {
   if (variants.length === 0) return null;
 
-  const options: { id: string | null; label: string }[] = [
-    { id: null, label: "Default" },
-    ...variants.map((id) => ({
-      id,
-      label: id.charAt(0).toUpperCase() + id.slice(1),
-    })),
-  ];
+  const options: { id: string | null; label: string }[] = variants.map((id) => ({
+    id,
+    label: id.charAt(0).toUpperCase() + id.slice(1),
+  }));
 
   return (
     <div className="variant-tabs">
-      <span className="variant-tabs__label">Variant</span>
       {options.map((opt) => {
         const isActive = active === opt.id;
         return (
