@@ -4,16 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
 import ScriptEditor from "@/components/settings/ScriptEditor";
+import AuthProfileSelect from "@/components/settings/AuthProfileSelect";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/settings/Wizard";
-import { CredentialsSection } from "@/components/settings/TestSettingsCredentials";
 import { Icon } from "@/components/utility/Icon";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";
 import { trackReportCompletion } from "@/lib/electron";
 import { resolveScriptCredentials } from "@/lib/vault-resolve";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
-import type { Project, SiteTest, TestStep, TestCredentials, UserSettings } from "@/lib/types";
+import type { Project, SiteTest, TestStep, UserSettings } from "@/lib/types";
 
 interface Props {
   projectId: string;
@@ -43,7 +43,7 @@ type TestType = "simple" | "advanced";
  */
 export default function NewTestWizard({ projectId, initialName, testId, onClose }: Props) {
   const router = useRouter();
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects, openAuthProfiles } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
 
   // The persisted test id. Set after Step 1's POST, or seeded from `testId`
@@ -67,7 +67,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
   const [script, setScript] = useState(""); // advanced: one Playwright script
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
   const [variantIds, setVariantIds] = useState<string[]>([]);
-  const [credentials, setCredentials] = useState<TestCredentials | undefined>(undefined);
+  const [authProfileId, setAuthProfileId] = useState<string | undefined>(undefined);
 
   // Simple-path adder
   const [pathInput, setPathInput] = useState("");
@@ -90,7 +90,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         setScript(t.script ?? "");
         if (t.breakpoints?.length) setBreakpoints(t.breakpoints);
         setVariantIds((t.variants ?? []).map((v) => v.id));
-        setCredentials(t.credentials);
+        setAuthProfileId(t.authProfileId);
         setChosenType(t.testType ?? "simple");
       });
   }, [projectId, testId]);
@@ -214,10 +214,11 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         testType: type,
         // Advanced is a single script; simple is URL steps. Clear the other
         // shape so the test has one source of truth.
-        ...(type === "advanced" ? { script, steps: [] } : { steps, script: "" }),
+        ...(type === "advanced"
+          ? { script, steps: [], authProfileId }
+          : { steps, script: "" }),
         breakpoints,
         variants: BUILT_IN_VARIANTS.filter((v) => variantIds.includes(v.id)),
-        credentials,
       });
       refreshProjects();
 
@@ -355,11 +356,6 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
   }
 
   // 3a / 3b (editor): footer is Back / Save / Run.
-  const hasTemplateVars =
-    chosenType === "advanced"
-      ? /\$(EMAIL|PASSWORD|OTP)\$/.test(script)
-      : steps.some((s) => s.type === "microtest" && s.script && /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script));
-
   return (
     <Wizard
       title="New test"
@@ -427,13 +423,14 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
       ) : (
         <div className="wizard__fields">
           <ScriptEditor value={script} onChange={handleScriptChange} defaultUrl={projectUrls[0]} />
-          <CredentialsSection
-            credentials={credentials}
-            onChange={(next) => {
-              setCredentials(next);
-              persist({ credentials: next });
+          <AuthProfileSelect
+            profiles={project?.authProfiles ?? []}
+            value={authProfileId}
+            onChange={(id) => {
+              setAuthProfileId(id);
+              persist({ authProfileId: id });
             }}
-            hasTemplateVars={hasTemplateVars}
+            onManage={() => openAuthProfiles(projectId)}
           />
         </div>
       )}

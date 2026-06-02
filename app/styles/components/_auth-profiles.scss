@@ -1,0 +1,84 @@
+/* AuthProfilesOverlay — site-level sign-in profiles manager. */
+
+.auth-profiles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    /* Many profiles, each with a script editor — keep the panel bounded. */
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  &__title {
+    margin: 0 0 var(--space-1);
+    font-size: var(--font-size-xl);
+    font-weight: var(--weight-bold);
+    color: var(--modal-title-color);
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--credentials-section-hint-color);
+    line-height: var(--line-base);
+  }
+
+  &__empty {
+    margin: 0;
+    color: var(--credentials-section-hint-color);
+    font-size: var(--font-size-md);
+  }
+
+  &__add {
+    align-self: flex-start;
+  }
+}
+
+.auth-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-lg);
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-background-solid);
+    color: var(--input-color);
+    font-family: inherit;
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-semibold);
+  }
+
+  &__remove {
+    flex-shrink: 0;
+    color: var(--status-error-500);
+  }
+
+  &__session {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  &__tokens {
+    font-size: var(--font-size-sm);
+    color: var(--credentials-section-hint-color);
+  }
+}

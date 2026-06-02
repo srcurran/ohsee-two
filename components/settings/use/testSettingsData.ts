@@ -42,6 +42,9 @@ export interface UseTestSettingsDataResult {
   setCredentials: React.Dispatch<
     React.SetStateAction<TestCredentials | undefined>
   >;
+  /** Advanced: selected site-level sign-in profile id. */
+  authProfileId: string | undefined;
+  setAuthProfileId: React.Dispatch<React.SetStateAction<string | undefined>>;
   /** Immediate write of a partial test patch (used by archive). */
   persist: (testPatch: Partial<SiteTest>) => Promise<void>;
   /** Force a save of all current local state right now. */
@@ -71,9 +74,10 @@ export function useTestSettingsData({
   const [credentials, setCredentials] = useState<TestCredentials | undefined>(
     undefined,
   );
+  const [authProfileId, setAuthProfileId] = useState<string | undefined>(undefined);
 
-  const stateRef = useRef({ name, steps, script, breakpoints, variantIds, credentials });
-  stateRef.current = { name, steps, script, breakpoints, variantIds, credentials };
+  const stateRef = useRef({ name, steps, script, breakpoints, variantIds, credentials, authProfileId });
+  stateRef.current = { name, steps, script, breakpoints, variantIds, credentials, authProfileId };
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load project + this test's state
@@ -93,6 +97,7 @@ export function useTestSettingsData({
         setBreakpoints(test.breakpoints?.length ? test.breakpoints : [...BREAKPOINTS]);
         setVariantIds((test.variants || []).map((v) => v.id));
         setCredentials(test.credentials);
+        setAuthProfileId(test.authProfileId);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, testId]);
@@ -126,6 +131,7 @@ export function useTestSettingsData({
       breakpoints: s.breakpoints,
       variants: BUILT_IN_VARIANTS.filter((v) => s.variantIds.includes(v.id)),
       credentials: s.credentials,
+      authProfileId: s.authProfileId,
     });
   }, [persist]);
 
@@ -162,6 +168,8 @@ export function useTestSettingsData({
     setVariantIds,
     credentials,
     setCredentials,
+    authProfileId,
+    setAuthProfileId,
     persist,
     flushSave,
     scheduleSave,

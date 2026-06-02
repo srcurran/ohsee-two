@@ -266,6 +266,54 @@ export async function executeScriptTest(options: {
 }
 
 /**
+ * Run an auth profile's login script once against a base URL and capture the
+ * resulting Playwright storage state (cookies + localStorage). This is the
+ * "generate session" step — the tokens it returns are reused to start test
+ * runs already signed in. Login state is viewport-independent, so this runs
+ * at a single default context (no breakpoint loop).
+ */
+export async function captureLoginState(options: {
+  loginScript: string;
+  baseUrl: string;
+  credentials?: ScriptCredentials;
+}): Promise<BrowserStorageState> {
+  const { loginScript, baseUrl, credentials } = options;
+
+  let processed = rewriteGotoUrls(loginScript, baseUrl);
+  if (credentials) processed = interpolateCredentials(processed, credentials);
+
+  let expectFn: unknown;
+  try {
+    const mod = await (Function('return import("@playwright/test")')() as Promise<{ expect: unknown }>);
+    expectFn = mod.expect;
+  } catch {
+    // @playwright/test may be absent.
+  }
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"],
+  });
+  try {
+    const context = await browser.newContext({ baseURL: baseUrl });
+    const page = await context.newPage();
+    const fn = new Function(
+      "page", "expect",
+      `return (async () => { ${processed} })()`,
+    ) as (page: Page, expect: unknown) => Promise<void>;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Login script timed out after ${SCRIPT_TIMEOUT}ms`)), SCRIPT_TIMEOUT),
+    );
+    await Promise.race([fn(page, expectFn), timeoutPromise]);
+    const state = (await context.storageState()) as unknown as BrowserStorageState;
+    await context.close();
+    return state;
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
  * Resolve a step's script + display name. Prefers inline `step.script` /
  * `step.name` (post-migration shape). Falls back to looking up
  * `step.microTestId` in `project.microTests` for unmigrated tests.

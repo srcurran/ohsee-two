@@ -27,7 +27,7 @@ interface Props {
 
 export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
   const router = useRouter();
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects, openAuthProfiles } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [animState, setAnimState] = useState<"entering" | "visible" | "exiting">("entering");
 
@@ -237,6 +237,14 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             placeholder="http://localhost:3000"
             spellCheck={false}
           />
+
+          <button
+            type="button"
+            className="btn btn--outline"
+            onClick={() => openAuthProfiles(projectId)}
+          >
+            Sign-in profiles
+          </button>
 
           <div className={`ts-accordion ${dangerOpen ? "ts-accordion--open" : ""}`}>
             <button

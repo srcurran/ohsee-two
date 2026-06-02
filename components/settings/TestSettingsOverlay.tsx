@@ -5,7 +5,7 @@ import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import { Accordion } from "@/components/settings/TestSettingsAccordion";
-import { CredentialsSection } from "@/components/settings/TestSettingsCredentials";
+import AuthProfileSelect from "@/components/settings/AuthProfileSelect";
 import ScriptEditor from "@/components/settings/ScriptEditor";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
@@ -29,7 +29,7 @@ interface Props {
  * Holds only the small bits of UI state that don't fit into a hook:
  * editor-vs-list mode, inline rename, and which accordion is open. */
 export default function TestSettingsOverlay({ projectId, testId, onClose }: Props) {
-  const { refreshProjects } = useSidebar();
+  const { refreshProjects, openAuthProfiles } = useSidebar();
 
   // Sub-views: when an step is being added or edited, the overlay body is
   // replaced by AddEditStepView. `null` = step list is shown.
@@ -292,27 +292,25 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                   </div>
                 </Accordion>
 
-                <Accordion
-                  title="Credentials"
-                  open={openAccordion === "credentials"}
-                  onToggle={() =>
-                    setOpenAccordion((cur) => (cur === "credentials" ? null : "credentials"))
-                  }
-                >
-                  <CredentialsSection
-                    credentials={data.credentials}
-                    onChange={(next) => {
-                      data.setCredentials(next);
-                      data.scheduleSave();
-                    }}
-                    hasTemplateVars={data.steps.some(
-                      (s) =>
-                        s.type === "microtest" &&
-                        s.script &&
-                        /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
-                    )}
-                  />
-                </Accordion>
+                {isAdvanced && (
+                  <Accordion
+                    title="Sign-in"
+                    open={openAccordion === "credentials"}
+                    onToggle={() =>
+                      setOpenAccordion((cur) => (cur === "credentials" ? null : "credentials"))
+                    }
+                  >
+                    <AuthProfileSelect
+                      profiles={data.project.authProfiles ?? []}
+                      value={data.authProfileId}
+                      onChange={(id) => {
+                        data.setAuthProfileId(id);
+                        data.scheduleSave();
+                      }}
+                      onManage={() => openAuthProfiles(projectId)}
+                    />
+                  </Accordion>
+                )}
 
                 <Accordion
                   title="Danger Zone"

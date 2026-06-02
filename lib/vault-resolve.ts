@@ -47,6 +47,20 @@ export async function resolveScriptCredentials(
     return undefined;
   }
 
+  return resolveVaultCredentials(vaultEntryId);
+}
+
+/**
+ * Resolve a single vault entry id to ScriptCredentials. Used by tests and by
+ * auth profiles (generate session). Returns undefined outside Electron or on
+ * a missing entry.
+ */
+export async function resolveVaultCredentials(
+  vaultEntryId?: string,
+): Promise<ScriptCredentials | undefined> {
+  if (!vaultEntryId) return undefined;
+  const ohsee = getOhsee();
+  if (!ohsee) return undefined;
   try {
     const entry = await ohsee.vault.get(vaultEntryId);
     return {
