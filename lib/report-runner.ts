@@ -5,9 +5,9 @@ import { generateDiff } from "./diff";
 import { generateSemanticDiff } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
-import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials } from "./types";
+import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
-import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
+import { executeTestComposition, executeScriptTest, getCompositionScreenshotSteps } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
 
@@ -106,17 +106,26 @@ export async function runReport(
     ? siteTest.breakpoints
     : project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
 
+  // Advanced single-script test: one Playwright script that drives the flow
+  // and calls ohsee.snapshot(). When present it supersedes pages/flows/
+  // compositions entirely.
+  const scriptBody = siteTest?.script && siteTest.script.trim() ? siteTest.script : null;
+
   // When the new unified steps[] is present, decompose it into legacy
   // pages + a synthetic composition the existing executors already
   // understand. Falls through to project/legacy fields otherwise.
-  const unified = siteTest?.steps && siteTest.steps.length > 0
+  const unified = !scriptBody && siteTest?.steps && siteTest.steps.length > 0
     ? splitStepsForRunner(siteTest.steps)
     : null;
 
-  const testPages = unified
+  const testPages = scriptBody
+    ? []
+    : unified
     ? unified.pages
     : siteTest?.pages ?? project.pages;
-  const testFlows = unified
+  const testFlows = scriptBody
+    ? []
+    : unified
     ? []  // unified steps supersede legacy flows
     : siteTest?.flows ?? project.flows ?? [];
 
@@ -136,7 +145,9 @@ export async function runReport(
   const variantCount = testVariants.length;
   // Resolve compositions from the unified steps split (preferred) or
   // siteTest.compositions (legacy).
-  const testCompositions: TestComposition[] = unified
+  const testCompositions: TestComposition[] = scriptBody
+    ? []
+    : unified
     ? unified.composition ? [unified.composition] : []
     : siteTest?.compositions ?? [];
 
@@ -150,7 +161,13 @@ export async function runReport(
   // Flow ops: per screenshot step = breakpoints × (prod + dev + diff) × (1 + variants)
   const flowOps = flowScreenshotSteps * projectBreakpoints.length * 3 * (1 + variantCount);
   const compositionOps = compositionScreenshotSteps * projectBreakpoints.length * 3 * (1 + variantCount);
-  const totalOps = pageOps + flowOps + compositionOps;
+  // Script ops: estimate from the number of ohsee.snapshot() calls in the
+  // script (at least 1 so progress isn't zero); same ×3 per breakpoint/variant.
+  const scriptSnapshotCount = scriptBody
+    ? Math.max(scriptBody.match(/ohsee\s*\.\s*snapshot\s*\(/g)?.length ?? 0, 1)
+    : 0;
+  const scriptOps = scriptSnapshotCount * projectBreakpoints.length * 3 * (1 + variantCount);
+  const totalOps = pageOps + flowOps + compositionOps + scriptOps;
   let completedOps = 0;
 
   const report = await readJsonFile<Report>(reportPath, {
@@ -185,6 +202,80 @@ export async function runReport(
     ]);
 
     const reportPages: ReportPage[] = [];
+
+    // --- Advanced single-script execution ---
+    // testPages/testFlows/testCompositions are all empty for a script test,
+    // so the loops below are no-ops; this branch produces the report pages.
+    if (scriptBody) {
+      const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
+      const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
+      const profile = siteTest?.authProfileId
+        ? project.authProfiles?.find((p) => p.id === siteTest.authProfileId)
+        : undefined;
+      const storageState = profile?.storageState;
+      // snapshot index → position in reportPages, so variant passes update
+      // the page the default pass already flushed.
+      const snapPageIndex = new Map<number, number>();
+
+      await captureAndDiffScript({
+        script: scriptBody,
+        prodBaseUrl: normProd,
+        devBaseUrl: normDev,
+        prefix: "",
+        screenshotDir,
+        dataBase,
+        breakpointList: projectBreakpoints,
+        credentials: scriptCredentials,
+        storageState,
+        checkCancelled,
+        onProgress: async () => { completedOps++; await saveProgress(); },
+        onSnapshotDiffed: async (index, name, results) => {
+          snapPageIndex.set(index, reportPages.length);
+          reportPages.push({
+            id: uuidv4(),
+            pageId: `snapshot-${index}`,
+            path: name,
+            breakpoints: results,
+          });
+          report.pages = reportPages;
+          await writeJsonFile(reportPath, report);
+        },
+        prodBrowser,
+        devBrowser,
+      });
+
+      // --- Variant captures ---
+      for (const variant of testVariants) {
+        checkCancelled();
+        await captureAndDiffScript({
+          script: scriptBody,
+          prodBaseUrl: normProd,
+          devBaseUrl: normDev,
+          prefix: `-${variant.id}`,
+          screenshotDir,
+          dataBase,
+          breakpointList: projectBreakpoints,
+          credentials: scriptCredentials,
+          storageState,
+          contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
+          initScript: variant.initScript,
+          checkCancelled,
+          onProgress: async () => { completedOps++; await saveProgress(); },
+          onSnapshotDiffed: async (index, _name, results) => {
+            const idx = snapPageIndex.get(index);
+            if (idx !== undefined) {
+              const page = reportPages[idx];
+              if (!page.variants) page.variants = {};
+              page.variants[variant.id] = results;
+              report.pages = reportPages;
+              await writeJsonFile(reportPath, report);
+            }
+          },
+          prodBrowser,
+          devBrowser,
+        });
+      }
+    }
 
     for (const page of testPages) {
       checkCancelled();
@@ -917,4 +1008,174 @@ async function captureAndDiffComposition(options: {
   await diffChain;
 
   return results;
+}
+
+/**
+ * Run an advanced single-script test against prod + dev and diff each
+ * `ohsee.snapshot()` capture. Mirrors captureAndDiffComposition but keys by
+ * the snapshot's index (its order in the script) — the stable pairing key
+ * since prod and dev run the identical script. Streams: a snapshot diffs as
+ * soon as all breakpoints are ready on both sides.
+ */
+async function captureAndDiffScript(options: {
+  script: string;
+  prodBaseUrl: string;
+  devBaseUrl: string;
+  prefix: string;
+  screenshotDir: string;
+  dataBase: string;
+  breakpointList?: number[];
+  credentials?: ScriptCredentials;
+  storageState?: { prod?: BrowserStorageState; dev?: BrowserStorageState };
+  contextOptions?: { colorScheme?: "light" | "dark" };
+  initScript?: string;
+  checkCancelled: () => void;
+  onProgress: () => Promise<void>;
+  onSnapshotDiffed?: (
+    index: number,
+    name: string,
+    results: Record<string, BreakpointResult>,
+  ) => Promise<void>;
+  prodBrowser?: Browser;
+  devBrowser?: Browser;
+}): Promise<void> {
+  const {
+    script, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
+    breakpointList = [...BREAKPOINTS], credentials, storageState, contextOptions,
+    initScript, checkCancelled, onProgress, onSnapshotDiffed, prodBrowser, devBrowser,
+  } = options;
+
+  type Shot = import("./micro-test-runner").ScriptSnapshotResult;
+  type ShotMap = Map<number, Map<number, Shot>>;
+  const prodMap: ShotMap = new Map();
+  const devMap: ShotMap = new Map();
+  const names = new Map<number, string>();
+  const seen = new Set<number>();
+  const diffed = new Set<number>();
+  let diffChain = Promise.resolve();
+  const bpCount = breakpointList.length;
+
+  const diffSnapshot = async (index: number) => {
+    const stepResults: Record<string, BreakpointResult> = {};
+
+    await Promise.all(breakpointList.map(async (bp) => {
+      checkCancelled();
+      const prodShot = prodMap.get(index)?.get(bp);
+      const devShot = devMap.get(index)?.get(bp);
+
+      if (prodShot && devShot) {
+        const alignedProdPath = path.join(screenshotDir, `aligned-prod-script-${index}${prefix}-${bp}.png`);
+        const alignedDevPath = path.join(screenshotDir, `aligned-dev-script-${index}${prefix}-${bp}.png`);
+        const highlightPath = path.join(screenshotDir, `highlight-script-${index}${prefix}-${bp}.png`);
+        const highlightDevPath = path.join(screenshotDir, `highlight-dev-script-${index}${prefix}-${bp}.png`);
+
+        const diffResult = await generateDiff(
+          prodShot.filePath,
+          devShot.filePath,
+          alignedProdPath,
+          alignedDevPath,
+          undefined,
+          highlightPath,
+          highlightDevPath,
+        );
+
+        const bpResult: BreakpointResult = {
+          prodScreenshot: path.relative(dataBase, prodShot.filePath),
+          devScreenshot: path.relative(dataBase, devShot.filePath),
+          alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
+          alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+          highlightScreenshot: diffResult.highlightImagePath
+            ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
+          highlightDevScreenshot: diffResult.highlightDevImagePath
+            ? path.relative(dataBase, diffResult.highlightDevImagePath) : undefined,
+          prodUrl: prodShot.url,
+          devUrl: devShot.url,
+          changeCount: diffResult.changeCount > 0 ? 1 : 0,
+          totalPixels: diffResult.totalPixels,
+          changePercentage: diffResult.changePercentage,
+          pixelChangeCount: diffResult.changeCount,
+        };
+
+        if (prodShot.domSnapshot && devShot.domSnapshot) {
+          try {
+            const semanticResult = generateSemanticDiff(prodShot.domSnapshot, devShot.domSnapshot);
+            bpResult.semanticChanges = semanticResult.changes;
+            bpResult.changeSummary = semanticResult.summary;
+            bpResult.changeCount = semanticResult.issueCount;
+          } catch (err) {
+            console.error(`Semantic diff failed for script snapshot ${index} at ${bp}px:`, err);
+          }
+        }
+
+        stepResults[String(bp)] = bpResult;
+      }
+
+      await onProgress();
+    }));
+
+    if (onSnapshotDiffed) {
+      await onSnapshotDiffed(index, names.get(index) ?? `snapshot-${index + 1}`, stepResults);
+    }
+  };
+
+  const tryDiff = (index: number) => {
+    if (diffed.has(index)) return;
+    const p = prodMap.get(index);
+    const d = devMap.get(index);
+    if (!p || !d || p.size < bpCount || d.size < bpCount) return;
+    diffed.add(index);
+    const pr = diffChain.then(() => diffSnapshot(index));
+    diffChain = pr.catch(() => {});
+  };
+
+  const record = (map: ShotMap, r: Shot) => {
+    names.set(r.index, r.name);
+    seen.add(r.index);
+    let bpMap = map.get(r.index);
+    if (!bpMap) { bpMap = new Map(); map.set(r.index, bpMap); }
+    bpMap.set(r.breakpoint, r);
+    tryDiff(r.index);
+  };
+
+  checkCancelled();
+  await Promise.all([
+    executeScriptTest({
+      script,
+      baseUrl: prodBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `prod-script${prefix}`,
+      contextOptions,
+      initScript,
+      credentials,
+      storageState: storageState?.prod,
+      browser: prodBrowser,
+      onProgress: async () => { checkCancelled(); await onProgress(); },
+      onSnapshotCaptured: (r) => record(prodMap, r),
+    }),
+    executeScriptTest({
+      script,
+      baseUrl: devBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `dev-script${prefix}`,
+      contextOptions,
+      initScript,
+      credentials,
+      storageState: storageState?.dev,
+      browser: devBrowser,
+      onProgress: async () => { checkCancelled(); await onProgress(); },
+      onSnapshotCaptured: (r) => record(devMap, r),
+    }),
+  ]);
+
+  // Diff any snapshots not caught by streaming (e.g. one side missing a bp).
+  for (const index of seen) {
+    if (!diffed.has(index)) {
+      diffed.add(index);
+      const pr = diffChain.then(() => diffSnapshot(index));
+      diffChain = pr.catch(() => {});
+    }
+  }
+  await diffChain;
 }

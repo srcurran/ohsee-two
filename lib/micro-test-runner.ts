@@ -5,6 +5,7 @@ import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
 import type {
+  BrowserStorageState,
   DomSnapshot,
   Project,
   ScriptCredentials,
@@ -120,6 +121,148 @@ export async function executeMicroTest(
   );
 
   await Promise.race([fn(page, expectFn), timeoutPromise]);
+}
+
+/** One screenshot produced by an `ohsee.snapshot()` call in a script test. */
+export interface ScriptSnapshotResult {
+  /** 0-based order of the snapshot() call within the script — the stable key
+   *  used to pair the prod capture with the dev capture. */
+  index: number;
+  /** Display label (the snapshot() argument, or "snapshot-N"). */
+  name: string;
+  breakpoint: number;
+  filePath: string;
+  /** URL the page was on at capture time. */
+  url: string;
+  domSnapshot?: DomSnapshot;
+}
+
+/** Default timeout for a whole script-test run (ms) — a full flow, not a step. */
+const SCRIPT_TIMEOUT = 120_000;
+
+/**
+ * Execute one advanced-test script per breakpoint. The script is a function
+ * body receiving `page`, `expect`, and `ohsee`; it drives the flow and calls
+ * `await ohsee.snapshot('name')` wherever a screenshot should be taken. Runs
+ * once per environment (the caller passes the prod or dev base + browser);
+ * snapshots pair across environments by `index`.
+ *
+ * Security note: this evals user-supplied code — acceptable for a single-user
+ * self-hosted tool.
+ */
+export async function executeScriptTest(options: {
+  script: string;
+  /** Prod or dev base URL — absolute page.goto() calls are rewritten to it. */
+  baseUrl: string;
+  breakpoints: number[];
+  outputDir: string;
+  /** File prefix, e.g. "prod" / "dev" (+ variant suffix). */
+  prefix: string;
+  contextOptions?: Partial<BrowserContextOptions>;
+  initScript?: string;
+  /** Vault credentials for $EMAIL$ / $PASSWORD$ / $OTP$ interpolation. */
+  credentials?: ScriptCredentials;
+  /** Auth storage state to start the context already signed in. */
+  storageState?: BrowserStorageState;
+  browser?: Browser;
+  onProgress?: (index: number, breakpoint: number) => void | Promise<void>;
+  onSnapshotCaptured?: (result: ScriptSnapshotResult) => void;
+}): Promise<ScriptSnapshotResult[]> {
+  const {
+    script, baseUrl, breakpoints, outputDir, prefix, contextOptions, initScript,
+    credentials, storageState, browser: externalBrowser, onProgress, onSnapshotCaptured,
+  } = options;
+  await ensureDir(outputDir);
+
+  let processed = rewriteGotoUrls(script, baseUrl);
+  if (credentials) {
+    processed = interpolateCredentials(processed, credentials);
+  } else if (/\$(EMAIL|PASSWORD|OTP)\$/.test(processed)) {
+    console.warn(
+      "⚠ Script uses $EMAIL$/$PASSWORD$/$OTP$ but no vault credentials were " +
+      "provided — the literal strings will be typed as-is.",
+    );
+  }
+
+  let expectFn: unknown;
+  try {
+    const mod = await (Function('return import("@playwright/test")')() as Promise<{ expect: unknown }>);
+    expectFn = mod.expect;
+  } catch {
+    // @playwright/test may be absent — scripts needing `expect` will fail.
+  }
+
+  const browser = externalBrowser ?? await chromium.launch({
+    headless: true,
+    args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"],
+  });
+
+  try {
+    const perBp = await Promise.all(breakpoints.map(async (bp) => {
+      const bpResults: ScriptSnapshotResult[] = [];
+      let context;
+      try {
+        context = await browser.newContext(
+          buildContextOptions(bp, {
+            // Set baseURL so relative page.goto('/path') resolves against the
+            // environment base (absolute gotos are also rewritten upstream).
+            baseURL: baseUrl,
+            ...contextOptions,
+            ...(storageState
+              ? { storageState: storageState as BrowserContextOptions["storageState"] }
+              : {}),
+          }),
+        );
+        if (initScript) await context.addInitScript(initScript);
+        const page = await context.newPage();
+
+        // `ohsee.snapshot()` — the in-script capture hook. Each call screenshots
+        // the current page; index keeps prod/dev pairs aligned.
+        let snapIndex = 0;
+        const ohsee = {
+          snapshot: async (name?: string) => {
+            const index = snapIndex++;
+            await prepareForScreenshot(page, 500);
+            const filePath = path.join(outputDir, `${prefix}-${index}-${bp}.png`);
+            await page.screenshot({ fullPage: true, path: filePath });
+            const url = page.url();
+            let domSnapshot: DomSnapshot | undefined;
+            try {
+              domSnapshot = await extractDomSnapshot(page, url, bp);
+            } catch (err) {
+              console.error(`Script snapshot DOM extract failed at ${bp}px:`, err);
+            }
+            const result: ScriptSnapshotResult = {
+              index, name: name || `snapshot-${index + 1}`, breakpoint: bp, filePath, url, domSnapshot,
+            };
+            bpResults.push(result);
+            onSnapshotCaptured?.(result);
+            await onProgress?.(index, bp);
+          },
+        };
+
+        const fn = new Function(
+          "page", "expect", "ohsee",
+          `return (async () => { ${processed} })()`,
+        ) as (page: Page, expect: unknown, ohsee: unknown) => Promise<void>;
+
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Script timed out after ${SCRIPT_TIMEOUT}ms`)), SCRIPT_TIMEOUT),
+        );
+        await Promise.race([fn(page, expectFn, ohsee), timeoutPromise]);
+      } catch (err) {
+        // Keep whatever snapshots were captured before the failure.
+        console.error(`Script test failed at ${bp}px:`, err);
+      } finally {
+        await context?.close().catch(() => {});
+      }
+      return bpResults;
+    }));
+
+    return perBp.flat();
+  } finally {
+    if (!externalBrowser) await browser.close();
+  }
 }
 
 /**

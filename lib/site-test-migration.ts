@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import type { Project, SiteTest } from "./types";
 import { readJsonFile, writeJsonFile } from "./data";
 import { userProjectsFile } from "./constants";
+import { extractScriptBody } from "./script-utils";
 
 /**
  * If a project has no `tests[]`, create a default SiteTest from
@@ -103,6 +104,59 @@ export function classifyTestTypes(project: Project): boolean {
   return changed;
 }
 
+/** Escape a string for embedding inside a single-quoted JS literal. */
+function jsSingleQuote(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, " ");
+}
+
+/**
+ * Collapse an advanced test's stepped shape into a single Playwright script
+ * (the new advanced model). Each former step's body is concatenated in order;
+ * a capturing step gets an `await ohsee.snapshot('label')` appended. Runs only
+ * for advanced tests that don't already have a `script`. Idempotent.
+ * Returns true if anything changed.
+ */
+export function migrateAdvancedToScript(project: Project): boolean {
+  let changed = false;
+
+  for (const test of project.tests || []) {
+    if (test.testType !== "advanced") continue;
+    if (test.script && test.script.trim()) continue;
+
+    const steps = test.steps || [];
+    if (steps.length === 0) continue;
+
+    const blocks: string[] = [];
+    for (const step of steps) {
+      const capture = step.captureScreenshot !== false;
+      if (step.type === "url" && step.url) {
+        blocks.push(`await page.goto('${jsSingleQuote(step.url)}');`);
+        if (capture) blocks.push(`await ohsee.snapshot('${jsSingleQuote(step.url)}');`);
+      } else if (step.type === "microtest" && step.script) {
+        const label = step.name || "step";
+        // Strip codegen scaffolding (require/IIFE/browser setup) so the
+        // concatenated body runs against the injected `page`.
+        const body = extractScriptBody(step.script);
+        if (!body) continue;
+        blocks.push(`// ${label}`);
+        blocks.push(body);
+        if (capture) blocks.push(`await ohsee.snapshot('${jsSingleQuote(label)}');`);
+      }
+    }
+
+    if (blocks.length === 0) continue;
+
+    test.script = blocks.join("\n\n");
+    // The script is now the source of truth for advanced tests; clear the
+    // stepped shape so editors/runner read only `script`.
+    test.steps = [];
+    delete test.compositions;
+    changed = true;
+  }
+
+  return changed;
+}
+
 /**
  * Migrate all projects for a user. Reads, migrates in-memory, persists if changed.
  */
@@ -139,6 +193,9 @@ export async function readProjectsWithMigration(userId: string): Promise<Project
       changed = true;
     }
     if (classifyTestTypes(project)) {
+      changed = true;
+    }
+    if (migrateAdvancedToScript(project)) {
       changed = true;
     }
   }

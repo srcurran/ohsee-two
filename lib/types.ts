@@ -21,6 +21,14 @@ export interface SiteTest {
    *  "Finish creating test" CTA. Cleared when the user completes the wizard
    *  (Save/Run on the final step). */
   draft?: boolean;
+  /** Advanced tests: a single Playwright script (function body receiving
+   *  `page`, `expect`, and `ohsee`). The script drives the flow and calls
+   *  `await ohsee.snapshot('name')` wherever a screenshot should be taken.
+   *  Supersedes the legacy steps[]/compositions for advanced tests. */
+  script?: string;
+  /** Advanced tests: optional site-level auth profile whose cached
+   *  storageState seeds the run so the script starts already signed in. */
+  authProfileId?: string;
   pages: PageEntry[];
   flows: FlowEntry[];
   /** Micro-test compositions (new-style flows using reusable script steps) */
@@ -100,6 +108,36 @@ export interface ScriptCredentials {
   staticOtp?: string;
 }
 
+/**
+ * Playwright storage state (cookies + per-origin localStorage) as returned by
+ * `context.storageState()` and accepted by `browser.newContext({ storageState })`.
+ * Stored verbatim as JSON — treated as a generated secret artifact (the "tokens").
+ */
+export interface BrowserStorageState {
+  cookies: unknown[];
+  origins: unknown[];
+}
+
+/**
+ * Site-level authentication profile. Bundles the *login script* (how to sign
+ * in) with the *storage tokens* it produces (the cached session), plus the
+ * vault secret that feeds the script. Running the login script once against
+ * prod + dev produces the storageState the runner reuses to start every test
+ * already signed in. The tokens are a generated artifact, like a `.env`.
+ */
+export interface AuthProfile {
+  id: string;
+  name: string;
+  /** Vault entry supplying $EMAIL$/$PASSWORD$/$OTP$ to the login script. */
+  vaultEntryId?: string;
+  /** Playwright login script (function body receiving `page`, `expect`). */
+  loginScript: string;
+  /** Cached session tokens per environment, produced by the login script. */
+  storageState?: { prod?: BrowserStorageState; dev?: BrowserStorageState };
+  /** ISO timestamp the tokens were last generated. */
+  tokensUpdatedAt?: string | null;
+}
+
 export interface Project {
   id: string;
   /** Display name for the project (falls back to domain if omitted) */
@@ -120,6 +158,10 @@ export interface Project {
   flows?: FlowEntry[];
   /** Named tests for this site. Each test has its own pages + flows. */
   tests?: SiteTest[];
+  /** Site-level auth profiles (login script + cached storage tokens). Tests
+   *  reference one via SiteTest.authProfileId. Multiple profiles let a site
+   *  be compared as different identities (e.g. new vs existing customer). */
+  authProfiles?: AuthProfile[];
   /** @deprecated Inlined onto step.script by readProjectsWithMigration on
    *  first read; kept on the type for migration compatibility only. New
    *  records do not write this field. */
