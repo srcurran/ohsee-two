@@ -11,7 +11,6 @@ import type {
   TestComposition,
   TestCompositionStep,
 } from "./types";
-import type { AuthCookieConfig } from "./auth-token";
 
 /** Default timeout per micro-test step execution (ms). */
 const STEP_TIMEOUT = 30_000;
@@ -157,7 +156,6 @@ export async function executeTestComposition(options: {
   breakpoints: number[];
   outputDir: string;
   prefix: string;
-  authConfig?: AuthCookieConfig;
   contextOptions?: Partial<BrowserContextOptions>;
   initScript?: string;
   onProgress?: (stepId: string, breakpoint: number) => void | Promise<void>;
@@ -172,7 +170,7 @@ export async function executeTestComposition(options: {
 }): Promise<MicroTestStepResult[]> {
   const {
     project, composition, baseUrl, breakpoints, outputDir, prefix,
-    authConfig, contextOptions, initScript, onProgress,
+    contextOptions, initScript, onProgress,
     browser: externalBrowser, credentials, onStepCaptured,
   } = options;
   await ensureDir(outputDir);
@@ -187,7 +185,7 @@ export async function executeTestComposition(options: {
       const bpResults: MicroTestStepResult[] = [];
       let context;
       try {
-        context = await browser.newContext(buildContextOptions(bp, authConfig, contextOptions));
+        context = await browser.newContext(buildContextOptions(bp, contextOptions));
 
         if (initScript) {
           await context.addInitScript(initScript);

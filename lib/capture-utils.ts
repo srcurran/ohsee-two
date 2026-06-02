@@ -1,12 +1,10 @@
-import type { Browser, BrowserContextOptions, Page } from "playwright";
-import type { AuthCookieConfig } from "./auth-token";
+import type { BrowserContextOptions, Page } from "playwright";
 
 /**
- * Build BrowserContext options with optional auth cookie injection.
+ * Build BrowserContext options for a breakpoint.
  */
 export function buildContextOptions(
   bp: number,
-  authConfig?: AuthCookieConfig,
   extra?: Partial<BrowserContextOptions>,
 ): BrowserContextOptions {
   return {
@@ -14,25 +12,6 @@ export function buildContextOptions(
     deviceScaleFactor: 1,
     reducedMotion: "reduce",
     ...extra,
-    ...(authConfig
-      ? {
-          storageState: {
-            cookies: [
-              {
-                name: authConfig.cookieName,
-                value: authConfig.cookieValue,
-                domain: authConfig.domain,
-                path: "/",
-                httpOnly: true,
-                sameSite: "Lax" as const,
-                secure: authConfig.cookieName.startsWith("__Secure-"),
-                expires: Math.floor(Date.now() / 1000) + 3600,
-              },
-            ],
-            origins: [],
-          },
-        }
-      : {}),
   };
 }
 

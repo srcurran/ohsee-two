@@ -36,8 +36,8 @@ export interface SiteTest {
   variants?: TestVariant[];
   /** Soft-deleted / hidden from sidebar; restorable from project Danger Zone. */
   archived?: boolean;
-  /** Per-test auth/credentials configuration. Replaces the project-level
-   *  requiresAuth flag so different tests can target different identities. */
+  /** Per-test credentials: names a vault entry whose email/password/OTP are
+   *  interpolated into the test's Playwright login script. */
   credentials?: TestCredentials;
   createdAt: string;
   lastRunAt: string | null;
@@ -75,17 +75,13 @@ export interface TestStep {
 }
 
 /**
- * Per-test credentials configuration. Mirrors the project-level requiresAuth
- * model (mints a NextAuth session cookie via mintSessionCookie) but keyed
- * per-test so different tests can run as different identities.
+ * Per-test credentials. Names a vault entry (Electron-only Keychain) whose
+ * email / password / OTP get interpolated into the test's Playwright login
+ * script via $EMAIL$ / $PASSWORD$ / $OTP$. Authentication is done by the
+ * script performing a real login — there is no session-cookie forging.
  */
 export interface TestCredentials {
-  /** When true, the runner mints + injects a session cookie before captures. */
-  enabled?: boolean;
-  /** Reuse another test's credentials (shared identity). When set, the
-   *  runner reads that test's credentials instead. */
-  copyFromTestId?: string;
-  /** Optional vault entry id (Electron only) — names a stored identity. */
+  /** Vault entry id (Electron only) — names a stored identity. */
   vaultEntryId?: string;
 }
 
@@ -114,8 +110,6 @@ export interface Project {
   pages: PageEntry[];
   createdAt: string;
   lastDiffAt: string | null;
-  /** @deprecated Auth is now handled via micro-test scripts. */
-  requiresAuth?: boolean;
   /** @deprecated Use tests[].variants instead. Kept for backward compat during migration. */
   variants?: TestVariant[];
   /** @deprecated Use tests[].breakpoints instead. Kept for backward compat during migration. */

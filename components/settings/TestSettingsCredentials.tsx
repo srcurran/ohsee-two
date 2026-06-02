@@ -28,8 +28,6 @@ export function CredentialsSection({
   onChange,
   hasTemplateVars,
 }: CredentialsSectionProps) {
-  const enabled = credentials?.enabled === true;
-
   const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(
     null,
   );
@@ -82,37 +80,19 @@ export function CredentialsSection({
 
   return (
     <div className="credentials-section">
-      <label className="credentials-section__row">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => {
-            const next = { ...credentials, enabled: e.target.checked };
-            // Auto-select first vault entry when enabling if none is
-            // selected — saves the user an extra step.
-            if (
-              e.target.checked &&
-              !credentials?.vaultEntryId &&
-              vaultEntries &&
-              vaultEntries.length > 0
-            ) {
-              next.vaultEntryId = vaultEntries[0].key;
-            }
-            onChange(next);
-          }}
-          className="checkbox"
-        />
-        <span>Sign in before capturing (for pages behind a login)</span>
-      </label>
-
       {isElectronRuntime() && (
         <div className="credentials-section__vault">
           <label
             className="credentials-section__label"
             htmlFor="credentials-select"
           >
-            Credential
+            Login credential
           </label>
+          <p className="credentials-section__hint">
+            Bind a stored identity to this test. Its values fill{" "}
+            <code>$EMAIL$</code>, <code>$PASSWORD$</code>, and{" "}
+            <code>$OTP$</code> in your Playwright login script.
+          </p>
           <div className="credentials-section__vault-row">
             <select
               id="credentials-select"

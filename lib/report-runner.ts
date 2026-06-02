@@ -5,7 +5,6 @@ import { generateDiff } from "./diff";
 import { generateSemanticDiff } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
-import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
 import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
 import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
@@ -184,19 +183,6 @@ export async function runReport(
       chromium.launch({ headless: true, args: BROWSER_ARGS }),
       chromium.launch({ headless: true, args: BROWSER_ARGS }),
     ]);
-    // Mint auth cookies. Per-test credentials (siteTest.credentials.enabled
-    // — possibly via copyFromTestId) take precedence over the legacy
-    // project.requiresAuth flag so different tests can run as different
-    // identities. The actual identity comes from `userId` in either case;
-    // future work will plumb a vault entry id through to support distinct
-    // accounts per test.
-    const credentialsEnabled = resolveCredentialsEnabled(project, siteTest);
-    let prodAuthConfig: AuthCookieConfig | undefined;
-    let devAuthConfig: AuthCookieConfig | undefined;
-    if (credentialsEnabled) {
-      prodAuthConfig = await mintSessionCookie({ userId, targetUrl: project.prodUrl });
-      devAuthConfig = await mintSessionCookie({ userId, targetUrl: project.devUrl });
-    }
 
     const reportPages: ReportPage[] = [];
 
@@ -216,7 +202,6 @@ export async function runReport(
         prefix: "",
         screenshotDir,
         dataBase,
-        authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
         breakpointList: projectBreakpoints,
         checkCancelled,
         onProgress: async () => { completedOps++; await saveProgress(); },
@@ -240,7 +225,6 @@ export async function runReport(
             prefix: `-${variant.id}`,
             screenshotDir,
             dataBase,
-            authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
             breakpointList: projectBreakpoints,
             contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
             initScript: variant.initScript,
@@ -280,7 +264,6 @@ export async function runReport(
           prefix: "",
           screenshotDir,
           dataBase,
-          authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
           breakpointList: projectBreakpoints,
           checkCancelled,
           onProgress: async () => { completedOps++; await saveProgress(); },
@@ -301,7 +284,6 @@ export async function runReport(
               prefix: `-${variant.id}`,
               screenshotDir,
               dataBase,
-              authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
               breakpointList: projectBreakpoints,
               contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
               initScript: variant.initScript,
@@ -376,7 +358,6 @@ export async function runReport(
           prefix: "",
           screenshotDir,
           dataBase,
-          authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
           breakpointList: projectBreakpoints,
           credentials: scriptCredentials,
           checkCancelled,
@@ -412,7 +393,6 @@ export async function runReport(
               prefix: `-${variant.id}`,
               screenshotDir,
               dataBase,
-              authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
               breakpointList: projectBreakpoints,
               credentials: scriptCredentials,
               contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
@@ -504,7 +484,6 @@ async function captureAndDiff(options: {
   prefix: string;
   screenshotDir: string;
   dataBase: string;
-  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   /** Breakpoints to capture (defaults to global BREAKPOINTS) */
   breakpointList?: number[];
   contextOptions?: { colorScheme?: "light" | "dark" };
@@ -516,7 +495,7 @@ async function captureAndDiff(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     prodUrl, devUrl, pageId, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], contextOptions, initScript,
     checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
@@ -530,7 +509,6 @@ async function captureAndDiff(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `prod-${pageId}${prefix}`,
-      authConfig: authConfig.prod,
       contextOptions,
       initScript,
       browser: prodBrowser,
@@ -544,7 +522,6 @@ async function captureAndDiff(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `dev-${pageId}${prefix}`,
-      authConfig: authConfig.dev,
       contextOptions,
       initScript,
       browser: devBrowser,
@@ -631,7 +608,6 @@ async function captureAndDiffFlow(options: {
   prefix: string;
   screenshotDir: string;
   dataBase: string;
-  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   breakpointList?: number[];
   contextOptions?: { colorScheme?: "light" | "dark" };
   initScript?: string;
@@ -642,7 +618,7 @@ async function captureAndDiffFlow(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     flow, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], contextOptions, initScript,
     checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
@@ -657,7 +633,6 @@ async function captureAndDiffFlow(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `prod-flow-${flow.id}${prefix}`,
-      authConfig: authConfig.prod,
       contextOptions,
       initScript,
       browser: prodBrowser,
@@ -672,7 +647,6 @@ async function captureAndDiffFlow(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `dev-flow-${flow.id}${prefix}`,
-      authConfig: authConfig.dev,
       contextOptions,
       initScript,
       browser: devBrowser,
@@ -750,25 +724,6 @@ async function captureAndDiffFlow(options: {
 }
 
 /**
- * Resolve whether a run should mint + inject auth cookies. Per-test
- * credentials (with optional copy-from indirection) override the legacy
- * project-level `requiresAuth` flag so different tests can target
- * different identities — though distinct account values still need a
- * vault entry id once that path is wired up.
- */
-function resolveCredentialsEnabled(project: Project, siteTest?: SiteTest): boolean {
-  const creds = siteTest?.credentials;
-  if (creds) {
-    if (creds.copyFromTestId) {
-      const referenced = project.tests?.find((t) => t.id === creds.copyFromTestId);
-      if (referenced?.credentials?.enabled) return true;
-    }
-    if (creds.enabled) return true;
-  }
-  return Boolean(project.requiresAuth);
-}
-
-/**
  * Capture prod + dev screenshots for a TestComposition, then generate diffs.
  * Mirrors captureAndDiffFlow but uses the micro-test runner.
  *
@@ -786,7 +741,6 @@ async function captureAndDiffComposition(options: {
   prefix: string;
   screenshotDir: string;
   dataBase: string;
-  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   breakpointList?: number[];
   credentials?: ScriptCredentials;
   contextOptions?: { colorScheme?: "light" | "dark" };
@@ -799,7 +753,7 @@ async function captureAndDiffComposition(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     project, composition, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], credentials, contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], credentials, contextOptions, initScript,
     checkCancelled, onProgress, onStepDiffed, prodBrowser, devBrowser,
   } = options;
 
@@ -919,7 +873,6 @@ async function captureAndDiffComposition(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `prod-comp-${composition.id}${prefix}`,
-      authConfig: authConfig.prod,
       contextOptions,
       initScript,
       credentials,
@@ -937,7 +890,6 @@ async function captureAndDiffComposition(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `dev-comp-${composition.id}${prefix}`,
-      authConfig: authConfig.dev,
       contextOptions,
       initScript,
       credentials,

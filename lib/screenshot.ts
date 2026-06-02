@@ -4,7 +4,6 @@ import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
 import type { DomSnapshot } from "./types";
-import type { AuthCookieConfig } from "./auth-token";
 
 export interface ScreenshotResult {
   breakpoint: number;
@@ -19,8 +18,6 @@ export async function captureScreenshots(options: {
   breakpoints: number[];
   outputDir: string;
   prefix: string;
-  /** Auth cookie to inject via Playwright storageState */
-  authConfig?: AuthCookieConfig;
   /** Extra context options (e.g., colorScheme for dark mode) */
   contextOptions?: Partial<BrowserContextOptions>;
   /** JS to run before every page load (e.g., localStorage theme injection) */
@@ -29,7 +26,7 @@ export async function captureScreenshots(options: {
   /** Reuse an existing browser instance instead of launching a new one. */
   browser?: Browser;
 }): Promise<ScreenshotResult[]> {
-  const { url, breakpoints, outputDir, prefix, authConfig, contextOptions, initScript, onProgress, browser: externalBrowser } = options;
+  const { url, breakpoints, outputDir, prefix, contextOptions, initScript, onProgress, browser: externalBrowser } = options;
   await ensureDir(outputDir);
 
   const browser = externalBrowser ?? await chromium.launch({
@@ -45,7 +42,7 @@ export async function captureScreenshots(options: {
     const settled = await Promise.all(breakpoints.map(async (bp) => {
       let context;
       try {
-        context = await browser.newContext(buildContextOptions(bp, authConfig, contextOptions));
+        context = await browser.newContext(buildContextOptions(bp, contextOptions));
 
         if (initScript) {
           await context.addInitScript(initScript);

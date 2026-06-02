@@ -4,7 +4,6 @@ import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
 import type { DomSnapshot, FlowEntry, FlowAction } from "./types";
-import type { AuthCookieConfig } from "./auth-token";
 
 /**
  * Returns the list of step IDs that will produce screenshots for a flow.
@@ -68,7 +67,6 @@ export async function executeFlow(options: {
   outputDir: string;
   /** File prefix, e.g., "prod-flow-{flowId}" or "dev-flow-{flowId}" */
   prefix: string;
-  authConfig?: AuthCookieConfig;
   contextOptions?: Partial<BrowserContextOptions>;
   initScript?: string;
   onProgress?: (stepId: string, breakpoint: number) => void | Promise<void>;
@@ -77,7 +75,7 @@ export async function executeFlow(options: {
 }): Promise<FlowScreenshotResult[]> {
   const {
     flow, baseUrl, breakpoints, outputDir, prefix,
-    authConfig, contextOptions, initScript, onProgress,
+    contextOptions, initScript, onProgress,
     browser: externalBrowser,
   } = options;
   await ensureDir(outputDir);
@@ -92,7 +90,7 @@ export async function executeFlow(options: {
       const bpResults: FlowScreenshotResult[] = [];
       let context;
       try {
-        context = await browser.newContext(buildContextOptions(bp, authConfig, contextOptions));
+        context = await browser.newContext(buildContextOptions(bp, contextOptions));
 
         if (initScript) {
           await context.addInitScript(initScript);
