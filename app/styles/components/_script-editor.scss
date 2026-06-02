@@ -1,0 +1,67 @@
+/* ScriptEditor — always-visible CodeMirror with a Record/Upload toolbar and
+ * an optional click-to-insert quick reference. Used by the advanced test flow
+ * (wizard + test settings). */
+
+.script-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  &__ref-toggle {
+    margin-left: auto;
+  }
+
+  &__body {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+  }
+
+  &__code {
+    flex: 1;
+    min-width: 0;
+    /* Cap height so a long script scrolls inside the editor rather than the
+       modal. CodeMirror handles internal scrolling. */
+    max-height: 420px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+  }
+
+  &__reference {
+    flex-shrink: 0;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__reference-title {
+    margin: 0 0 var(--space-1);
+    font-size: var(--font-size-sm);
+    color: var(--wizard-hint-color, var(--neutral-dark-500));
+  }
+
+  &__snippet {
+    text-align: left;
+    padding: var(--space-1-5) var(--space-2);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--input-color);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      background: var(--surface-hover-soft);
+    }
+  }
+}

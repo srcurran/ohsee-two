@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
-import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
-import CodegenRecorder from "@/components/settings/CodegenRecorder";
+import ScriptEditor from "@/components/settings/ScriptEditor";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/settings/Wizard";
 import { CredentialsSection } from "@/components/settings/TestSettingsCredentials";
@@ -64,7 +63,8 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
   const [chosenType, setChosenType] = useState<TestType | null>(null);
 
   // Editing state, hydrated from the draft on resume.
-  const [steps, setSteps] = useState<TestStep[]>([]);
+  const [steps, setSteps] = useState<TestStep[]>([]); // simple: url steps
+  const [script, setScript] = useState(""); // advanced: one Playwright script
   const [breakpoints, setBreakpoints] = useState<number[]>([...BREAKPOINTS]);
   const [variantIds, setVariantIds] = useState<string[]>([]);
   const [credentials, setCredentials] = useState<TestCredentials | undefined>(undefined);
@@ -72,10 +72,6 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
   // Simple-path adder
   const [pathInput, setPathInput] = useState("");
   const pathRef = useRef<HTMLInputElement>(null);
-  // Advanced script editor swap. `recordedScript` seeds the editor when the
-  // user captures a session with the Playwright recorder.
-  const [scriptEditorOpen, setScriptEditorOpen] = useState(false);
-  const [recordedScript, setRecordedScript] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -91,6 +87,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         if (!t) return;
         setName(t.name);
         setSteps(t.steps ?? []);
+        setScript(t.script ?? "");
         if (t.breakpoints?.length) setBreakpoints(t.breakpoints);
         setVariantIds((t.variants ?? []).map((v) => v.id));
         setCredentials(t.credentials);
@@ -131,6 +128,19 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
       });
     },
     [projectId],
+  );
+
+  // Debounced autosave for the advanced script editor — so closing the
+  // wizard never loses script edits.
+  const scriptSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleScriptChange = (next: string) => {
+    setScript(next);
+    if (scriptSaveTimer.current) clearTimeout(scriptSaveTimer.current);
+    scriptSaveTimer.current = setTimeout(() => { persist({ script: next }); }, 600);
+  };
+  useEffect(
+    () => () => { if (scriptSaveTimer.current) clearTimeout(scriptSaveTimer.current); },
+    [],
   );
 
   // ── Step 1 → create the test ───────────────────────────────────────────
@@ -189,19 +199,6 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
     // Keep focus on the field so multiple paths can be added rapidly.
     requestAnimationFrame(() => pathRef.current?.focus());
   };
-  const addScript = (scriptName: string, script: string) => {
-    commitSteps([
-      ...steps,
-      {
-        id: crypto.randomUUID(),
-        type: "microtest",
-        name: scriptName.trim() || "Untitled step",
-        script,
-        captureScreenshot: true,
-      },
-    ]);
-    setScriptEditorOpen(false);
-  };
   const removeStep = (id: string) => {
     commitSteps(steps.filter((s) => s.id !== id));
   };
@@ -211,10 +208,13 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
     if (!savedTestId) return;
     setSubmitting(true);
     try {
+      const type = chosenType ?? "simple";
       await persist({
         draft: false,
-        testType: chosenType ?? "simple",
-        steps,
+        testType: type,
+        // Advanced is a single script; simple is URL steps. Clear the other
+        // shape so the test has one source of truth.
+        ...(type === "advanced" ? { script, steps: [] } : { steps, script: "" }),
         breakpoints,
         variants: BUILT_IN_VARIANTS.filter((v) => variantIds.includes(v.id)),
         credentials,
@@ -355,45 +355,10 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
   }
 
   // 3a / 3b (editor): footer is Back / Save / Run.
-  const hasTemplateVars = steps.some(
-    (s) => s.type === "microtest" && s.script && /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script),
-  );
-
-  // Advanced: script editor swap.
-  if (chosenType === "advanced" && scriptEditorOpen) {
-    return (
-      <Wizard
-        title="New test"
-        step={3}
-        totalSteps={TOTAL_STEPS}
-        hideNext
-        onPrev={() => {
-          setScriptEditorOpen(false);
-          setRecordedScript(null);
-        }}
-        onNext={() => {}}
-        onClose={onClose}
-      >
-        <ScriptStepEditor
-          editing={
-            recordedScript
-              ? { id: "__recorded", type: "microtest", script: recordedScript }
-              : null
-          }
-          onSave={(scriptName, script) => {
-            addScript(scriptName, script);
-            setRecordedScript(null);
-          }}
-          onCancel={() => {
-            setScriptEditorOpen(false);
-            setRecordedScript(null);
-          }}
-          primaryLabel="Add step"
-          defaultUrl={projectUrls[0]}
-        />
-      </Wizard>
-    );
-  }
+  const hasTemplateVars =
+    chosenType === "advanced"
+      ? /\$(EMAIL|PASSWORD|OTP)\$/.test(script)
+      : steps.some((s) => s.type === "microtest" && s.script && /\$(EMAIL|PASSWORD|OTP)\$/.test(s.script));
 
   return (
     <Wizard
@@ -403,40 +368,35 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
       secondaryLabel="Save"
       onSecondary={() => finish(false)}
       nextLabel="Run test"
-      nextDisabled={steps.length === 0}
+      nextDisabled={chosenType === "advanced" ? !script.trim() : steps.length === 0}
       busy={submitting}
       onPrev={() => setChosenType(null)}
       onNext={() => finish(true)}
       onClose={onClose}
     >
-      <div className="wizard__fields">
-        {steps.length === 0 ? (
-          <p className="wizard__hint">
-            {chosenType === "simple"
-              ? "Add the paths you want to capture (e.g. /, /pricing)."
-              : "Add a Playwright script to navigate the app before capturing."}
-          </p>
-        ) : (
-          <ul className="wizard__step-list">
-            {steps.map((s) => (
-              <li key={s.id} className="wizard__step-item">
-                <span className="wizard__step-label">
-                  {s.type === "url" ? s.url : s.name || "Playwright step"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeStep(s.id)}
-                  className="btn btn--text"
-                  aria-label="Remove"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {chosenType === "simple" ? (
+      {chosenType === "simple" ? (
+        <div className="wizard__fields">
+          {steps.length === 0 ? (
+            <p className="wizard__hint">
+              Add the paths you want to capture (e.g. /, /pricing).
+            </p>
+          ) : (
+            <ul className="wizard__step-list">
+              {steps.map((s) => (
+                <li key={s.id} className="wizard__step-item">
+                  <span className="wizard__step-label">{s.url}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeStep(s.id)}
+                    className="btn btn--text"
+                    aria-label="Remove"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="wizard__add-row">
             <MaterialField
               ref={pathRef}
@@ -463,37 +423,20 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
               Add path
             </button>
           </div>
-        ) : (
-          <>
-            <div className="wizard__action-row">
-              <button
-                type="button"
-                className="btn btn--outline"
-                onClick={() => setScriptEditorOpen(true)}
-              >
-                Add Playwright script
-              </button>
-              <CodegenRecorder
-                defaultUrl={projectUrls[0]}
-                label="Record with Playwright"
-                className="btn btn--outline"
-                onScriptCaptured={(script) => {
-                  setRecordedScript(script);
-                  setScriptEditorOpen(true);
-                }}
-              />
-            </div>
-            <CredentialsSection
-              credentials={credentials}
-              onChange={(next) => {
-                setCredentials(next);
-                persist({ credentials: next });
-              }}
-              hasTemplateVars={hasTemplateVars}
-            />
-          </>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="wizard__fields">
+          <ScriptEditor value={script} onChange={handleScriptChange} defaultUrl={projectUrls[0]} />
+          <CredentialsSection
+            credentials={credentials}
+            onChange={(next) => {
+              setCredentials(next);
+              persist({ credentials: next });
+            }}
+            hasTemplateVars={hasTemplateVars}
+          />
+        </div>
+      )}
     </Wizard>
   );
 }

@@ -31,6 +31,9 @@ export interface UseTestSettingsDataResult {
   setName: React.Dispatch<React.SetStateAction<string>>;
   steps: TestStep[];
   setSteps: React.Dispatch<React.SetStateAction<TestStep[]>>;
+  /** Advanced single script (empty for simple tests). */
+  script: string;
+  setScript: React.Dispatch<React.SetStateAction<string>>;
   breakpoints: number[];
   setBreakpoints: React.Dispatch<React.SetStateAction<number[]>>;
   variantIds: string[];
@@ -62,14 +65,15 @@ export function useTestSettingsData({
   // the test in-place while keeping siblings intact.
   const [name, setName] = useState("");
   const [steps, setSteps] = useState<TestStep[]>([]);
+  const [script, setScript] = useState("");
   const [breakpoints, setBreakpoints] = useState<number[]>([]);
   const [variantIds, setVariantIds] = useState<string[]>([]);
   const [credentials, setCredentials] = useState<TestCredentials | undefined>(
     undefined,
   );
 
-  const stateRef = useRef({ name, steps, breakpoints, variantIds, credentials });
-  stateRef.current = { name, steps, breakpoints, variantIds, credentials };
+  const stateRef = useRef({ name, steps, script, breakpoints, variantIds, credentials });
+  stateRef.current = { name, steps, script, breakpoints, variantIds, credentials };
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load project + this test's state
@@ -85,6 +89,7 @@ export function useTestSettingsData({
         setProject(p);
         setName(test.name);
         setSteps(getTestSteps(test));
+        setScript(test.script ?? "");
         setBreakpoints(test.breakpoints?.length ? test.breakpoints : [...BREAKPOINTS]);
         setVariantIds((test.variants || []).map((v) => v.id));
         setCredentials(test.credentials);
@@ -117,6 +122,7 @@ export function useTestSettingsData({
     persist({
       name: s.name.trim() || "Untitled test",
       steps: s.steps,
+      script: s.script,
       breakpoints: s.breakpoints,
       variants: BUILT_IN_VARIANTS.filter((v) => s.variantIds.includes(v.id)),
       credentials: s.credentials,
@@ -148,6 +154,8 @@ export function useTestSettingsData({
     setName,
     steps,
     setSteps,
+    script,
+    setScript,
     breakpoints,
     setBreakpoints,
     variantIds,

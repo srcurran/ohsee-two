@@ -6,6 +6,7 @@ import { useSidebar } from "@/components/utility/SidebarProvider";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import { Accordion } from "@/components/settings/TestSettingsAccordion";
 import { CredentialsSection } from "@/components/settings/TestSettingsCredentials";
+import ScriptEditor from "@/components/settings/ScriptEditor";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
 import { AddEditStepView } from "@/components/settings/TestSettingsStepEditor";
@@ -90,6 +91,9 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     stepsState.addScriptStep(name, script);
     setStepEditor(null);
   };
+
+  // Advanced tests author a single script; simple tests use the step list.
+  const isAdvanced = data.activeTest?.testType === "advanced";
 
   return (
     <div
@@ -177,12 +181,24 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             <>
               <div className="ts-accordion-group">
                 <Accordion
-                  title="Test steps"
+                  title={isAdvanced ? "Script" : "Test steps"}
                   open={openAccordion === "steps"}
                   onToggle={() =>
                     setOpenAccordion((cur) => (cur === "steps" ? null : "steps"))
                   }
                 >
+                  {isAdvanced ? (
+                    <section className="test-steps">
+                      <ScriptEditor
+                        value={data.script}
+                        onChange={(s) => {
+                          data.setScript(s);
+                          data.scheduleSave();
+                        }}
+                        defaultUrl={data.project.prodUrl}
+                      />
+                    </section>
+                  ) : (
                   <section className="test-steps">
                     {data.steps.length === 0 ? (
                       <EmptySteps
@@ -230,6 +246,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                       Add step
                     </button>
                   </section>
+                  )}
                 </Accordion>
 
                 <Accordion
