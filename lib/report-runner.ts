@@ -20,13 +20,6 @@ const BROWSER_ARGS = ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"
 const runningReports = new Map<string, AbortController>();
 
 /**
- * Returns whether a given report is currently running in this process.
- */
-export function isReportRunning(reportId: string): boolean {
-  return runningReports.has(reportId);
-}
-
-/**
  * Cancel a running report by ID. Returns true if it was running and signalled.
  */
 export function cancelReport(reportId: string): boolean {
