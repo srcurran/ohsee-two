@@ -1,8 +1,8 @@
-/* RunPill — primary play/cancel CTA for kicking off a run */
+/* RunButton — the primary "play" CTA for kicking off a run. */
 
 @use "../mixins/interactive" as *;
 
-.run-pill {
+.run-button {
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -11,8 +11,8 @@
   padding: var(--space-2) var(--space-5) var(--space-2) var(--space-6);
   font-size: var(--font-size-lg);
   font-weight: var(--weight-bold);
-  color: var(--run-pill-color);
-  background: var(--run-pill-background);
+  color: var(--run-button-color);
+  background: var(--run-button-background);
   font-family: inherit;
   @include interactive;
 
@@ -26,13 +26,6 @@
   &--lg {
     font-size: var(--font-size-xl);
     padding: var(--space-3) var(--space-6);
-  }
-
-  /* Cancel state — same footprint, swaps to the error red and the
-   * paired white-on-red foreground. */
-  &--cancel {
-    background: var(--run-pill-cancel-background);
-    color: var(--run-pill-cancel-color);
   }
 
   &__icon {

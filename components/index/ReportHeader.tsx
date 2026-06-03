@@ -1,6 +1,6 @@
 "use client";
 
-/** Sticky header row for the report page: title + run-pill / progress bar /
+/** Sticky header row for the report page: title + run-button / progress bar /
  * cancel button, the date pill (which doubles as a sibling-reports dropdown
  * trigger), and the test/project-settings menu. Pure presentation — every
  * action and the `showReportNav` state is owned by the parent. */
@@ -45,9 +45,9 @@ export function ReportHeader({
 
       <div className="report__right">
         {report.status !== "running" ? (
-          <button onClick={onRun} className="run-pill">
+          <button onClick={onRun} className="run-button">
             Run now
-            <Icon name="play" size={20} className="run-pill__icon" />
+            <Icon name="play" size={20} className="run-button__icon" />
           </button>
         ) : (
           <div className="progress row">
@@ -62,7 +62,7 @@ export function ReportHeader({
             <span className="progress__text">
               {progressCompleted}/{progressTotal}
             </span>
-            <button onClick={onCancel} className="status-pill">
+            <button onClick={onCancel} className="btn btn--text">
               Cancel
             </button>
           </div>

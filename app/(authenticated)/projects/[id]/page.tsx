@@ -84,7 +84,7 @@ export default function ProjectPage() {
               <button
                 onClick={handleRun}
                 disabled={running}
-                className="run-pill run-pill--lg"
+                className="run-button run-button--lg"
               >
                 {running ? "Starting..." : "Run"}
                 <Icon name="play" size={24} />

@@ -22,10 +22,9 @@
 
 /* ── Badges, pills, dots ─────────────────────────────────────── */
 @use "styles/components/badge";
-@use "styles/components/pill";
+@use "styles/components/filter-pill";
 @use "styles/components/flow-chip";
 @use "styles/components/status-dot";
-@use "styles/components/status-pill";
 
 /* ── Containers + tiles ──────────────────────────────────────── */
 @use "styles/components/page-tile";
@@ -73,7 +72,7 @@
 
 /* ── Report overview ─────────────────────────────────────────── */
 @use "styles/components/report";
-@use "styles/components/run-pill";
+@use "styles/components/run-button";
 @use "styles/components/progress";
 @use "styles/components/loader";
 @use "styles/components/save-button";

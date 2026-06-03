@@ -99,10 +99,10 @@ export default function TestPage() {
           <button
             onClick={handleRun}
             disabled={running}
-            className="run-pill"
+            className="run-button"
           >
             {running ? "Starting..." : "Run now"}
-            <Icon name="play" size={16} className="run-pill__icon" />
+            <Icon name="play" size={16} className="run-button__icon" />
           </button>
           <ErrorModal error={runError} onClose={() => setRunError(null)} />
         </>

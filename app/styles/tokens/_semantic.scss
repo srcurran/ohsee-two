@@ -116,11 +116,9 @@
   --icon-btn-background-hover:          var(--surface-hover-soft);  /* computed tint */
   --icon-btn-color-hover:               var(--neutral-dark-900);
 
-  /* ── Run pill (the "play" CTA on test / report pages) ──────────── */
-  --run-pill-background:                var(--action-500);
-  --run-pill-color:                     var(--on-action);
-  --run-pill-cancel-background:         var(--status-error-500);
-  --run-pill-cancel-color:              var(--on-error);
+  /* ── Run button (the "play" CTA on test / report pages) ──────────── */
+  --run-button-background:                var(--action-500);
+  --run-button-color:                     var(--on-action);
 
   /* ── Report route + progress + loader (.report, .progress, etc.) ─ */
   --report-sticky-background:                  var(--neutral-light-100);
@@ -320,12 +318,12 @@
   --badge-success-tint-background:      var(--neutral-light-200);
   --badge-warning-tint-background:      var(--neutral-light-200);
   --badge-neutral-color:                var(--neutral-dark-100);
-  --pill-background:                    var(--neutral-light-200);
-  --pill-background-hover:              var(--surface-hover);
-  --pill-color:                         var(--neutral-dark-700);
-  --pill-background-active:             var(--neutral-dark-900);
-  --pill-color-active:                  var(--neutral-light-100);
-  --pill-disabled-color:                var(--neutral-dark-400);
+  --filter-pill-background:                    var(--neutral-light-200);
+  --filter-pill-background-hover:              var(--surface-hover);
+  --filter-pill-color:                         var(--neutral-dark-700);
+  --filter-pill-background-active:             var(--neutral-dark-900);
+  --filter-pill-color-active:                  var(--neutral-light-100);
+  --filter-pill-disabled-color:                var(--neutral-dark-400);
   --status-dot-success-background:      var(--status-success-500);
   --status-dot-warning-background:      var(--status-error-500);
   --status-dot-disabled-background:     var(--neutral-dark-100);
@@ -412,8 +410,6 @@
   --section-heading-color:               var(--neutral-dark-900);
   --section-body-color:                  var(--neutral-dark-500);
   --variant-option-color:                var(--neutral-dark-900);
-  --status-pill-color:                   var(--status-error-500);
-  --status-pill-color-hover:             var(--status-error-800);
 }
 
 /* ── Dark Mode ──────────────────────────────────────────────────── */

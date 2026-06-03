@@ -10,7 +10,7 @@ interface ChangeListProps {
   changes: SemanticChange[];
   summary?: Record<string, number>;
   /** When set, entries whose change doesn't apply to this breakpoint render
-   *  dimmed and non-interactive — same affordance as a filter pill with a
+   *  dimmed and non-interactive — same affordance as a filter filter-pill with a
    *  zero count, applied per entry. */
   activeBp?: number;
   changeScope?: ChangeScope;
@@ -18,7 +18,7 @@ interface ChangeListProps {
 }
 
 // How far the pointer must move before we treat the gesture as a drag and
-// suppress the trailing click on whichever pill was under the cursor.
+// suppress the trailing click on whichever filter-pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
 
 export default function ChangeList({ changes, activeBp, changeScope, onChangeClick }: ChangeListProps) {
@@ -64,10 +64,10 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
     );
   }
 
-  // Drag-to-scroll the pill row horizontally. We use Pointer Events but
+  // Drag-to-scroll the filter-pill row horizontally. We use Pointer Events but
   // intentionally do NOT call setPointerCapture on pointerdown — capturing
   // the pointer to the wrapper would re-target the synthesized click event
-  // away from the inner pill buttons, breaking filter clicks. Capture is
+  // away from the inner filter-pill buttons, breaking filter clicks. Capture is
   // only acquired once the gesture passes DRAG_THRESHOLD_PX (i.e., the
   // user is actually dragging), so simple clicks click as normal.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -116,7 +116,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
   };
 
   // Capture-phase click handler: if the user just finished a drag,
-  // swallow the trailing click before it reaches a pill button.
+  // swallow the trailing click before it reaches a filter-pill button.
   const handleClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = filtersRef.current;
     if (el?.dataset.dragging) {
@@ -143,7 +143,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
         <div className="change-list__filters-track row row--sm">
           <button
             onClick={() => setActiveFilter("all")}
-            className={`pill ${activeFilter === "all" ? "pill--active" : ""}`}
+            className={`filter-pill ${activeFilter === "all" ? "filter-pill--active" : ""}`}
           >
             All ({totalCount})
           </button>
@@ -153,10 +153,10 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
             const enabled = count > 0;
             const active = activeFilter === cat;
             const cls = active
-              ? "pill pill--active"
+              ? "filter-pill filter-pill--active"
               : enabled
-                ? "pill"
-                : "pill pill--disabled";
+                ? "filter-pill"
+                : "filter-pill filter-pill--disabled";
             return (
               <button
                 key={cat}
@@ -177,7 +177,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
           // A change is "for this viewport" if its scope (the set of
           // breakpoints it appears at) includes the active one. Anything
           // else renders dimmed and non-interactive — same idea as a
-          // filter pill with a zero count, applied per entry.
+          // filter filter-pill with a zero count, applied per entry.
           const dimmed =
             activeBp !== undefined &&
             changeScope?.bpsFor(change).includes(String(activeBp)) === false;
