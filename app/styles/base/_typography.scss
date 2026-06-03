@@ -1,5 +1,5 @@
-/* Body defaults — font from Next.js `next/font` Poppins, injected
-   as --font-poppins on <body>. */
+/* Body defaults — font from Next.js `next/font` DM Sans, injected
+   as --font-dm-sans on <body> (see app/layout.tsx). */
 
 body {
   font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
