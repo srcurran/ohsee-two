@@ -84,8 +84,6 @@
   --sidebar-cta-color-hover:            var(--text-dim);            /* computed tint */
   --sidebar-footer-color:               var(--text-subdued);        /* computed tint */
   --sidebar-footer-color-hover:         var(--neutral-dark-900);
-  --sidebar-avatar-background:          var(--action-500);
-  --sidebar-avatar-color:               var(--neutral-dark-900);
   --sidebar-plus-background:            var(--neutral-light-100);
 
   /* ── Buttons (.btn variants) ───────────────────────────────────── */
@@ -131,7 +129,6 @@
   --report-status-banner-title-color:          var(--neutral-dark-500);
   --report-status-banner-title-color-error:    var(--status-error-800);
   --report-status-banner-detail-color:         var(--status-error-800);
-  --report-flow-title-color:                   var(--neutral-dark-900);
   --progress-bar-background:                   var(--neutral-light-200);
   --progress-fill-background:                  var(--status-running-400);
   --progress-text-color:                       var(--neutral-dark-500);
@@ -153,11 +150,6 @@
   --sign-in-divider-label-color:               var(--neutral-dark-500);
   --titlebar-collapse-background-hover:        var(--surface-hover);     /* computed tint */
   --page-title-bar-label-color:                color-mix(in srgb, var(--neutral-dark-900) 80%, transparent);
-  --accordion-background:                      var(--neutral-light-200);
-  --accordion-border:                          var(--neutral-dark-100);
-  --accordion-label-color:                     var(--neutral-dark-900);
-  --accordion-count-color:                     var(--neutral-dark-500);
-  --accordion-chevron-color:                   var(--neutral-dark-500);
   --toggle-background-on:                      var(--neutral-dark-900);
   --toggle-background-off:                     color-mix(in srgb, var(--neutral-dark-900) 20%, transparent);
   --toggle-knob-background:                    var(--neutral-light-100);
@@ -195,7 +187,6 @@
   --settings-overlay-danger-toggle-color:         var(--neutral-dark-500);
   --settings-overlay-danger-toggle-color-hover:   var(--neutral-dark-900);
   --settings-overlay-section-title-color:         var(--neutral-dark-500);
-  --settings-overlay-danger-glyph-color:          var(--neutral-dark-500);
   --settings-overlay-danger-heading-color:        var(--neutral-dark-900);
   --settings-overlay-danger-copy-color:           var(--neutral-dark-500);
   --settings-overlay-archived-row-border:         var(--neutral-dark-100);
@@ -244,7 +235,6 @@
   --empty-state-footnote-color:                color-mix(in srgb, var(--neutral-dark-500) 70%, transparent);
   --page-detail-scrim-background:              var(--overlay-backdrop-light);
   --page-detail-panel-background:              var(--neutral-light-100);
-  --page-detail-panel-title-color:             var(--neutral-dark-900);
   --page-detail-panel-date-color:              var(--neutral-dark-900);
   --page-detail-panel-divider-background:      var(--neutral-dark-100);
   --page-detail-panel-main-background:         var(--neutral-light-200);
@@ -266,7 +256,6 @@
   --report-page-arrow-color-hover:             var(--neutral-dark-900);
   --report-page-arrow-color-disabled:          var(--neutral-dark-100);
   --report-page-header-col-color:              var(--neutral-dark-900);
-  --report-page-loading-color:                 var(--neutral-dark-500);
   --report-page-show-all-border:               var(--neutral-dark-100);
   --report-page-show-all-background:           var(--neutral-light-100);
   --report-page-show-all-color:                var(--neutral-dark-900);
@@ -295,8 +284,6 @@
   --textarea-border:                    var(--neutral-dark-100);
   --textarea-border-focus:              var(--neutral-dark-900);
   --textarea-placeholder-color:         var(--neutral-dark-500);
-  --textarea-background-tinted:         var(--neutral-light-200);
-  --wizard-title-color:                 var(--neutral-dark-500);
   --wizard-section-title-color:         var(--neutral-dark-500);
   --wizard-hint-color:                  var(--neutral-dark-500);
   --wizard-step-count-color:            var(--neutral-dark-500);
@@ -326,7 +313,6 @@
   --tab-bar-border:                     var(--neutral-dark-150);
   --tab-color:                          var(--neutral-dark-900);
   --tab-indicator-background:           var(--neutral-dark-900);
-  --variant-tabs-border:                var(--neutral-dark-100);
   --variant-tabs-label-color:           var(--neutral-dark-400);
   --variant-tab-color:                  var(--neutral-dark-500);
   --variant-tab-color-hover:            var(--neutral-dark-900);
@@ -354,7 +340,6 @@
   --change-entry-description-color:      var(--neutral-dark-900);
   --change-entry-selector-color:         var(--neutral-dark-400);
   --change-notice-background-accent:     var(--status-success-500);
-  --change-notice-background-tinted:     var(--neutral-light-200);
   --change-notice-color:                 var(--neutral-dark-700);
   --diff-viewer-border:                  var(--neutral-dark-100);
   --flow-chip-background:                var(--neutral-light-200);

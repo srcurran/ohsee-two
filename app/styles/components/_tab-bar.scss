@@ -3,10 +3,6 @@
 .tab-bar {
   border-bottom: 1px solid var(--tab-bar-border);
 
-  &--inset {
-    padding-inline: var(--space-6);
-  }
-
   &__list {
     display: flex;
     align-items: center;
@@ -35,32 +31,6 @@
 
   &--active {
     font-weight: var(--weight-bold);
-  }
-
-  &--semi-active {
-    font-weight: var(--weight-semibold);
-  }
-
-  &__label {
-    /* keep px text inline with the stats badge */
-  }
-
-  &__stats {
-    font-size: var(--font-size-xs);
-    font-weight: var(--weight-semibold);
-    padding: var(--space-0-5) var(--space-1-5);
-    border-radius: var(--radius-full);
-    line-height: 1;
-
-    &--success {
-      background: color-mix(in srgb, var(--status-success-500) 15%, transparent);
-      color: var(--status-success-500);
-    }
-
-    &--warning {
-      background: color-mix(in srgb, var(--status-error-500) 15%, transparent);
-      color: var(--status-error-500);
-    }
   }
 
   /* Small dot(s) that flag breakpoints with changes — makes change types

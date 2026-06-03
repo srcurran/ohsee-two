@@ -17,9 +17,6 @@
  *       <div .report__breakpoints> BreakpointTabs </div>
  *     <div .report__grid-wrap>
  *       <ReportPageGrid>
- *         <div .report__flow-section>
- *           <div .report__flow-header>
- *             <h3 .report__flow-title> … </h3>
  *
  *   <button .report__project-label .report__project-label--button> —
  *     injected into the titlebar slot via usePageHeader, so it renders
@@ -180,22 +177,6 @@
     &--running {
       min-height: 0;
       overflow: hidden;
-    }
-
-    .report__flow-section {
-      .report__flow-header {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        margin-bottom: var(--space-3);
-
-        .report__flow-title {
-          margin: 0;
-          font-size: var(--font-size-lg);
-          font-weight: var(--weight-bold);
-          color: var(--report-flow-title-color);
-        }
-      }
     }
   }
 }
