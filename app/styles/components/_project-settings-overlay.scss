@@ -59,17 +59,26 @@
     background: var(--project-settings-overlay-panel-background);
     border-radius: var(--radius-lg);
     box-shadow: var(--elevation-lg);
+    /* The panel owns the inset + the header↔body gap. Children (header,
+       body) lay out top-down and carry no padding/margins of their own —
+       so the spacing lives in exactly one place. Header stays pinned; the
+       body scrolls (see __body below). */
     display: flex;
     flex-direction: column;
-    /* Header stays pinned; the body scrolls (see __body below). */
+    gap: var(--space-5);
+    padding: var(--space-7);
     overflow: hidden;
+
+    @media (max-width: 640px) {
+      padding: var(--space-5);
+      gap: var(--space-4);
+    }
 
     .project-settings-overlay__header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: var(--space-3);
-      padding: var(--space-7) var(--space-7) var(--space-5);
 
       /* Step-editor "‹ Back to steps" link. Uses .btn--text so it picks
          up the standard text-button hover. */
@@ -133,10 +142,11 @@
       flex: 1;
       min-height: 0;
       overflow-y: auto;
+      /* Inset + header gap come from the panel; the body only owns the gap
+         between its own content rows. */
       display: flex;
       flex-direction: column;
       gap: var(--space-3);
-      padding: 0 var(--space-7) var(--space-7);
 
       .project-settings-overlay__divider {
         border: none;
