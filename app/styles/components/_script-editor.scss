@@ -7,24 +7,15 @@
   flex-direction: column;
   gap: var(--space-3);
 
-  &__toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
   &__code {
     min-width: 0;
     border-radius: var(--radius-md);
   }
 
   /* Quick reference — always-visible single row of insert chips below the
-     editor; scrolls horizontally if it can't fit. */
+     editor (layout via .row .row--sm in JSX); scrolls horizontally if it
+     can't fit. */
   &__reference {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     overflow-x: auto;
   }
 

@@ -88,7 +88,7 @@ export default function NewProjectWizard({ onClose, onCreated }: Props) {
       onNext={handleSubmit}
       onClose={onClose}
     >
-      <div className="wizard__fields">
+      <div className="wizard__fields stack stack--lg">
         <MaterialField
           label="Prod URL"
           value={prodUrl}

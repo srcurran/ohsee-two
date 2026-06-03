@@ -44,10 +44,10 @@ export default function PageRouteHeader({
     totalUniqueChanges > 0 ? "badge--warning-tint" : "badge--success-tint";
 
   return (
-    <div className="report-page__header">
-      <div className="report-page__title-row">
-        <div className="report-page__title-group">
-          <div className="report-page__title-inner">
+    <div className="report-page__header stack stack--lg">
+      <div className="report-page__title-row row row--between row--lg">
+        <div className="report-page__title-group row row--lg">
+          <div className="report-page__title-inner row row--baseline row--xs">
             <Link
               href={`/reports/${report.id}?bp=${activeBp}`}
               className="report-page__domain"
@@ -106,7 +106,7 @@ export default function PageRouteHeader({
           </span>
         </div>
 
-        <div className="report-page__nav">
+        <div className="report-page__nav row row--xl">
           <div style={{ position: "relative" }}>
             <button
               onClick={() => {

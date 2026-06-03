@@ -45,13 +45,13 @@ export function PageDetailHeader({
       className="page-detail-panel__header animate-card-in"
       style={{ animationDelay: "0ms" }}
     >
-      <div className="page-detail-panel__title-group">
+      <div className="page-detail-panel__title-group row row--sm">
         <PageTitleMenu label={pageName} prodUrl={prodUrl} devUrl={devUrl} />
         <HeaderBadge noData={noData} changeCount={changeCount} />
       </div>
 
       <div className="page-detail-panel__nav">
-        <div className="page-detail-panel__date-group">
+        <div className="page-detail-panel__date-group row row--sm">
           <span
             className="page-detail-panel__date"
             title={formatFullDateTime(report.createdAt)}

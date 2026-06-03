@@ -135,7 +135,7 @@ function ReportPageGridComponent({
   return (
     <>
       {hasPages && (
-        <div className={`page-grid-wrap${isRunning ? " page-grid-wrap--running" : ""}`}>
+        <div className={`page-grid-wrap stack stack--2xl${isRunning ? " page-grid-wrap--running" : ""}`}>
           {isRunning && <div className="page-grid-wrap__scrim" />}
           <div className="page-grid">
             {report.pages.map((page, i) => renderPageCard(page, i))}

@@ -88,7 +88,7 @@ export default function SettingsOverlay() {
         aria-modal="true"
         aria-labelledby="app-settings-title"
       >
-        <header className="project-settings-overlay__header">
+        <header className="project-settings-overlay__header row row--between">
           <span id="app-settings-title" className="project-settings-overlay__title">
             Settings
           </span>
@@ -103,7 +103,7 @@ export default function SettingsOverlay() {
         </header>
 
         <div className="project-settings-overlay__body">
-          <section className="settings-section">
+          <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">General</h3>
 
             {mounted && (
@@ -149,7 +149,7 @@ export default function SettingsOverlay() {
 
           <hr className="project-settings-overlay__divider" />
 
-          <section className="settings-section">
+          <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">Defaults</h3>
             <p className="settings-section__hint">Applied to new projects.</p>
 
@@ -187,7 +187,7 @@ export default function SettingsOverlay() {
           {showCredentials && (
             <>
               <hr className="project-settings-overlay__divider" />
-              <section className="settings-section">
+              <section className="settings-section stack stack--lg">
                 <h3 className="settings-section__title">Credentials</h3>
                 <CredentialsSettings />
               </section>

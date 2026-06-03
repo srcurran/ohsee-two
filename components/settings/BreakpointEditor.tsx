@@ -52,14 +52,14 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
 
   return (
     <div className="breakpoint-editor">
-      <div className="breakpoint-editor__header">
+      <div className="breakpoint-editor__header row row--sm">
         <span className="breakpoint-editor__label">Breakpoints</span>
         <span className="breakpoint-editor__count">
           {breakpoints.length}/{max}
         </span>
       </div>
 
-      <div className="breakpoint-editor__chips">
+      <div className="breakpoint-editor__chips cluster">
         {sorted.map((bp) => (
           <div key={bp} className="bp-chip">
             {bp}px
@@ -78,7 +78,7 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
       </div>
 
       {breakpoints.length < max && (
-        <div className="breakpoint-editor__add">
+        <div className="row row--sm">
           <input
             type="number"
             value={inputValue}

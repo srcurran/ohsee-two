@@ -79,9 +79,9 @@ export function CredentialsSection({
   };
 
   return (
-    <div className="credentials-section">
+    <div className="credentials-section stack">
       {isElectronRuntime() && (
-        <div className="credentials-section__vault">
+        <div className="stack stack--sm">
           <label
             className="credentials-section__label"
             htmlFor="credentials-select"
@@ -93,7 +93,7 @@ export function CredentialsSection({
             <code>$EMAIL$</code>, <code>$PASSWORD$</code>, and{" "}
             <code>$OTP$</code> in your Playwright login script.
           </p>
-          <div className="credentials-section__vault-row">
+          <div className="row row--sm">
             <select
               id="credentials-select"
               className="credentials-section__select"

@@ -61,7 +61,7 @@ export default function Wizard({
       }}
     >
       <div className="modal__panel modal__panel--md">
-        <div className="wizard__head">
+        <div className="wizard__head row row--between row--xs">
           {showPrev ? (
             <button
               type="button"
@@ -86,13 +86,13 @@ export default function Wizard({
           </button>
         </div>
 
-        <div className="wizard__body">{children}</div>
+        <div className="wizard__body stack stack--lg">{children}</div>
 
-        <div className="wizard__footer">
+        <div className="wizard__footer row row--between">
           <span className="wizard__step-count" aria-hidden>
             {step}/{totalSteps}
           </span>
-          <div className="wizard__footer-actions">
+          <div className="row">
             {secondaryLabel && onSecondary ? (
               <button
                 type="button"

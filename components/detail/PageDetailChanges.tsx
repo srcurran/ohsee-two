@@ -42,7 +42,7 @@ export function PageDetailChanges({
       ) : hasPixelDiff ? (
         <div className="change-entry change-entry--ok">
           <span className="change-entry__icon">✓</span>
-          <div className="change-entry__body">
+          <div className="change-entry__body stack stack--sm">
             <span className="change-entry__description">
               No structural changes
             </span>
@@ -54,7 +54,7 @@ export function PageDetailChanges({
       ) : (
         <div className="change-entry change-entry--ok">
           <span className="change-entry__icon">✓</span>
-          <div className="change-entry__body">
+          <div className="change-entry__body stack stack--sm">
             <span className="change-entry__description">
               No differences between versions
             </span>

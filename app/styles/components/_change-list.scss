@@ -19,11 +19,8 @@
  *     <span .change-notice__icon>
  */
 
+/* Layout: .stack .stack--lg (JSX). */
 .change-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-
   .change-list__header {
     display: flex;
     align-items: center;
@@ -62,19 +59,13 @@
       }
     }
 
+    /* Layout: .row .row--sm (JSX). Owns only its intrinsic width. */
     .change-list__filters-track {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
       width: max-content;
     }
   }
 
-  .change-list__items {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
+  /* Layout: .stack .stack--xs (JSX). */
 }
 
 .change-entry {
@@ -126,10 +117,9 @@
     font-size: var(--font-size-md);
   }
 
+  /* Layout: .stack .stack--sm (JSX). Owns only the min-width reset so long
+     descriptions can truncate inside the flex row. */
   .change-entry__body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
     min-width: 0;
 
     .change-entry__description {

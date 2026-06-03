@@ -169,7 +169,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
           breakpoints={data.breakpoints}
           onChange={(bp) => { data.setBreakpoints(bp); data.scheduleSave(); }}
         />
-        <div className="test-settings-section__variants">
+        <div className="test-settings-section__variants stack stack--sm">
           <p className="test-settings-section__label">Variants</p>
           <div className="variant-list">
             {BUILT_IN_VARIANTS.map((v) => {
@@ -199,7 +199,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
     const dangerContent = (
       <div className="project-settings-overlay__danger-body">
-        <section className="project-settings-overlay__danger-section">
+        <section className="project-settings-overlay__danger-section stack stack--xs">
           <h3 className="project-settings-overlay__danger-heading">Archive test</h3>
           <p className="project-settings-overlay__danger-copy">
             Hide this test from the sidebar. Reports are preserved and the test
@@ -254,7 +254,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         aria-modal="true"
         aria-labelledby="test-settings-title"
       >
-        <header className="project-settings-overlay__header">
+        <header className="project-settings-overlay__header row row--between">
           {authView ? (
             <button
               type="button"

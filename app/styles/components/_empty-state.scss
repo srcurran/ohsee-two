@@ -7,7 +7,7 @@
  *     <h1  .empty-state__title>
  *     <p   .empty-state__body>
  *     <p   .empty-state__footnote>   ← home only
- *     <div .empty-state__actions>    ← buttons (project/test detail)
+ *     <div .row .row--center>        ← buttons (project detail)
  */
 
 .empty-state {
@@ -55,13 +55,6 @@
     font-size: var(--font-size-md);
     color: var(--empty-state-footnote-color);
     max-width: 400px;
-  }
-
-  .empty-state__actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
   }
 
   .empty-state__settings {

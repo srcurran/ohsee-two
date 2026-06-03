@@ -5,44 +5,35 @@
  * There is no root `.wizard` element — the parts are siblings inside
  * `.modal__panel`. Structure mirrors that JSX tree (Wizard.tsx):
  *   <div .modal__panel>
- *     <div .wizard__head>
+ *     <div .wizard__head .row .row--between .row--xs>
  *       <h2 .wizard__title>
  *       <button .icon-btn>                  ← close
- *     <div .wizard__body>                   ← step content slot
- *       <div .wizard__fields>               ← from step children
+ *     <div .wizard__body .stack .stack--lg> ← step content slot
+ *       <div .wizard__fields .stack .stack--lg> ← from step children
  *         <h3 .wizard__section-title>
  *         <p .wizard__hint>
  *         <ul .wizard__step-list>
  *           <li .wizard__step-item>
  *             <span .wizard__step-label>
- *         <div .wizard__add-row>
- *     <div .wizard__footer>
+ *         <div .wizard__add-row .row .row--top>
+ *     <div .wizard__footer .row .row--between>
  *       <span .wizard__step-count>
- *       <div .wizard__footer-actions>
+ *       <div .row>                           ← footer actions
  */
 .modal__panel{
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
+/* Layout: .row .row--between .row--xs (JSX). Owns only the full-bleed width. */
 .wizard__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1);
   width: 100%;
 }
 
+/* Layout: .stack .stack--lg (JSX). */
 .wizard__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-
+  /* .wizard__fields is also .stack .stack--lg in JSX. */
   .wizard__fields {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-
     .wizard__section-title {
       margin: 0;
       font-size: var(--font-size-md);
@@ -134,10 +125,9 @@
       gap: var(--space-3);
     }
 
+    /* Layout: .row .row--top (JSX). Owns the top inset + the field/button
+       sizing rules below. */
     .wizard__add-row {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-3);
       padding-top: var(--space-3);
 
       /* The MaterialField inside should flex to fill the row. */
@@ -155,19 +145,10 @@
   }
 }
 
+/* Layout: .row .row--between (JSX). */
 .wizard__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-
   .wizard__step-count {
     font-size: var(--font-size-sm);
     color: var(--wizard-step-count-color);
-  }
-
-  .wizard__footer-actions {
-    display: flex;
-    gap: var(--space-3);
   }
 }

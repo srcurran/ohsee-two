@@ -11,13 +11,13 @@ interface EmptyStepsProps {
 
 export function EmptySteps({ onPickUrl, onPickMicrotest }: EmptyStepsProps) {
   return (
-    <div className="empty-steps">
+    <div className="empty-steps stack stack--start">
       <p className="empty-steps__heading">No steps yet.</p>
       <p className="empty-steps__copy">
         Start with a path you want to capture, or paste a Playwright script to
         navigate the app.
       </p>
-      <div className="empty-steps__actions">
+      <div className="empty-steps__actions row">
         <button type="button" className="btn btn--outline" onClick={onPickUrl}>
           Add path
         </button>

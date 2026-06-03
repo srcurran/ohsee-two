@@ -157,16 +157,13 @@
 
 /* ──────────────────────────────────────────────────────────────────────
  * Empty-state placeholder (TestSettingsEmpty.tsx):
- *   <div .empty-steps>
+ *   <div .empty-steps .stack .stack--start>
  *     <p .empty-steps__heading>
  *     <p .empty-steps__copy>
- *     <div .empty-steps__actions>
+ *     <div .empty-steps__actions .row>
  * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--start (JSX). Owns only the vertical padding. */
 .empty-steps {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
   padding: var(--space-4) 0;
 
   .empty-steps__heading {
@@ -184,9 +181,8 @@
     max-width: 48ch;
   }
 
+  /* Layout: .row (JSX). Owns only the gap above the action buttons. */
   .empty-steps__actions {
-    display: flex;
-    gap: var(--space-3);
     margin-top: var(--space-1);
   }
 }
@@ -289,7 +285,7 @@
  * Body of the "Test settings" accordion (TestSettingsOverlay.tsx):
  *   <div .test-settings-section>
  *     <BreakpointEditor … />
- *     <div .test-settings-section__variants>
+ *     <div .test-settings-section__variants .stack .stack--sm>
  *       <p .test-settings-section__label>
  *       <div .variant-list> …
  * ────────────────────────────────────────────────────────────────────── */
@@ -298,11 +294,8 @@
   flex-direction: column;
   gap: var(--space-5);
 
+  /* Layout: .stack .stack--sm (JSX). This block anchors its label child. */
   .test-settings-section__variants {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-
     .test-settings-section__label {
       margin: 0;
       font-size: var(--font-size-md);
@@ -314,7 +307,7 @@
 /* ──────────────────────────────────────────────────────────────────────
  * Add-step fork — first screen of the step editor sub-view
  * (TestSettingsStepEditor.tsx):
- *   <div .add-step-fork>
+ *   <div .add-step-fork .stack .stack--lg>
  *     <p .add-step-fork__copy>
  *     <div .add-step-fork__cards>
  *       <button .add-step-fork__card>          ← x2 (Path / Playwright)
@@ -322,11 +315,8 @@
  *         <span .add-step-fork__card-title>
  *         <span .add-step-fork__card-copy>
  * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--lg (JSX). This block only anchors its children. */
 .add-step-fork {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-
   .add-step-fork__copy {
     margin: 0;
     color: var(--add-step-fork-copy-color);
@@ -377,35 +367,25 @@
 /* ──────────────────────────────────────────────────────────────────────
  * Path/Playwright step editor sub-view (TestSettingsStepEditor.tsx /
  * ScriptStepEditor.tsx):
- *   <div .step-editor>
- *     <label .step-editor__field>             ← used by ScriptStepEditor
+ *   <div .step-editor .stack .stack--lg>
+ *     <label .step-editor__field .stack .stack--xs> ← used by ScriptStepEditor
  *       <span .step-editor__label>
  *       <input/textarea ... />
  *     <p .step-editor__hint>
- *     <div .step-editor__actions>
+ *     <div .step-editor__actions .row .row--end>
  * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--lg (JSX). This block anchors its children + carries
+   the children's own non-layout styling. */
 .step-editor {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-
+  /* Layout: .stack .stack--xs (JSX) — the <label> stacks its caption + input. */
   .step-editor__field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-
     .step-editor__label {
       font-size: var(--font-size-sm);
       color: var(--step-editor-label-color);
     }
   }
 
-  .step-editor__hint-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-  }
+  /* .step-editor__hint-row is .row .row--between in JSX. */
 
   .step-editor__hint {
     margin: 0;
@@ -413,10 +393,8 @@
     font-size: var(--font-size-md);
   }
 
+  /* Layout: .row .row--end (JSX). Owns only the gap above the action row. */
   .step-editor__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-3);
     margin-top: var(--space-3);
   }
 }
@@ -424,18 +402,15 @@
 /* ──────────────────────────────────────────────────────────────────────
  * Sections inside the app-level SettingsOverlay (and reusable elsewhere)
  * when the panel chrome is provided by .project-settings-overlay:
- *   <section .settings-section>
+ *   <section .settings-section .stack .stack--lg>
  *     <h3 .settings-section__title>
  *     <div .settings-section__row [--column]>
  *       <p/label .settings-section__label>
  *       <p .settings-section__hint>
  *     <div .settings-section__actions>
  * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--lg (JSX). This block anchors its children. */
 .settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-
   .settings-section__title {
     margin: 0;
     font-size: var(--font-size-2xl);

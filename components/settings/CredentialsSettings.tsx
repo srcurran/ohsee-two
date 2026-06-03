@@ -106,7 +106,7 @@ export default function CredentialsSettings() {
                 <p className="credential-row__label">{entry.label}</p>
                 <p className="credential-row__key">{entry.key}</p>
               </div>
-              <div className="credential-row__actions">
+              <div className="row row--sm shrink-0">
                 <button onClick={() => copySecret(entry.key)} className="flow-chip">
                   {flashed === `${entry.key}:secret` ? "Copied!" : "Copy secret"}
                 </button>

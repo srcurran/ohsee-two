@@ -210,7 +210,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
       label: "Danger Zone",
       content: project ? (
         <div className="project-settings-overlay__danger-body">
-          <section className="project-settings-overlay__danger-section">
+          <section className="project-settings-overlay__danger-section stack stack--xs">
             <h3 className="project-settings-overlay__danger-heading">
               {project.archived ? "Unarchive project" : "Archive project"}
             </h3>
@@ -224,7 +224,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             </button>
           </section>
 
-          <section className="project-settings-overlay__danger-section">
+          <section className="project-settings-overlay__danger-section stack stack--xs">
             <h3 className="project-settings-overlay__danger-heading">Archived tests</h3>
             <p className="project-settings-overlay__danger-copy">
               This is where archived tests can be restored.
@@ -236,7 +236,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
                 {archivedTests.map((t) => (
                   <li key={t.id} className="project-settings-overlay__archived-row">
                     <span className="project-settings-overlay__archived-name">{t.name}</span>
-                    <div className="project-settings-overlay__archived-actions">
+                    <div className="project-settings-overlay__archived-actions row row--lg">
                       <button
                         type="button"
                         className="project-settings-overlay__link-action"
@@ -295,7 +295,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
         aria-modal="true"
         aria-labelledby="project-settings-title"
       >
-        <header className="project-settings-overlay__header">
+        <header className="project-settings-overlay__header row row--between">
           {editingName ? (
             <input
               autoFocus

@@ -10,7 +10,7 @@
  * SettingsOverlay.tsx and TestSettingsOverlay.tsx):
  *   <div .project-settings-overlay [--visible|--exiting]>
  *     <div .project-settings-overlay__panel>
- *       <header .project-settings-overlay__header>
+ *       <header .project-settings-overlay__header .row .row--between>
  *         <button .project-settings-overlay__back>        ← step-editor back link
  *         <input  .project-settings-overlay__title-input> ← rename mode
  *         <button .project-settings-overlay__title-button>← view mode
@@ -22,14 +22,14 @@
  *         <button .project-settings-overlay__danger-toggle>
  *           <span .project-settings-overlay__section-title>
  *         <div    .project-settings-overlay__danger-body> ← inside ts-accordion
- *           <section .project-settings-overlay__danger-section>
+ *           <section .project-settings-overlay__danger-section .stack .stack--xs>
  *             <h3 .project-settings-overlay__danger-heading>
  *             <p  .project-settings-overlay__danger-copy>
  *             <p  .project-settings-overlay__empty>       ← fallback
  *             <ul .project-settings-overlay__archived-list>
  *               <li .project-settings-overlay__archived-row>
  *                 <span .project-settings-overlay__archived-name>
- *                 <div  .project-settings-overlay__archived-actions>
+ *                 <div  .project-settings-overlay__archived-actions .row .row--lg>
  *                   <button .project-settings-overlay__link-action [--danger]>
  */
 
@@ -74,12 +74,8 @@
       gap: var(--space-4);
     }
 
+    /* Layout: .row .row--between (JSX). This block anchors its children. */
     .project-settings-overlay__header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-3);
-
       /* Step-editor "‹ Back to steps" link. Uses .btn--text so it picks
          up the standard text-button hover. */
       .project-settings-overlay__back {
@@ -188,11 +184,8 @@
         padding-top: var(--space-5);
         padding-bottom: var(--space-2);
 
+        /* Layout: .stack .stack--xs (JSX). This block anchors its children. */
         .project-settings-overlay__danger-section {
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-1);
-
           .project-settings-overlay__danger-heading {
             margin: 0 0 var(--space-1) 0;
             font-size: var(--font-size-base);
@@ -237,11 +230,8 @@
                 color: var(--project-settings-overlay-archived-name-color);
               }
 
+              /* Layout: .row .row--lg (JSX). This block anchors its links. */
               .project-settings-overlay__archived-actions {
-                display: flex;
-                gap: var(--space-4);
-                align-items: center;
-
                 .project-settings-overlay__link-action {
                   background: transparent;
                   border: none;

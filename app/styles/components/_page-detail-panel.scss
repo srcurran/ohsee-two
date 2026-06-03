@@ -65,10 +65,9 @@
       justify-content: space-between;
       padding: var(--space-5) var(--space-6);
 
+      /* Layout: .row .row--sm (JSX). Owns only the min-width reset so the
+         title can truncate. */
       .page-detail-panel__title-group {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
         min-width: 0;
       }
 
@@ -81,11 +80,8 @@
            right edge of the whole nav row rather than the chevron button. */
         position: relative;
 
+        /* Layout: .row .row--sm (JSX). Structural wrapper for the date label. */
         .page-detail-panel__date-group {
-          display: flex;
-          align-items: center;
-          gap: var(--space-2);
-
           .page-detail-panel__date {
             font-size: var(--font-size-lg);
             color: var(--page-detail-panel-date-color);

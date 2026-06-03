@@ -124,7 +124,7 @@ export default function ScriptEditor({
 
   return (
     <div className="script-editor">
-      <div className="script-editor__toolbar">
+      <div className="row row--sm row--wrap">
         {defaultUrl && (
           <CodegenRecorder
             defaultUrl={defaultUrl}
@@ -146,7 +146,7 @@ export default function ScriptEditor({
 
       <div ref={editorRef} className="code-editor script-editor__code" />
 
-      <div className="script-editor__reference">
+      <div className="script-editor__reference row row--sm">
         <span className="script-editor__reference-title">Click to insert</span>
         {SNIPPETS.map((s) => (
           <button

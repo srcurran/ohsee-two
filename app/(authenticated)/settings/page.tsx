@@ -57,7 +57,7 @@ export default function SettingsPage() {
 
   return (
     <div className="page-shell">
-      <div className="page-header animate-card-in">
+      <div className="page-header stack stack--lg animate-card-in">
         <h1 className="page-header__title page-header__title--xl">Settings</h1>
 
         <div className="tab-bar">

@@ -19,7 +19,7 @@ export default function AuthProfileSelect({
   onManage: () => void;
 }) {
   return (
-    <div className="credentials-section__vault">
+    <div className="stack stack--sm">
       <label className="credentials-section__label" htmlFor="auth-profile-select">
         Sign-in profile
       </label>

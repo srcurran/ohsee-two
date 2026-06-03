@@ -1,10 +1,9 @@
 /* ReportPageGrid — responsive grid wrapping report page tiles. */
 
+/* Layout (flex column + gap) is .stack .stack--2xl in JSX; this block owns
+   only positioning for the running-state scrim overlay. */
 .page-grid-wrap {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 
   &--running {
     pointer-events: none;

@@ -7,14 +7,12 @@
  *     <div .breakpoint-editor__chips>
  *       <div .bp-chip>              ← per breakpoint (separate top-level class)
  *         <button .bp-chip__remove>
- *     <div .breakpoint-editor__add>  ← input + add button
+ *     <div .row .row--sm>            ← input + add button
  */
 
 .breakpoint-editor {
+  /* Layout: .row .row--sm (JSX). Owns only the spacing below + label type. */
   .breakpoint-editor__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     margin-bottom: var(--space-2);
 
     .breakpoint-editor__label {
@@ -28,17 +26,9 @@
     }
   }
 
+  /* Layout: .cluster (JSX). Owns only the spacing below the chip row. */
   .breakpoint-editor__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
     margin-bottom: var(--space-3);
-  }
-
-  .breakpoint-editor__add {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
   }
 }
 

@@ -126,7 +126,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
   };
 
   return (
-    <div className="change-list">
+    <div className="change-list stack stack--lg">
       <div className="change-list__header">
         <h3 className="change-list__title">Detected Changes</h3>
       </div>
@@ -140,7 +140,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
         onPointerCancel={endDrag}
         onClickCapture={handleClickCapture}
       >
-        <div className="change-list__filters-track">
+        <div className="change-list__filters-track row row--sm">
           <button
             onClick={() => setActiveFilter("all")}
             className={`pill ${activeFilter === "all" ? "pill--active" : ""}`}
@@ -172,7 +172,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
         </div>
       </div>
 
-      <div className="change-list__items">
+      <div className="change-list__items stack stack--xs">
         {filtered.map((change) => {
           // A change is "for this viewport" if its scope (the set of
           // breakpoints it appears at) includes the active one. Anything
@@ -250,7 +250,7 @@ function ChangeEntry({
       >
         {cfg.icon}
       </span>
-      <div className="change-entry__body">
+      <div className="change-entry__body stack stack--sm">
         <span
           className="change-entry__description"
           title={change.descriptionFull ?? change.description}

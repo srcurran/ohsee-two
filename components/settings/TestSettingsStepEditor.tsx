@@ -60,7 +60,7 @@ export function AddEditStepView({
 
   if (!pickedType) {
     return (
-      <div className="add-step-fork">
+      <div className="add-step-fork stack stack--lg">
         <p className="add-step-fork__copy">
           What kind of step do you want to add?
         </p>
@@ -90,7 +90,7 @@ export function AddEditStepView({
 
   if (pickedType === "url") {
     return (
-      <div className="step-editor">
+      <div className="step-editor stack stack--lg">
         <MaterialField
           label="Path"
           value={pathInput}
@@ -104,7 +104,7 @@ export function AddEditStepView({
           autoFocus
           spellCheck={false}
         />
-        <div className="step-editor__actions">
+        <div className="step-editor__actions row row--end">
           <button type="button" className="btn btn--text" onClick={onCancel}>Cancel</button>
           <button
             type="button"

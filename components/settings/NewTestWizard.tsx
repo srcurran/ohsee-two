@@ -299,7 +299,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         onNext={() => setStep(3)}
         onClose={onClose}
       >
-        <div className="wizard__fields">
+        <div className="wizard__fields stack stack--lg">
           <BreakpointEditor breakpoints={breakpoints} onChange={handleBreakpoints} />
           <div className="wizard__variants">
             <p className="wizard__variants-label">Variants</p>
@@ -335,7 +335,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         onNext={() => {}}
         onClose={onClose}
       >
-        <div className="wizard__fields">
+        <div className="wizard__fields stack stack--lg">
           <div className="type-fork">
             <button type="button" className="type-fork__card" onClick={() => chooseType("simple")}>
               <Icon name="globe" size={24} />
@@ -392,7 +392,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
       onClose={onClose}
     >
       {chosenType === "simple" ? (
-        <div className="wizard__fields">
+        <div className="wizard__fields stack stack--lg">
           {steps.length === 0 ? (
             <p className="wizard__hint">
               Add the paths you want to capture (e.g. /, /pricing).
@@ -414,7 +414,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
               ))}
             </ul>
           )}
-          <div className="wizard__add-row">
+          <div className="wizard__add-row row row--top">
             <MaterialField
               ref={pathRef}
               label="Path"
@@ -442,7 +442,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
           </div>
         </div>
       ) : (
-        <div className="wizard__fields">
+        <div className="wizard__fields stack stack--lg">
           <ScriptEditor value={script} onChange={handleScriptChange} defaultUrl={projectUrls[0]} />
           <AuthProfileSelect
             profiles={project?.authProfiles ?? []}

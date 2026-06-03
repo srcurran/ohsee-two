@@ -80,7 +80,7 @@ export default function ProjectPage() {
             <p className="empty-state__body">
               No reports yet. Run your first comparison.
             </p>
-            <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
+            <div className="row row--center" style={{ marginTop: "var(--space-5)" }}>
               <button
                 onClick={handleRun}
                 disabled={running}
@@ -104,7 +104,7 @@ export default function ProjectPage() {
             <p className="empty-state__body">
               Add a site test to start comparing.
             </p>
-            <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
+            <div className="row row--center" style={{ marginTop: "var(--space-5)" }}>
               <button
                 onClick={() => openNewTestWizard(params.id)}
                 className="btn btn--primary"
