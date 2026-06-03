@@ -1,0 +1,46 @@
+/* Settings overlay section nav — a left rail + content pane on tablet+,
+ * driven by the same section list that renders as stacked accordions on
+ * narrow widths (the component swaps layouts via a media-query hook). */
+
+.settings-nav {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+
+  &__rail {
+    flex-shrink: 0;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    position: sticky;
+    top: 0;
+  }
+
+  &__item {
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--sidebar-item-color);
+    font-family: inherit;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      background: var(--surface-hover-soft);
+    }
+
+    &--active {
+      background: var(--sidebar-item-background-active);
+      font-weight: var(--weight-semibold);
+    }
+  }
+
+  &__pane {
+    flex: 1;
+    min-width: 0;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField, { type MaterialFieldStatus } from "@/components/utility/MaterialField";
 import { useSidebar } from "@/components/utility/SidebarProvider";
@@ -8,6 +8,10 @@ import { checkUrl } from "@/lib/url-validation";
 import type { Project, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
 import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
+import { Accordion } from "@/components/settings/TestSettingsAccordion";
+import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
+
+type ProjSectionId = "general" | "auth" | "danger";
 
 const ENTER_MS = 180;
 const EXIT_MS = 140;
@@ -31,16 +35,16 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
   const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [animState, setAnimState] = useState<"entering" | "visible" | "exiting">("entering");
-  // Sub-view: the sign-in profiles manager renders in this same panel (with a
-  // back button) instead of stacking another overlay.
-  const [view, setView] = useState<"main" | "auth">("main");
+  // Narrow: stacked accordions. Tablet+: left-rail nav. One section list.
+  const wide = useMediaQuery("(min-width: 768px)");
+  const [openAccordion, setOpenAccordion] = useState<ProjSectionId | null>("general");
+  const [activeSection, setActiveSection] = useState<ProjSectionId>("general");
 
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [prodUrl, setProdUrl] = useState("");
   const [devUrl, setDevUrl] = useState("");
 
-  const [dangerOpen, setDangerOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const stateRef = useRef({ name, prodUrl, devUrl });
@@ -166,6 +170,117 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
 
   const archivedTests: SiteTest[] = (project?.tests || []).filter((t) => t.archived);
 
+  // Section list — rail+pane on tablet+, accordions on narrow.
+  const sections: { id: ProjSectionId; label: string; content: ReactNode }[] = [
+    {
+      id: "general",
+      label: "General",
+      content: (
+        <>
+          <MaterialField
+            label="Prod URL"
+            value={prodUrl}
+            onChange={(e) => onProdChange(e.target.value)}
+            onBlur={flushSave}
+            status={prodStatus}
+            error={prodStatus === "invalid" ? (prodCheck.ok ? null : prodCheck.reason) : null}
+            placeholder="https://example.com"
+            spellCheck={false}
+          />
+          <MaterialField
+            label="Dev URL"
+            value={devUrl}
+            onChange={(e) => onDevChange(e.target.value)}
+            onBlur={flushSave}
+            status={devStatus}
+            error={devStatus === "invalid" ? (devCheck.ok ? null : devCheck.reason) : null}
+            placeholder="http://localhost:3000"
+            spellCheck={false}
+          />
+        </>
+      ),
+    },
+    {
+      id: "auth",
+      label: "Sign-in profiles",
+      content: <AuthProfilesPanel projectId={projectId} />,
+    },
+    {
+      id: "danger",
+      label: "Danger Zone",
+      content: project ? (
+        <div className="project-settings-overlay__danger-body">
+          <section className="project-settings-overlay__danger-section">
+            <h3 className="project-settings-overlay__danger-heading">
+              {project.archived ? "Unarchive project" : "Archive project"}
+            </h3>
+            <p className="project-settings-overlay__danger-copy">
+              {project.archived
+                ? "Restore this project to the sidebar."
+                : "Hide this project from the sidebar. Reports are preserved."}
+            </p>
+            <button type="button" className="btn btn--outline" onClick={handleArchiveProject}>
+              {project.archived ? "Unarchive" : "Archive"}
+            </button>
+          </section>
+
+          <section className="project-settings-overlay__danger-section">
+            <h3 className="project-settings-overlay__danger-heading">Archived tests</h3>
+            <p className="project-settings-overlay__danger-copy">
+              This is where archived tests can be restored.
+            </p>
+            {archivedTests.length === 0 ? (
+              <p className="project-settings-overlay__empty">No archived tests.</p>
+            ) : (
+              <ul className="project-settings-overlay__archived-list">
+                {archivedTests.map((t) => (
+                  <li key={t.id} className="project-settings-overlay__archived-row">
+                    <span className="project-settings-overlay__archived-name">{t.name}</span>
+                    <div className="project-settings-overlay__archived-actions">
+                      <button
+                        type="button"
+                        className="project-settings-overlay__link-action"
+                        onClick={() => handleUnarchiveTest(t.id)}
+                      >
+                        un-archive
+                      </button>
+                      {pendingDeleteId === t.id ? (
+                        <>
+                          <button
+                            type="button"
+                            className="project-settings-overlay__link-action project-settings-overlay__link-action--danger"
+                            onClick={() => handleDeleteTest(t.id)}
+                          >
+                            confirm delete
+                          </button>
+                          <button
+                            type="button"
+                            className="project-settings-overlay__link-action"
+                            onClick={() => setPendingDeleteId(null)}
+                          >
+                            cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="project-settings-overlay__link-action"
+                          onClick={() => setPendingDeleteId(t.id)}
+                        >
+                          delete
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      ) : null,
+    },
+  ];
+
   return (
     <div
       className={`project-settings-overlay project-settings-overlay--${animState}`}
@@ -181,26 +296,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
         aria-labelledby="project-settings-title"
       >
         <header className="project-settings-overlay__header">
-          {view === "auth" ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setView("main")}
-                className="btn btn--text project-settings-overlay__back"
-              >
-                <Icon name="chevron-left" size={16} />
-                <span>Sign-in profiles</span>
-              </button>
-              <button
-                type="button"
-                className="icon-btn project-settings-overlay__close"
-                onClick={handleClose}
-                title="Close"
-              >
-                <Icon name="close" size={20} />
-              </button>
-            </>
-          ) : editingName ? (
+          {editingName ? (
             <input
               autoFocus
               className="project-settings-overlay__title-input"
@@ -240,133 +336,37 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
         </header>
 
         <div className="project-settings-overlay__body">
-          {view === "auth" ? (
-            <AuthProfilesPanel projectId={projectId} />
-          ) : (
-          <>
-          <MaterialField
-            label="Prod URL"
-            value={prodUrl}
-            onChange={(e) => onProdChange(e.target.value)}
-            onBlur={flushSave}
-            status={prodStatus}
-            error={prodStatus === "invalid" ? prodCheck.ok ? null : prodCheck.reason : null}
-            placeholder="https://example.com"
-            spellCheck={false}
-          />
-          <MaterialField
-            label="Dev URL"
-            value={devUrl}
-            onChange={(e) => onDevChange(e.target.value)}
-            onBlur={flushSave}
-            status={devStatus}
-            error={devStatus === "invalid" ? devCheck.ok ? null : devCheck.reason : null}
-            placeholder="http://localhost:3000"
-            spellCheck={false}
-          />
-
-          <button
-            type="button"
-            className="btn btn--outline"
-            onClick={() => setView("auth")}
-          >
-            Sign-in profiles
-          </button>
-
-          <div className={`ts-accordion ${dangerOpen ? "ts-accordion--open" : ""}`}>
-            <button
-              type="button"
-              className="project-settings-overlay__danger-toggle"
-              onClick={() => setDangerOpen((v) => !v)}
-              aria-expanded={dangerOpen}
-            >
-              <span className="project-settings-overlay__section-title">Danger Zone</span>
-              <span
-                className={`ts-accordion__glyph ${dangerOpen ? "ts-accordion__glyph--open" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-            <div className="ts-accordion__collapse" aria-hidden={!dangerOpen}>
-              <div className="ts-accordion__collapse-inner">
-                {project && (
-            <div className="project-settings-overlay__danger-body">
-              <section className="project-settings-overlay__danger-section">
-                <h3 className="project-settings-overlay__danger-heading">
-                  {project.archived ? "Unarchive project" : "Archive project"}
-                </h3>
-                <p className="project-settings-overlay__danger-copy">
-                  {project.archived
-                    ? "Restore this project to the sidebar."
-                    : "Hide this project from the sidebar. Reports are preserved."}
-                </p>
-                <button
-                  type="button"
-                  className="btn btn--outline"
-                  onClick={handleArchiveProject}
-                >
-                  {project.archived ? "Unarchive" : "Archive"}
-                </button>
-              </section>
-
-              <section className="project-settings-overlay__danger-section">
-                <h3 className="project-settings-overlay__danger-heading">Archived tests</h3>
-                <p className="project-settings-overlay__danger-copy">
-                  This is where archived tests can be restored.
-                </p>
-
-                {archivedTests.length === 0 ? (
-                  <p className="project-settings-overlay__empty">No archived tests.</p>
-                ) : (
-                  <ul className="project-settings-overlay__archived-list">
-                    {archivedTests.map((t) => (
-                      <li key={t.id} className="project-settings-overlay__archived-row">
-                        <span className="project-settings-overlay__archived-name">{t.name}</span>
-                        <div className="project-settings-overlay__archived-actions">
-                          <button
-                            type="button"
-                            className="project-settings-overlay__link-action"
-                            onClick={() => handleUnarchiveTest(t.id)}
-                          >
-                            un-archive
-                          </button>
-                          {pendingDeleteId === t.id ? (
-                            <>
-                              <button
-                                type="button"
-                                className="project-settings-overlay__link-action project-settings-overlay__link-action--danger"
-                                onClick={() => handleDeleteTest(t.id)}
-                              >
-                                confirm delete
-                              </button>
-                              <button
-                                type="button"
-                                className="project-settings-overlay__link-action"
-                                onClick={() => setPendingDeleteId(null)}
-                              >
-                                cancel
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              type="button"
-                              className="project-settings-overlay__link-action"
-                              onClick={() => setPendingDeleteId(t.id)}
-                            >
-                              delete
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-                )}
+          {wide ? (
+            <div className="settings-nav">
+              <nav className="settings-nav__rail">
+                {sections.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`settings-nav__item${activeSection === s.id ? " settings-nav__item--active" : ""}`}
+                    onClick={() => setActiveSection(s.id)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </nav>
+              <div className="settings-nav__pane">
+                {(sections.find((s) => s.id === activeSection) ?? sections[0])?.content}
               </div>
             </div>
-          </div>
-          </>
+          ) : (
+            <div className="ts-accordion-group">
+              {sections.map((s) => (
+                <Accordion
+                  key={s.id}
+                  title={s.label}
+                  open={openAccordion === s.id}
+                  onToggle={() => setOpenAccordion((cur) => (cur === s.id ? null : s.id))}
+                >
+                  {s.content}
+                </Accordion>
+              ))}
+            </div>
           )}
         </div>
       </div>
