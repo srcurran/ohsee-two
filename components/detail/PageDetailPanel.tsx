@@ -26,6 +26,7 @@ import {
 } from "@/components/detail/utils/pageDetail";
 import { classifyChanges } from "@/components/detail/utils/changeScope";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
+import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 
 interface Props {
   report: Report;
@@ -155,7 +156,9 @@ export default function PageDetailPanel({
   // Total unique change count across every breakpoint — the header badge
   // shows the same number as the Detected Changes list and the page-card
   // badge, regardless of which viewport tab is active.
-  const totalChangeCount = crossBpChanges.length;
+  const { accepted } = useAcceptedChanges();
+  // Accepted (expected) diffs don't count toward the header badge.
+  const totalChangeCount = activeChanges(crossBpChanges, report.id, accepted).length;
   // Merge scope-aware specific counts into the per-breakpoint stats so the
   // deviation dots in BreakpointTabs can distinguish universal changes from
   // breakpoint-specific ones.
@@ -338,6 +341,7 @@ export default function PageDetailPanel({
                   hasPixelDiff={(bpResult.pixelChangeCount ?? 0) > 0}
                   activeBp={activeBp}
                   changeScope={changeScope}
+                  reportId={report.id}
                   onChangeClick={(id) => {
                     // Tapping a change item is a request to inspect it —
                     // turn Diff on so the highlighted regions are visible,

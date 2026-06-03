@@ -10,6 +10,7 @@ import ChangeBadge from "@/components/utility/ChangeBadge";
 import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
 import { changeGroupKey } from "@/lib/change-identity";
+import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
 
 /** Page-tile thumbnail with a shimmer placeholder shown until the image is
  *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
@@ -81,6 +82,7 @@ function ReportPageGridComponent({
   activeVariant,
   onOpenPage,
 }: ReportPageGridProps) {
+  const { accepted } = useAcceptedChanges();
   const renderPageCard = (page: ReportPage, index: number) => {
     const bpResult = getPageBp(page, String(activeBp), activeVariant);
     const hasScreenshot = !!bpResult?.prodScreenshot;
@@ -95,7 +97,10 @@ function ReportPageGridComponent({
         : page.breakpoints;
     const uniqueKeys = new Set<string>();
     for (const r of Object.values(bpData)) {
-      for (const c of r.semanticChanges ?? []) uniqueKeys.add(changeGroupKey(c));
+      for (const c of r.semanticChanges ?? []) {
+        // Accepted (expected) diffs don't count toward the card badge.
+        if (!accepted.has(acceptedChangeKey(report.id, c))) uniqueKeys.add(changeGroupKey(c));
+      }
     }
     const changeCount = uniqueKeys.size;
 

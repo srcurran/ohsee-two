@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 import { changeGroupKey } from "@/lib/change-identity";
+import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
 
 interface ChangeListProps {
@@ -15,13 +16,16 @@ interface ChangeListProps {
   activeBp?: number;
   changeScope?: ChangeScope;
   onChangeClick?: (id: string) => void;
+  /** Report this list belongs to — namespaces the per-change "accepted" state. */
+  reportId: string;
 }
 
 // How far the pointer must move before we treat the gesture as a drag and
 // suppress the trailing click on whichever filter-pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
 
-export default function ChangeList({ changes, activeBp, changeScope, onChangeClick }: ChangeListProps) {
+export default function ChangeList({ changes, activeBp, changeScope, onChangeClick, reportId }: ChangeListProps) {
+  const { accepted, toggle } = useAcceptedChanges();
   const [activeFilter, setActiveFilter] = useState<ChangeCategory | "all">("all");
   const filtersRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -192,6 +196,8 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
               change={change}
               changeScope={changeScope}
               dimmed={dimmed}
+              accepted={accepted.has(acceptedChangeKey(reportId, change))}
+              onToggleAccepted={() => toggle(acceptedChangeKey(reportId, change))}
               onClick={
                 onChangeClick && !dimmed
                   ? () => onChangeClick(change.id)
@@ -209,17 +215,22 @@ function ChangeEntry({
   change,
   changeScope,
   dimmed,
+  accepted,
+  onToggleAccepted,
   onClick,
 }: {
   change: SemanticChange;
   changeScope?: ChangeScope;
   dimmed?: boolean;
+  accepted?: boolean;
+  onToggleAccepted?: () => void;
   onClick?: () => void;
 }) {
   const cfg = CATEGORY_CONFIG[change.category];
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
   const dimmedCls = dimmed ? "change-entry--dimmed" : "";
+  const acceptedCls = accepted ? "change-entry--accepted" : "";
 
   // Locate the change by content ("the header", "the “Pricing” section").
   const locationLine = change.location;
@@ -241,7 +252,7 @@ function ChangeEntry({
   return (
     <div
       onClick={onClick}
-      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls}`}
+      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls} ${acceptedCls}`}
     >
       <div className="change-entry__body stack stack--xs">
         <div className="stack stack--2xs">
@@ -257,7 +268,16 @@ function ChangeEntry({
             <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
         )}
 
-        <button className="btn--text self-start">Approve</button>
+        <button
+          type="button"
+          className="btn--text self-start change-entry__accept"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleAccepted?.();
+          }}
+        >
+          {accepted ? "✓ Accepted — undo" : "Accept"}
+        </button>
       </div>
       <span
           className="change-entry__icon"

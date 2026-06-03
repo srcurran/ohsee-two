@@ -104,6 +104,23 @@
     cursor: default;
   }
 
+  /* Accepted: an expected diff the user has signed off on — receded with a
+     green edge. Stays in the list but no longer counts toward the badges. */
+  &--accepted {
+    border-left-color: var(--change-entry-border-ok);
+    opacity: 0.6;
+
+    .change-entry__description {
+      text-decoration: line-through;
+      text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+    }
+  }
+
+  /* The Accept / Undo toggle — a quiet text link under the description. */
+  &__accept {
+    font-size: var(--font-size-sm);
+  }
+
   .change-entry__icon {
     margin-top: var(--space-0-5);
     display: flex;
