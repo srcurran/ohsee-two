@@ -255,7 +255,7 @@ A component's name should tell you where it sits:
   *absence* of a prefix is the signal. Settings-area ones live in
   `components/settings/shared/` (its `README.md` maps each to its consumers);
   truly cross-area UI primitives live in `components/utility/`
-  (`MaterialField`, `BreakpointTabs`, …).
+  (`Field`, `BreakpointTabs`, …).
 
 `index/` + `detail/` together are the report-viewing domain, so a few report
 pieces (`BreakpointTabs`, `VariantTabs`, `index/utils/report.ts`) are shared
@@ -280,6 +280,23 @@ Every non-trivial component splits like the sidebar:
 Hook filenames are the export name minus the `use` prefix
 (`useFooData` → `fooData.ts`). Inline SVGs go in
 `components/utility/icons.tsx` (shared across all buckets).
+
+### Form inputs — one component
+
+There is **one** labeled-input pattern: the `Field` component
+(`components/utility/Field.tsx`) — a label *above* a plain `.input`, with
+optional `hint` / `error` (debounced) and a trailing affordance. Extensions
+ride on the same component, never a parallel one:
+
+- `status` (`idle` / `valid` / `verified` / `invalid`) → border tint + icon
+- `copyValue` → a copy-to-clipboard button (or pass any `trailing` node)
+- `labelSuffix` → a node after the label (e.g. a `$VAR$` tag)
+
+The affordance pieces (`.field__control`, `.field__trailing`, `.field__var`,
+`.input--with-trailing`) are standalone in `_field.scss`, so a rare composite
+control (e.g. the 2FA mode-toggle + input) can compose them with the exported
+`CopyButton` instead of forking the component. There is no "material" field —
+that label-inside-a-shell variant was the inconsistency this replaced.
 
 ---
 
@@ -321,6 +338,10 @@ Code identifiers may keep technical names (`loginScript`, `storageState`,
   of related"). The 1:1 rule is the readability win.
 - **Reaching across buckets via relative imports.** Always use
   `@/components/{bucket}/X`.
+- **A second input style.** All labeled inputs are the `Field` component
+  (label above input). Don't reintroduce a near-identical variant — extend
+  `Field` (status / trailing / copy) instead. Bare styled inputs are only for
+  non-form cases (inline title rename, search, the breakpoint add-row).
 - **Repeating padding/gaps across sibling children.** Spacing lives on the
   flex wrapper (`gap` + one `padding`), not duplicated on `__header`/`__body`-
   style children or faked with per-child `margin-bottom`. See "Spacing &

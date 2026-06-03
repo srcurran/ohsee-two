@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
-import { Icon } from "@/components/utility/Icon";
+import Field, { CopyButton } from "@/components/utility/Field";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
 import { formatRelativeTime } from "@/lib/relative-time";
@@ -246,7 +246,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                     <div className="stack stack--xs">
                       <label className="auth-profile__cred-label row row--sm">
                         Two-factor
-                        <code className="auth-profile__var">$OTP$</code>
+                        <code className="field__var">$OTP$</code>
                         <div className="segmented">
                           <button
                               type="button"
@@ -264,9 +264,9 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                           </button>
                         </div>
                       </label>
-                      <div className="auth-profile__cred-input">
+                      <div className="field__control">
                         <input
-                          className="input input--compact auth-profile__cred-input-el"
+                          className="input input--with-trailing"
                           value={cred.otpValue}
                           placeholder={
                             cred.otpMode === "totp"
@@ -277,7 +277,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                           autoComplete="off"
                           onChange={(e) => updateCred(profile.id, { otpValue: e.target.value })}
                         />
-                        <CopyVarButton variable="$OTP$" />
+                        <div className="field__trailing"><CopyButton value="$OTP$" /></div>
                       </div>
                     </div>
                   </div>
@@ -348,55 +348,16 @@ function CredField({
   placeholder?: string;
 }) {
   return (
-    <div className="stack stack--xs">
-      <label className="auth-profile__cred-label row row--sm">
-        {label}
-        <code className="auth-profile__var">{variable}</code>
-      </label>
-      <div className="auth-profile__cred-input">
-        <input
-          className="input input--compact auth-profile__cred-input-el"
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          spellCheck={false}
-          autoComplete="off"
-          onChange={(e) => onChange(e.target.value)}
-        />
-        <CopyVarButton variable={variable} />
-      </div>
-    </div>
-  );
-}
-
-/** Copy-to-clipboard button for a script variable ($EMAIL$ etc.). Sits inside
- *  a credential input and flashes a check on success. */
-function CopyVarButton({ variable }: { variable: string }) {
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => clearTimeout(timer.current ?? undefined), []);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(variable);
-      setCopied(true);
-      clearTimeout(timer.current ?? undefined);
-      timer.current = setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard unavailable — nothing to fall back to
-    }
-  };
-
-  return (
-    <button
-      type="button"
-      className="icon-btn icon-btn--sm auth-profile__copy-var"
-      onClick={copy}
-      title={copied ? "Copied!" : `Copy ${variable}`}
-      aria-label={`Copy ${variable}`}
-    >
-      <Icon name={copied ? "check" : "copy"} size={16} />
-    </button>
+    <Field
+      label={label}
+      labelSuffix={<code className="field__var">{variable}</code>}
+      copyValue={variable}
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      spellCheck={false}
+      autoComplete="off"
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }

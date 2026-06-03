@@ -44,6 +44,39 @@
   }
 }
 
+/* Input affordances — standalone (like .input) so they compose onto any
+   labeled input, including custom composite controls that aren't a .field.
+   .field__control wraps the input + a trailing slot overlaid at the trailing
+   edge; the input reserves room via .input--with-trailing. */
+.field__control {
+  position: relative;
+  display: flex;
+}
+
+.field__trailing {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  color: var(--field-hint-color);
+}
+
+.field__status-icon {
+  display: block;
+
+  &--success { color: var(--status-success-500); }
+  &--error { color: var(--status-error-500); }
+}
+
+/* The `$VAR$` tag shown after a label (e.g. credential → script variable). */
+.field__var {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--font-size-sm);
+  color: var(--field-hint-color);
+}
+
 .input {
   width: 100%;
   border: 1px solid var(--input-border);
@@ -107,6 +140,11 @@
   &--error {
     border-color: var(--input-border-error);
     &:focus { border-color: var(--input-border-error); }
+  }
+
+  /* Reserves room for a .field__trailing affordance at the trailing edge. */
+  &--with-trailing {
+    padding-right: var(--space-8);
   }
 }
 

@@ -42,36 +42,11 @@
     font-weight: var(--weight-semibold);
   }
 
-  /* Layout: .row .row--sm (JSX). Owns only the label's type + color. */
+  /* Two-factor row: the "Two-factor" caption + $OTP$ tag + mode toggle.
+     (Inputs use the shared Field affordances — see _field.scss.) */
   &__cred-label {
     font-size: var(--font-size-md);
     color: var(--credentials-section-label-color);
-  }
-
-  &__var {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--font-size-sm);
-    color: var(--credentials-section-hint-color);
-  }
-
-  /* Credential value + a button overlaid at the trailing edge that copies
-     the field's $VAR$ token for pasting into the sign-in script. */
-  &__cred-input {
-    position: relative;
-    display: flex;
-  }
-
-  &__cred-input-el {
-    /* Reserve space so typed text never slides under the copy button. */
-    padding-right: var(--space-8);
-  }
-
-  &__copy-var {
-    position: absolute;
-    top: 50%;
-    right: var(--space-1);
-    transform: translateY(-50%);
-    color: var(--credentials-section-hint-color);
   }
 
   /* Pushes the destructive action to the far end of its .row action bar. */

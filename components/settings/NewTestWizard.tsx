@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import MaterialField from "@/components/utility/MaterialField";
+import Field from "@/components/utility/Field";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
 import AuthProfileSelect from "@/components/settings/shared/AuthProfileSelect";
 import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
@@ -273,7 +273,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         onNext={handleCreate}
         onClose={onClose}
       >
-        <MaterialField
+        <Field
           label="What should this test be called?"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -415,7 +415,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
             </ul>
           )}
           <div className="wizard__add-row row row--top">
-            <MaterialField
+            <Field
               ref={pathRef}
               label="Path"
               value={pathInput}

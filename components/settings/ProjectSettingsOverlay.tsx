@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import MaterialField, { type MaterialFieldStatus } from "@/components/utility/MaterialField";
+import Field, { type FieldStatus } from "@/components/utility/Field";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { checkUrl } from "@/lib/url-validation";
 import type { Project, SiteTest } from "@/lib/types";
@@ -165,8 +165,8 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
 
   const prodCheck = checkUrl(prodUrl);
   const devCheck = checkUrl(devUrl);
-  const prodStatus: MaterialFieldStatus = !prodUrl ? "idle" : prodCheck.ok ? "valid" : "invalid";
-  const devStatus: MaterialFieldStatus = !devUrl ? "idle" : devCheck.ok ? "valid" : "invalid";
+  const prodStatus: FieldStatus = !prodUrl ? "idle" : prodCheck.ok ? "valid" : "invalid";
+  const devStatus: FieldStatus = !devUrl ? "idle" : devCheck.ok ? "valid" : "invalid";
 
   const archivedTests: SiteTest[] = (project?.tests || []).filter((t) => t.archived);
 
@@ -177,7 +177,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
       label: "General",
       content: (
         <>
-          <MaterialField
+          <Field
             label="Prod URL"
             value={prodUrl}
             onChange={(e) => onProdChange(e.target.value)}
@@ -187,7 +187,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             placeholder="https://example.com"
             spellCheck={false}
           />
-          <MaterialField
+          <Field
             label="Dev URL"
             value={devUrl}
             onChange={(e) => onDevChange(e.target.value)}

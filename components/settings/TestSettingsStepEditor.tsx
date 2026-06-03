@@ -6,7 +6,7 @@
 "use client";
 
 import { useState } from "react";
-import MaterialField from "@/components/utility/MaterialField";
+import Field from "@/components/utility/Field";
 import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
 import { resolveProjectPath } from "@/lib/url-utils";
 import type { TestStep } from "@/lib/types";
@@ -91,7 +91,7 @@ export function AddEditStepView({
   if (pickedType === "url") {
     return (
       <div className="step-editor stack stack--lg">
-        <MaterialField
+        <Field
           label="Path"
           value={pathInput}
           onChange={(e) => setPathInput(e.target.value)}

@@ -130,15 +130,15 @@
     .wizard__add-row {
       padding-top: var(--space-3);
 
-      /* The MaterialField inside should flex to fill the row. */
-      > .material-field {
+      /* The Field inside should flex to fill the row. */
+      > .field {
         flex: 1 1 auto;
         min-width: 0;
       }
 
-      /* Align the button vertically with the field shell (label + input). */
+      /* Drop the button beside the input, clearing the field's label above. */
       > button {
-        margin-top: var(--space-5);
+        margin-top: var(--space-6);
         flex-shrink: 0;
       }
     }
