@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import MaterialField from "@/components/utility/MaterialField";
-import Wizard from "@/components/settings/Wizard";
+import Wizard from "@/components/settings/shared/Wizard";
 import { checkUrl } from "@/lib/url-validation";
 
 interface Props {

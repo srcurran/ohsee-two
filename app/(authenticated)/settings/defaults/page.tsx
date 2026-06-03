@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 

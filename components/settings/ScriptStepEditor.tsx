@@ -7,7 +7,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import type { TestStep } from "@/lib/types";
-import CodegenRecorder from "@/components/settings/CodegenRecorder";
+import CodegenRecorder from "@/components/settings/shared/CodegenRecorder";
 
 /**
  * Inline Playwright-script step editor. CodeMirror setup lifted from the

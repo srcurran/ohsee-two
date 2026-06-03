@@ -1,13 +1,13 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
-import { Accordion } from "@/components/settings/TestSettingsAccordion";
-import AuthProfileSelect from "@/components/settings/AuthProfileSelect";
-import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
-import ScriptEditor from "@/components/settings/ScriptEditor";
+import { Accordion } from "@/components/settings/shared/SettingsAccordion";
+import AuthProfileSelect from "@/components/settings/shared/AuthProfileSelect";
+import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
+import ScriptEditor from "@/components/settings/shared/ScriptEditor";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
 import { AddEditStepView } from "@/components/settings/TestSettingsStepEditor";

@@ -12,7 +12,7 @@ import {
   clearSnippet,
 } from "@codemirror/autocomplete";
 import { basicSetup } from "codemirror";
-import CodegenRecorder from "@/components/settings/CodegenRecorder";
+import CodegenRecorder from "@/components/settings/shared/CodegenRecorder";
 import { extractScriptBody, insertSnapshotsAfterNavigation } from "@/lib/script-utils";
 
 /** Click-to-insert snippets. `${…}` marks an editable field: inserting selects

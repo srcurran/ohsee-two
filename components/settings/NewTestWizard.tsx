@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
-import ScriptEditor from "@/components/settings/ScriptEditor";
-import AuthProfileSelect from "@/components/settings/AuthProfileSelect";
-import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
-import BreakpointEditor from "@/components/settings/BreakpointEditor";
-import Wizard from "@/components/settings/Wizard";
+import ScriptEditor from "@/components/settings/shared/ScriptEditor";
+import AuthProfileSelect from "@/components/settings/shared/AuthProfileSelect";
+import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
+import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
+import Wizard from "@/components/settings/shared/Wizard";
 import { Icon } from "@/components/utility/Icon";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";

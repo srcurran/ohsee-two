@@ -7,8 +7,8 @@ import { useSidebar } from "@/components/utility/SidebarProvider";
 import { checkUrl } from "@/lib/url-validation";
 import type { Project, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
-import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
-import { Accordion } from "@/components/settings/TestSettingsAccordion";
+import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
+import { Accordion } from "@/components/settings/shared/SettingsAccordion";
 import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
 
 type ProjSectionId = "general" | "auth" | "danger";

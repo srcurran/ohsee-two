@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import ScriptEditor from "@/components/settings/ScriptEditor";
+import ScriptEditor from "@/components/settings/shared/ScriptEditor";
 import { Icon } from "@/components/utility/Icon";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
