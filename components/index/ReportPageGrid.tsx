@@ -6,7 +6,7 @@
  * render in place of this grid. */
 
 import { memo, useEffect, useRef, useState } from "react";
-import ChangeBadge from "@/components/index/ChangeBadge";
+import ChangeBadge from "@/components/utility/ChangeBadge";
 import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
 import { changeGroupKey } from "@/lib/change-identity";

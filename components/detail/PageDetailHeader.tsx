@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/utility/Icon";
+import ChangeBadge from "@/components/utility/ChangeBadge";
 import { formatFullDateTime, formatRelativeTime } from "@/lib/relative-time";
 import type { Report, ReportPage } from "@/lib/types";
 
@@ -47,7 +48,7 @@ export function PageDetailHeader({
     >
       <div className="page-detail-panel__title-group row row--sm">
         <PageTitleMenu label={pageName} prodUrl={prodUrl} devUrl={devUrl} />
-        <HeaderBadge noData={noData} changeCount={changeCount} />
+        <ChangeBadge noData={noData} count={changeCount} size="lg" />
       </div>
 
       <div className="page-detail-panel__nav">
@@ -150,29 +151,6 @@ function PageTitleMenu({
         </>
       )}
     </div>
-  );
-}
-
-/** Single filled badge with the total change count — the in-list scope
- * labels (universal vs viewport-specific) carry the breakdown, so the
- * header just needs the total at a glance. */
-function HeaderBadge({
-  noData,
-  changeCount,
-}: {
-  noData: boolean;
-  changeCount: number;
-}) {
-  if (noData) {
-    return <span className="badge badge--lg badge--neutral">&mdash;</span>;
-  }
-  if (changeCount === 0) {
-    return <span className="badge badge--lg badge--success">0</span>;
-  }
-  return (
-    <span className="badge badge--lg badge--warning">
-      {changeCount > 50 ? "50+" : changeCount}
-    </span>
   );
 }
 

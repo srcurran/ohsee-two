@@ -6,6 +6,7 @@ import type { Report, ReportPage } from "@/lib/types";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
 import { Icon } from "@/components/utility/Icon";
+import ChangeBadge from "@/components/utility/ChangeBadge";
 import { formatPageName } from "@/components/detail/utils/pageRoute";
 
 interface PageRouteHeaderProps {
@@ -40,8 +41,6 @@ export default function PageRouteHeader({
 
   const dateStr = formatRelativeTime(report.createdAt);
   const pageName = formatPageName(currentPage);
-  const badgeMod =
-    totalUniqueChanges > 0 ? "badge--warning-tint" : "badge--success-tint";
 
   return (
     <div className="report-page__header stack stack--lg">
@@ -101,9 +100,7 @@ export default function PageRouteHeader({
             </div>
           </div>
 
-          <span className={`badge badge--xl ${badgeMod}`}>
-            {totalUniqueChanges}
-          </span>
+          <ChangeBadge count={totalUniqueChanges} tone="tint" size="xl" />
         </div>
 
         <div className="report-page__nav row row--xl">
