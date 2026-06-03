@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import type { ErrorModalDetails } from "@/components/utility/ErrorModal";
 import { getOhsee, trackReportCompletion } from "@/lib/electron";
 import type { Project, Report, SiteTest } from "@/lib/types";

@@ -6,7 +6,7 @@ import { useSidebar, usePageTitle } from "@/components/utility/SidebarProvider";
 import type { Project, Report } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
 import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
-import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import { Icon } from "@/components/utility/Icon";
 
 export default function ProjectPage() {

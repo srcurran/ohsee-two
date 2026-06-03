@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { Project, SiteTest } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
 import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
-import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { Icon } from "@/components/utility/Icon";
 
