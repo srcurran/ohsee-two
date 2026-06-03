@@ -38,18 +38,16 @@
   inset: 0;
   z-index: var(--z-toast);
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
-  padding: 8vh var(--space-4) var(--space-8);
+  /* Near-full-screen panel with uniform breathing room on the outside. */
+  padding: var(--space-6);
   background: var(--project-settings-overlay-scrim);
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-standard);
 
-  /* Narrow viewports: drop the top breathing room so the panel uses
-     more of the available height, but keep horizontal margin. */
   @media (max-width: 640px) {
-    padding-top: var(--space-6);
-    padding-inline: var(--space-3);
+    padding: var(--space-3);
   }
 
   &--visible { opacity: 1; }
@@ -57,14 +55,14 @@
 
   .project-settings-overlay__panel {
     width: 100%;
-    max-width: 640px;
-    max-height: 90vh;
-    overflow: auto;
+    height: 100%;
     background: var(--project-settings-overlay-panel-background);
     border-radius: var(--radius-lg);
     box-shadow: var(--elevation-lg);
     display: flex;
     flex-direction: column;
+    /* Header stays pinned; the body scrolls (see __body below). */
+    overflow: hidden;
 
     .project-settings-overlay__header {
       display: flex;
@@ -132,6 +130,9 @@
     }
 
     .project-settings-overlay__body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: var(--space-3);
