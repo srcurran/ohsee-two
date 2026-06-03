@@ -144,8 +144,8 @@
 
     .change-entry__scope {
       border-radius: var(--radius-xs);
-      background: var(--change-entry-scope-background, color-mix(in srgb, var(--neutral-400) 20%, transparent));
-      color: var(--change-entry-scope-color, var(--neutral-500));
+      background: color-mix(in srgb, var(--neutral-dark-400) 20%, transparent);
+      color: var(--neutral-dark-500);
       font-size: var(--font-size-sm);
       line-height: var(--line-none);
       white-space: nowrap;

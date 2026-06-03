@@ -68,7 +68,7 @@
   }
 
   &--outline {
-    background: var(--surface-body);
+    background: transparent;
     border: 1px solid var(--btn-outline-border);
     color: var(--btn-outline-color);
     @include hover-lift;

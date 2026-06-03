@@ -138,7 +138,6 @@
   --loader-spinner-track-color:                var(--neutral-light-200);
   --loader-spinner-head-color:                 var(--status-running-400);
   --loader-text-color:                         var(--neutral-dark-500);
-  --save-feedback-color:                       var(--status-success-500);
 
   /* ── App shell + sign-in + page-detail (layout/structural) ─────── */
   --app-shell-background:                      var(--neutral-light-200);
@@ -243,9 +242,6 @@
   --empty-state-title-color:                   var(--neutral-dark-900);
   --empty-state-body-color:                    var(--neutral-dark-500);
   --empty-state-footnote-color:                color-mix(in srgb, var(--neutral-dark-500) 70%, transparent);
-  --divider-background:                        var(--neutral-dark-100);
-  --divider-background-black-10:               var(--neutral-dark-100);
-  --divider-background-secondary:              var(--neutral-dark-150);
   --page-detail-scrim-background:              var(--overlay-backdrop-light);
   --page-detail-panel-background:              var(--neutral-light-100);
   --page-detail-panel-title-color:             var(--neutral-dark-900);
@@ -380,7 +376,6 @@
   --favicon-fallback-color:              var(--neutral-dark-500);
 
   /* ── Misc (_misc.scss — small one-offs across the app) ─────────── */
-  --breadcrumb-color:                    var(--neutral-dark-900);
   --code-inline-background:              var(--neutral-light-200);
   --code-editor-border:                  var(--neutral-dark-100);
   --test-result-border:                  var(--neutral-dark-100);
@@ -395,14 +390,6 @@
   --info-box-accent-tint:                var(--status-success-500);
   --info-box-title-color:                var(--neutral-dark-500);
   --info-box-list-color:                 var(--neutral-dark-500);
-  --snippet-btn-border:                  var(--neutral-dark-100);
-  --snippet-btn-background:              var(--neutral-light-100);
-  --snippet-btn-border-hover:            var(--neutral-dark-900);
-  --recorder-instructions-background:    var(--neutral-light-100);
-  --recorder-instructions-title-color:   var(--neutral-dark-900);
-  --recorder-instructions-list-color:    var(--neutral-dark-700);
-  --recorder-instructions-marker-background: var(--neutral-light-200);
-  --recorder-instructions-marker-color:  var(--neutral-dark-500);
   --error-text-color:                    var(--status-error-500);
   --section-heading-color:               var(--neutral-dark-900);
   --section-body-color:                  var(--neutral-dark-500);
