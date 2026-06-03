@@ -75,11 +75,7 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
             )}
           </div>
         ))}
-      </div>
-
-      {breakpoints.length < max && (
-        <div className="row row--sm">
-          <input
+        <input
             type="number"
             value={inputValue}
             onChange={(e) => {
@@ -90,17 +86,16 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
             placeholder="e.g. 1280"
             className="input input--compact"
             style={{ width: 120 }}
-          />
-          <button
+        />
+        <button
             type="button"
             onClick={handleAdd}
             className="btn btn--secondary"
-          >
-            Add
-          </button>
-        </div>
-      )}
-
+        >
+          Add
+        </button>
+      </div>
+      
       {error && <p className="error-text error-text--xs" style={{ marginTop: "var(--space-1)" }}>{error}</p>}
     </div>
   );

@@ -18,7 +18,7 @@ import { useTestSettingsData } from "@/components/settings/use/testSettingsData"
 import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
 import { Icon } from "@/components/utility/Icon";
 
-type AccordionId = "steps" | "settings" | "credentials" | "danger";
+type AccordionId = "steps" | "settings" | "danger";
 
 interface Props {
   projectId: string;
@@ -114,6 +114,12 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     if (!project || !data.activeTest) return [];
     const stepsContent = isAdvanced ? (
       <section className="test-steps">
+        <AuthProfileSelect
+          profiles={project.authProfiles ?? []}
+          value={data.authProfileId}
+          onChange={(id) => { data.setAuthProfileId(id); data.scheduleSave(); }}
+          onManage={() => setAuthView(true)}
+        />
         <ScriptEditor
           value={data.script}
           onChange={(s) => { data.setScript(s); data.scheduleSave(); }}
@@ -222,20 +228,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     return [
       { id: "steps" as AccordionId, label: isAdvanced ? "Script" : "Test steps", content: stepsContent },
       { id: "settings" as AccordionId, label: "Test settings", content: settingsContent },
-      ...(isAdvanced
-        ? [{
-            id: "credentials" as AccordionId,
-            label: "Sign-in",
-            content: (
-              <AuthProfileSelect
-                profiles={project.authProfiles ?? []}
-                value={data.authProfileId}
-                onChange={(id) => { data.setAuthProfileId(id); data.scheduleSave(); }}
-                onManage={() => setAuthView(true)}
-              />
-            ),
-          }]
-        : []),
       { id: "danger" as AccordionId, label: "Danger Zone", content: dangerContent },
     ];
   })();
