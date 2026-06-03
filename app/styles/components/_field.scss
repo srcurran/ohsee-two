@@ -12,6 +12,9 @@
 .field {
   display: flex;
   flex-direction: column;
+  /* The column owns the spacing between label / input / hint — children
+     don't add their own margins. */
+  gap: var(--space-1);
 
   &--inline {
     flex-direction: row;
@@ -21,7 +24,6 @@
 
   .field__label {
     display: block;
-    margin-bottom: var(--space-1);
     font-size: var(--font-size-base);
     color: var(--field-label-color);
 
@@ -32,13 +34,11 @@
   }
 
   .field__hint {
-    margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--field-hint-color);
   }
 
   .field__error {
-    margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--field-error-color);
   }
