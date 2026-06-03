@@ -24,6 +24,7 @@
 /* ── Badges, pills, dots ─────────────────────────────────────── */
 @use "styles/components/badge";
 @use "styles/components/pill";
+@use "styles/components/flow-chip";
 @use "styles/components/status-dot";
 @use "styles/components/status-pill";
 
@@ -67,7 +68,6 @@
 
 /* ── Editors + tooling ───────────────────────────────────────── */
 @use "styles/components/breakpoint-editor";
-@use "styles/components/flow-editor";
 @use "styles/components/recorder-instructions";
 @use "styles/components/script-editor";
 @use "styles/components/code";
