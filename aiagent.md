@@ -226,10 +226,10 @@ is now the precedent.
 
 ```
 components/
-├── index/      project + report overview surfaces
-├── detail/     single-page deep-dive + diff
-├── settings/   overlays + wizards + recorders (incl. existing settings/* subdir)
-└── utility/    shell, rail, shared primitives
+├── index/      project + report overview surfaces (Report*, + shared tab controls)
+├── detail/     single-page deep-dive + diff (PageDetail* / PageRoute* families)
+├── settings/   overlays + wizards; shared building blocks in settings/shared/
+└── utility/    shell, rail, cross-area shared primitives
 ```
 
 Each bucket has its own `use/` and `utils/` subfolders. Cross-bucket
@@ -239,6 +239,33 @@ imports.
 
 Within a bucket, imports also use `@/components/{bucket}/X` rather
 than relative `./X` for the same reason.
+
+### Names expose the hierarchy
+
+A component's name should tell you where it sits:
+
+- **Surfaces** (route-level, mounted by `layout.tsx` / a `page.tsx`) end in
+  `*Overlay` or `*Wizard` — `TestSettingsOverlay`, `NewTestWizard`. The three
+  settings overlays are **siblings**, not nested.
+- **Single-owner children** carry their owner's prefix — `TestSettings*`
+  (rendered only by `TestSettingsOverlay`), the `PageDetail*` / `PageRoute*`
+  families in `detail/`, `Report*` in `index/`. The prefix says "who renders
+  me."
+- **Shared building blocks** (used by 2+ surfaces) take a **bare** name — the
+  *absence* of a prefix is the signal. Settings-area ones live in
+  `components/settings/shared/` (its `README.md` maps each to its consumers);
+  truly cross-area UI primitives live in `components/utility/`
+  (`MaterialField`, `BreakpointTabs`, …).
+
+`index/` + `detail/` together are the report-viewing domain, so a few report
+pieces (`BreakpointTabs`, `VariantTabs`, `index/utils/report.ts`) are shared
+across both buckets — expected, not a smell.
+
+The SCSS partials follow the same idea: a partial is 1:1 with the class it
+styles, named for the **owner** — `_step-row.scss` (TestSettingsStepRow),
+`_settings-accordion.scss` (the shared `SettingsAccordion`), or
+`_settings-overlay.scss` for chrome shared by all three overlays (its header
+says so). Don't let one partial accumulate unrelated blocks — split by owner.
 
 ### Logic / presentation split
 
