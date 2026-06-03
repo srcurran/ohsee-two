@@ -123,6 +123,12 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
       </section>
     ) : (
       <section className="test-steps">
+        <AuthProfileSelect
+          profiles={project.authProfiles ?? []}
+          value={data.authProfileId}
+          onChange={(id) => { data.setAuthProfileId(id); data.scheduleSave(); }}
+          onManage={() => { setActiveSection("signin"); setOpenAccordion("signin"); }}
+        />
         {data.steps.length === 0 ? (
           <EmptySteps
             onPickUrl={() => setStepEditor({ mode: "create", initialType: "url" })}

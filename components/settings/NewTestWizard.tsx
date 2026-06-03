@@ -220,7 +220,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
         // shape so the test has one source of truth.
         ...(type === "advanced"
           ? { script, steps: [], authProfileId }
-          : { steps, script: "" }),
+          : { steps, script: "", authProfileId }),
         breakpoints,
         variants: BUILT_IN_VARIANTS.filter((v) => variantIds.includes(v.id)),
       });
@@ -440,6 +440,15 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
               Add path
             </button>
           </div>
+          <AuthProfileSelect
+            profiles={project?.authProfiles ?? []}
+            value={authProfileId}
+            onChange={(id) => {
+              setAuthProfileId(id);
+              persist({ authProfileId: id });
+            }}
+            onManage={() => setAuthView(true)}
+          />
         </div>
       ) : (
         <div className="wizard__fields stack stack--lg">

@@ -3,7 +3,7 @@ import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
-import type { DomSnapshot } from "./types";
+import type { DomSnapshot, BrowserStorageState } from "./types";
 
 export interface ScreenshotResult {
   breakpoint: number;
@@ -22,11 +22,13 @@ export async function captureScreenshots(options: {
   contextOptions?: Partial<BrowserContextOptions>;
   /** JS to run before every page load (e.g., localStorage theme injection) */
   initScript?: string;
+  /** Auth storage state to start each context already signed in. */
+  storageState?: BrowserStorageState;
   onProgress?: (breakpoint: number, status: string) => void | Promise<void>;
   /** Reuse an existing browser instance instead of launching a new one. */
   browser?: Browser;
 }): Promise<ScreenshotResult[]> {
-  const { url, breakpoints, outputDir, prefix, contextOptions, initScript, onProgress, browser: externalBrowser } = options;
+  const { url, breakpoints, outputDir, prefix, contextOptions, initScript, storageState, onProgress, browser: externalBrowser } = options;
   await ensureDir(outputDir);
 
   const browser = externalBrowser ?? await chromium.launch({
@@ -42,7 +44,12 @@ export async function captureScreenshots(options: {
     const settled = await Promise.all(breakpoints.map(async (bp) => {
       let context;
       try {
-        context = await browser.newContext(buildContextOptions(bp, contextOptions));
+        context = await browser.newContext(
+          buildContextOptions(bp, {
+            ...contextOptions,
+            ...(storageState ? { storageState: storageState as BrowserContextOptions["storageState"] } : {}),
+          }),
+        );
 
         if (initScript) {
           await context.addInitScript(initScript);

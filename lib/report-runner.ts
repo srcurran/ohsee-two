@@ -203,16 +203,20 @@ export async function runReport(
 
     const reportPages: ReportPage[] = [];
 
+    // The test's sign-in profile (if any) — its cached per-environment
+    // storageState seeds every capture (script tests AND simple URL tests) so
+    // the pages render already signed in.
+    const authProfile = siteTest?.authProfileId
+      ? project.authProfiles?.find((p) => p.id === siteTest.authProfileId)
+      : undefined;
+    const storageState = authProfile?.storageState;
+
     // --- Advanced single-script execution ---
     // testPages/testFlows/testCompositions are all empty for a script test,
     // so the loops below are no-ops; this branch produces the report pages.
     if (scriptBody) {
       const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
       const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
-      const profile = siteTest?.authProfileId
-        ? project.authProfiles?.find((p) => p.id === siteTest.authProfileId)
-        : undefined;
-      const storageState = profile?.storageState;
       // snapshot index → position in reportPages, so variant passes update
       // the page the default pass already flushed.
       const snapPageIndex = new Map<number, number>();
@@ -294,6 +298,7 @@ export async function runReport(
         screenshotDir,
         dataBase,
         breakpointList: projectBreakpoints,
+        storageState,
         checkCancelled,
         onProgress: async () => { completedOps++; await saveProgress(); },
         prodBrowser,
@@ -317,6 +322,7 @@ export async function runReport(
             screenshotDir,
             dataBase,
             breakpointList: projectBreakpoints,
+            storageState,
             contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
             initScript: variant.initScript,
             checkCancelled,
@@ -577,6 +583,8 @@ async function captureAndDiff(options: {
   dataBase: string;
   /** Breakpoints to capture (defaults to global BREAKPOINTS) */
   breakpointList?: number[];
+  /** Per-environment auth session to start each context already signed in. */
+  storageState?: { prod?: BrowserStorageState; dev?: BrowserStorageState };
   contextOptions?: { colorScheme?: "light" | "dark" };
   initScript?: string;
   checkCancelled: () => void;
@@ -586,7 +594,7 @@ async function captureAndDiff(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     prodUrl, devUrl, pageId, prefix, screenshotDir, dataBase,
-    breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], storageState, contextOptions, initScript,
     checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
@@ -602,6 +610,7 @@ async function captureAndDiff(options: {
       prefix: `prod-${pageId}${prefix}`,
       contextOptions,
       initScript,
+      storageState: storageState?.prod,
       browser: prodBrowser,
       onProgress: async () => {
         checkCancelled();
@@ -615,6 +624,7 @@ async function captureAndDiff(options: {
       prefix: `dev-${pageId}${prefix}`,
       contextOptions,
       initScript,
+      storageState: storageState?.dev,
       browser: devBrowser,
       onProgress: async () => {
         checkCancelled();
