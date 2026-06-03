@@ -16,7 +16,7 @@ const EXIT_MS = 140;
 
 /**
  * App-level settings (theme, defaults, optional credentials in Electron).
- * Reuses the .project-settings-overlay panel chrome so this matches the
+ * Reuses the .settings-overlay panel chrome so this matches the
  * project + test settings overlays — single column, ~640px wide, sections
  * stacked with their own headings rather than a side-nav.
  */
@@ -76,25 +76,25 @@ export default function SettingsOverlay() {
 
   return (
     <div
-      className={`project-settings-overlay project-settings-overlay--${animState}`}
+      className={`settings-overlay settings-overlay--${animState}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
       style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ENTER_MS}ms` }}
     >
       <div
-        className="project-settings-overlay__panel"
+        className="settings-overlay__panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="app-settings-title"
       >
-        <header className="project-settings-overlay__header row row--between">
-          <span id="app-settings-title" className="project-settings-overlay__title">
+        <header className="settings-overlay__header row row--between">
+          <span id="app-settings-title" className="settings-overlay__title">
             Settings
           </span>
           <button
             type="button"
-            className="icon-btn project-settings-overlay__close"
+            className="icon-btn settings-overlay__close"
             onClick={handleClose}
             title="Close"
           >
@@ -102,7 +102,7 @@ export default function SettingsOverlay() {
           </button>
         </header>
 
-        <div className="project-settings-overlay__body">
+        <div className="settings-overlay__body">
           <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">General</h3>
 
@@ -147,7 +147,7 @@ export default function SettingsOverlay() {
             </div>
           </section>
 
-          <hr className="project-settings-overlay__divider" />
+          <hr className="settings-overlay__divider" />
 
           <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">Defaults</h3>
@@ -186,7 +186,7 @@ export default function SettingsOverlay() {
 
           {showCredentials && (
             <>
-              <hr className="project-settings-overlay__divider" />
+              <hr className="settings-overlay__divider" />
               <section className="settings-section stack stack--lg">
                 <h3 className="settings-section__title">Credentials</h3>
                 <CredentialsSettings />

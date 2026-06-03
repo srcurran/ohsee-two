@@ -209,12 +209,12 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
       id: "danger",
       label: "Danger Zone",
       content: project ? (
-        <div className="project-settings-overlay__danger-body">
-          <section className="project-settings-overlay__danger-section stack stack--xs">
-            <h3 className="project-settings-overlay__danger-heading">
+        <div className="settings-overlay__danger-body">
+          <section className="settings-overlay__danger-section stack stack--xs">
+            <h3 className="settings-overlay__danger-heading">
               {project.archived ? "Unarchive project" : "Archive project"}
             </h3>
-            <p className="project-settings-overlay__danger-copy">
+            <p className="settings-overlay__danger-copy">
               {project.archived
                 ? "Restore this project to the sidebar."
                 : "Hide this project from the sidebar. Reports are preserved."}
@@ -224,22 +224,22 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             </button>
           </section>
 
-          <section className="project-settings-overlay__danger-section stack stack--xs">
-            <h3 className="project-settings-overlay__danger-heading">Archived tests</h3>
-            <p className="project-settings-overlay__danger-copy">
+          <section className="settings-overlay__danger-section stack stack--xs">
+            <h3 className="settings-overlay__danger-heading">Archived tests</h3>
+            <p className="settings-overlay__danger-copy">
               This is where archived tests can be restored.
             </p>
             {archivedTests.length === 0 ? (
-              <p className="project-settings-overlay__empty">No archived tests.</p>
+              <p className="settings-overlay__empty">No archived tests.</p>
             ) : (
-              <ul className="project-settings-overlay__archived-list">
+              <ul className="settings-overlay__archived-list">
                 {archivedTests.map((t) => (
-                  <li key={t.id} className="project-settings-overlay__archived-row">
-                    <span className="project-settings-overlay__archived-name">{t.name}</span>
-                    <div className="project-settings-overlay__archived-actions row row--lg">
+                  <li key={t.id} className="settings-overlay__archived-row">
+                    <span className="settings-overlay__archived-name">{t.name}</span>
+                    <div className="settings-overlay__archived-actions row row--lg">
                       <button
                         type="button"
-                        className="project-settings-overlay__link-action"
+                        className="settings-overlay__link-action"
                         onClick={() => handleUnarchiveTest(t.id)}
                       >
                         un-archive
@@ -248,14 +248,14 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
                         <>
                           <button
                             type="button"
-                            className="project-settings-overlay__link-action project-settings-overlay__link-action--danger"
+                            className="settings-overlay__link-action settings-overlay__link-action--danger"
                             onClick={() => handleDeleteTest(t.id)}
                           >
                             confirm delete
                           </button>
                           <button
                             type="button"
-                            className="project-settings-overlay__link-action"
+                            className="settings-overlay__link-action"
                             onClick={() => setPendingDeleteId(null)}
                           >
                             cancel
@@ -264,7 +264,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
                       ) : (
                         <button
                           type="button"
-                          className="project-settings-overlay__link-action"
+                          className="settings-overlay__link-action"
                           onClick={() => setPendingDeleteId(t.id)}
                         >
                           delete
@@ -283,23 +283,23 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
 
   return (
     <div
-      className={`project-settings-overlay project-settings-overlay--${animState}`}
+      className={`settings-overlay settings-overlay--${animState}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
       style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ENTER_MS}ms` }}
     >
       <div
-        className="project-settings-overlay__panel"
+        className="settings-overlay__panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="project-settings-title"
       >
-        <header className="project-settings-overlay__header row row--between">
+        <header className="settings-overlay__header row row--between">
           {editingName ? (
             <input
               autoFocus
-              className="project-settings-overlay__title-input"
+              className="settings-overlay__title-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={commitName}
@@ -315,19 +315,19 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
           ) : (
             <button
               type="button"
-              className="project-settings-overlay__title-button"
+              className="settings-overlay__title-button"
               onClick={() => setEditingName(true)}
               title="Click to rename"
             >
-              <span id="project-settings-title" className="project-settings-overlay__title">
+              <span id="project-settings-title" className="settings-overlay__title">
                 {name || (project ? getDomain(project.prodUrl) : "Project")}
               </span>
-              <Icon name="edit" size={16} className="project-settings-overlay__title-icon" />
+              <Icon name="edit" size={16} className="settings-overlay__title-icon" />
             </button>
           )}
           <button
             type="button"
-            className="icon-btn project-settings-overlay__close"
+            className="icon-btn settings-overlay__close"
             onClick={handleClose}
             title="Close"
           >
@@ -335,7 +335,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
           </button>
         </header>
 
-        <div className="project-settings-overlay__body">
+        <div className="settings-overlay__body">
           {wide ? (
             <div className="settings-nav">
               <nav className="settings-nav__rail">

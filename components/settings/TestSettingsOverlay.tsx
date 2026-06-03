@@ -204,11 +204,11 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     );
 
     const dangerContent = (
-      <div className="project-settings-overlay__danger-body">
-        <section className="project-settings-overlay__danger-section stack stack--md">
+      <div className="settings-overlay__danger-body">
+        <section className="settings-overlay__danger-section stack stack--md">
           <div className="stack stack--xs">
             <h3>Archive test</h3>
-            <p className="project-settings-overlay__danger-copy">
+            <p className="settings-overlay__danger-copy">
               Hide this test from the sidebar. Reports are preserved and the test
               can be restored from the project Danger Zone.
             </p>
@@ -236,25 +236,25 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
   return (
     <div
-      className={`project-settings-overlay project-settings-overlay--${animState}`}
+      className={`settings-overlay settings-overlay--${animState}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
       style={{ transitionDuration: animState === "exiting" ? `${exitMs}ms` : `${enterMs}ms` }}
     >
       <div
-        className="project-settings-overlay__panel"
+        className="settings-overlay__panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="test-settings-title"
       >
-        <header className="project-settings-overlay__header row row--between">
+        <header className="settings-overlay__header row row--between">
 
           {authView ? (
             <button
               type="button"
               onClick={() => setAuthView(false)}
-              className="btn btn--text project-settings-overlay__back"
+              className="btn btn--text settings-overlay__back"
             >
               <Icon name="chevron-left" size={16} />
               <span>Sign-in profiles</span>
@@ -263,7 +263,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             <button
               type="button"
               onClick={() => setStepEditor(null)}
-              className="btn btn--text project-settings-overlay__back"
+              className="btn btn--text settings-overlay__back"
             >
               <Icon name="chevron-left" size={16} />
               <span>Back to steps</span>
@@ -273,7 +273,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
               {editingName ? (
                 <input
                   autoFocus
-                  className="project-settings-overlay__title-input"
+                  className="settings-overlay__title-input"
                   value={data.name}
                   onChange={(e) => data.setName(e.target.value)}
                   onBlur={commitName}
@@ -289,19 +289,19 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
               ) : (
                 <button
                   type="button"
-                  className="project-settings-overlay__title-button"
+                  className="settings-overlay__title-button"
                   onClick={() => setEditingName(true)}
                   title="Click to rename"
                 >
-                  <span id="test-settings-title" className="project-settings-overlay__title">
+                  <span id="test-settings-title" className="settings-overlay__title">
                     {data.name || "Untitled test"}
                   </span>
-                  <Icon name="edit" size={16} className="project-settings-overlay__title-icon" />
+                  <Icon name="edit" size={16} className="settings-overlay__title-icon" />
                 </button>
               )}
               <button
                 type="button"
-                className="icon-btn project-settings-overlay__close"
+                className="icon-btn settings-overlay__close"
                 onClick={handleClose}
                 title="Close"
               >
@@ -311,7 +311,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
           )}
         </header>
 
-        <div className="project-settings-overlay__body">
+        <div className="settings-overlay__body">
           {!data.project || !data.activeTest ? (
             <p style={{ color: "var(--neutral-dark-500)" }}>Loading...</p>
           ) : authView ? (

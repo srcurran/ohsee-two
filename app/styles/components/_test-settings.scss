@@ -1,8 +1,8 @@
 /* TestSettingsOverlay — step list, accordions, step editor, and section chrome.
- * Reuses .project-settings-overlay panel chrome and adds the pieces below.
+ * Reuses .settings-overlay panel chrome and adds the pieces below.
  *
  * Each block here is its own root (the overlay shell mixes them as
- * siblings inside .project-settings-overlay__body). Children of each
+ * siblings inside .settings-overlay__body). Children of each
  * block are nested as descendant selectors so the SCSS reads like the
  * rendered DOM.
  */
@@ -204,8 +204,8 @@
 /* ──────────────────────────────────────────────────────────────────────
  * Disclosure block (TestSettingsAccordion.tsx):
  *   <div .ts-accordion [--open]>
- *     <button .project-settings-overlay__danger-toggle>
- *       <span .project-settings-overlay__section-title>
+ *     <button .settings-overlay__danger-toggle>
+ *       <span .settings-overlay__section-title>
  *       <span .ts-accordion__glyph [--open]>   ← +/- morph glyph
  *     <div .ts-accordion__collapse>
  *       <div .ts-accordion__collapse-inner>
@@ -401,7 +401,7 @@
 
 /* ──────────────────────────────────────────────────────────────────────
  * Sections inside the app-level SettingsOverlay (and reusable elsewhere)
- * when the panel chrome is provided by .project-settings-overlay:
+ * when the panel chrome is provided by .settings-overlay:
  *   <section .settings-section .stack .stack--lg>
  *     <h3 .settings-section__title>
  *     <div .settings-section__row [--column]>

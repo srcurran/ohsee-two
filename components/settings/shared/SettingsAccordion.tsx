@@ -16,11 +16,11 @@ export function Accordion({ title, open, onToggle, children }: AccordionProps) {
     <div className={`ts-accordion ${open ? "ts-accordion--open" : ""}`}>
       <button
         type="button"
-        className="project-settings-overlay__danger-toggle"
+        className="settings-overlay__danger-toggle"
         onClick={onToggle}
         aria-expanded={open}
       >
-        <span className="project-settings-overlay__section-title">{title}</span>
+        <span className="settings-overlay__section-title">{title}</span>
         <span
           className={`ts-accordion__glyph ${open ? "ts-accordion__glyph--open" : ""}`}
           aria-hidden="true"

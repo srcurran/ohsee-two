@@ -1,4 +1,6 @@
-/* ProjectSettingsOverlay / SettingsOverlay / TestSettingsOverlay panel chrome.
+/* Shared settings-overlay chrome (.settings-overlay) — NOT owned by any one
+ * component. The centered panel + header + body are reused by all three
+ * settings surfaces: ProjectSettingsOverlay, SettingsOverlay, TestSettingsOverlay.
  *
  * Centered modal-style panel anchored to the active window. Width follows
  * the Figma (640px); the danger zone is rendered inside a .ts-accordion
@@ -8,32 +10,32 @@
  *
  * Structure mirrors the JSX tree (ProjectSettingsOverlay.tsx, reused by
  * SettingsOverlay.tsx and TestSettingsOverlay.tsx):
- *   <div .project-settings-overlay [--visible|--exiting]>
- *     <div .project-settings-overlay__panel>
- *       <header .project-settings-overlay__header .row .row--between>
- *         <button .project-settings-overlay__back>        ← step-editor back link
- *         <input  .project-settings-overlay__title-input> ← rename mode
- *         <button .project-settings-overlay__title-button>← view mode
- *           <span .project-settings-overlay__title>
- *           <svg  .project-settings-overlay__title-icon>
- *         <button .project-settings-overlay__close>
- *       <div .project-settings-overlay__body>
- *         <hr     .project-settings-overlay__divider>     ← SettingsOverlay only
- *         <button .project-settings-overlay__danger-toggle>
- *           <span .project-settings-overlay__section-title>
- *         <div    .project-settings-overlay__danger-body> ← inside ts-accordion
- *           <section .project-settings-overlay__danger-section .stack .stack--xs>
- *             <h3 .project-settings-overlay__danger-heading>
- *             <p  .project-settings-overlay__danger-copy>
- *             <p  .project-settings-overlay__empty>       ← fallback
- *             <ul .project-settings-overlay__archived-list>
- *               <li .project-settings-overlay__archived-row>
- *                 <span .project-settings-overlay__archived-name>
- *                 <div  .project-settings-overlay__archived-actions .row .row--lg>
- *                   <button .project-settings-overlay__link-action [--danger]>
+ *   <div .settings-overlay [--visible|--exiting]>
+ *     <div .settings-overlay__panel>
+ *       <header .settings-overlay__header .row .row--between>
+ *         <button .settings-overlay__back>        ← step-editor back link
+ *         <input  .settings-overlay__title-input> ← rename mode
+ *         <button .settings-overlay__title-button>← view mode
+ *           <span .settings-overlay__title>
+ *           <svg  .settings-overlay__title-icon>
+ *         <button .settings-overlay__close>
+ *       <div .settings-overlay__body>
+ *         <hr     .settings-overlay__divider>     ← SettingsOverlay only
+ *         <button .settings-overlay__danger-toggle>
+ *           <span .settings-overlay__section-title>
+ *         <div    .settings-overlay__danger-body> ← inside ts-accordion
+ *           <section .settings-overlay__danger-section .stack .stack--xs>
+ *             <h3 .settings-overlay__danger-heading>
+ *             <p  .settings-overlay__danger-copy>
+ *             <p  .settings-overlay__empty>       ← fallback
+ *             <ul .settings-overlay__archived-list>
+ *               <li .settings-overlay__archived-row>
+ *                 <span .settings-overlay__archived-name>
+ *                 <div  .settings-overlay__archived-actions .row .row--lg>
+ *                   <button .settings-overlay__link-action [--danger]>
  */
 
-.project-settings-overlay {
+.settings-overlay {
   position: fixed;
   inset: 0;
   z-index: var(--z-toast);
@@ -42,7 +44,7 @@
   justify-content: center;
   /* Near-full-screen panel with uniform breathing room on the outside. */
   padding: var(--space-6);
-  background: var(--project-settings-overlay-scrim);
+  background: var(--settings-overlay-scrim);
   opacity: 0;
   transition: opacity var(--duration-base) var(--ease-standard);
 
@@ -53,10 +55,10 @@
   &--visible { opacity: 1; }
   &--exiting { opacity: 0; }
 
-  .project-settings-overlay__panel {
+  .settings-overlay__panel {
     width: 1080px;
     height: 100%;
-    background: var(--project-settings-overlay-panel-background);
+    background: var(--settings-overlay-panel-background);
     border-radius: var(--radius-lg);
     box-shadow: var(--elevation-lg);
     /* The panel owns the inset + the header↔body gap. Children (header,
@@ -75,32 +77,32 @@
     }
 
     /* Layout: .row .row--between (JSX). This block anchors its children. */
-    .project-settings-overlay__header {
+    .settings-overlay__header {
       /* Step-editor "‹ Back to steps" link. Uses .btn--text so it picks
          up the standard text-button hover. */
-      .project-settings-overlay__back {
+      .settings-overlay__back {
         display: inline-flex;
         align-items: center;
         gap: var(--space-1);
         padding: 0;
       }
 
-      .project-settings-overlay__title-input {
+      .settings-overlay__title-input {
         flex: 1 1 auto;
         margin: 0;
         padding: 0;
         border: none;
         outline: none;
         background: transparent;
-        color: var(--project-settings-overlay-title-input-color);
+        color: var(--settings-overlay-title-input-color);
         font-family: inherit;
         font-size: var(--font-size-3xl);
         font-weight: var(--weight-bold);
         line-height: var(--line-tight);
-        border-bottom: 1px solid var(--project-settings-overlay-title-input-border);
+        border-bottom: 1px solid var(--settings-overlay-title-input-border);
       }
 
-      .project-settings-overlay__title-button {
+      .settings-overlay__title-button {
         display: inline-flex;
         align-items: center;
         gap: var(--space-2);
@@ -109,32 +111,32 @@
         padding: 0;
         margin: 0;
         cursor: text;
-        color: var(--project-settings-overlay-title-color);
+        color: var(--settings-overlay-title-color);
         border-radius: var(--radius-sm);
 
-        &:hover .project-settings-overlay__title-icon {
+        &:hover .settings-overlay__title-icon {
           opacity: 1;
         }
 
-        .project-settings-overlay__title {
+        .settings-overlay__title {
           font-size: var(--font-size-3xl);
           font-weight: var(--weight-bold);
           line-height: var(--line-tight);
         }
 
-        .project-settings-overlay__title-icon {
-          color: var(--project-settings-overlay-title-icon-color);
+        .settings-overlay__title-icon {
+          color: var(--settings-overlay-title-icon-color);
           opacity: 0.5;
           transition: opacity var(--duration-base) var(--ease-standard);
         }
       }
 
-      .project-settings-overlay__close {
+      .settings-overlay__close {
         flex-shrink: 0;
       }
     }
 
-    .project-settings-overlay__body {
+    .settings-overlay__body {
       flex: 1;
       min-height: 0;
       overflow-y: auto;
@@ -144,9 +146,9 @@
       flex-direction: column;
       gap: var(--space-3);
 
-      .project-settings-overlay__divider {
+      .settings-overlay__divider {
         border: none;
-        border-top: 1px solid var(--project-settings-overlay-divider-color);
+        border-top: 1px solid var(--settings-overlay-divider-color);
         margin: 0;
       }
 
@@ -154,7 +156,7 @@
          matches through that wrapper. Closed accordion rows want compact
          padding so adjacent toggles sit close together with the divider
          between (matches Figma 169:877). */
-      .project-settings-overlay__danger-toggle {
+      .settings-overlay__danger-toggle {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -163,21 +165,21 @@
         background: transparent;
         border: none;
         cursor: pointer;
-        color: var(--project-settings-overlay-danger-toggle-color);
+        color: var(--settings-overlay-danger-toggle-color);
 
         &:hover {
-          color: var(--project-settings-overlay-danger-toggle-color-hover);
+          color: var(--settings-overlay-danger-toggle-color-hover);
         }
 
-        .project-settings-overlay__section-title {
+        .settings-overlay__section-title {
           font-size: var(--font-size-2xl);
           font-weight: var(--weight-regular);
-          color: var(--project-settings-overlay-section-title-color);
+          color: var(--settings-overlay-section-title-color);
         }
       }
 
       /* Nested inside .ts-accordion__collapse-inner in the DOM. */
-      .project-settings-overlay__danger-body {
+      .settings-overlay__danger-body {
         display: flex;
         flex-direction: column;
         gap: var(--space-7);
@@ -185,59 +187,59 @@
         padding-bottom: var(--space-2);
 
         /* Layout: .stack .stack--xs (JSX). This block anchors its children. */
-        .project-settings-overlay__danger-section {
-          .project-settings-overlay__danger-heading {
+        .settings-overlay__danger-section {
+          .settings-overlay__danger-heading {
             margin: 0 0 var(--space-1) 0;
             font-size: var(--font-size-base);
             font-weight: var(--weight-bold);
-            color: var(--project-settings-overlay-danger-heading-color);
+            color: var(--settings-overlay-danger-heading-color);
           }
 
-          .project-settings-overlay__danger-copy {
+          .settings-overlay__danger-copy {
             margin: 0 0 var(--space-3) 0;
             font-size: var(--font-size-md);
-            color: var(--project-settings-overlay-danger-copy-color);
+            color: var(--settings-overlay-danger-copy-color);
           }
 
-          .project-settings-overlay__empty {
+          .settings-overlay__empty {
             margin: 0;
             font-size: var(--font-size-md);
-            color: var(--project-settings-overlay-empty-color);
+            color: var(--settings-overlay-empty-color);
             font-style: italic;
           }
 
-          .project-settings-overlay__archived-list {
+          .settings-overlay__archived-list {
             list-style: none;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
 
-            .project-settings-overlay__archived-row {
+            .settings-overlay__archived-row {
               display: flex;
               align-items: center;
               justify-content: space-between;
               gap: var(--space-3);
               padding: var(--space-3) 0;
-              border-top: 1px solid var(--project-settings-overlay-archived-row-border);
+              border-top: 1px solid var(--settings-overlay-archived-row-border);
 
               &:last-child {
-                border-bottom: 1px solid var(--project-settings-overlay-archived-row-border);
+                border-bottom: 1px solid var(--settings-overlay-archived-row-border);
               }
 
-              .project-settings-overlay__archived-name {
+              .settings-overlay__archived-name {
                 font-size: var(--font-size-md);
-                color: var(--project-settings-overlay-archived-name-color);
+                color: var(--settings-overlay-archived-name-color);
               }
 
               /* Layout: .row .row--lg (JSX). This block anchors its links. */
-              .project-settings-overlay__archived-actions {
-                .project-settings-overlay__link-action {
+              .settings-overlay__archived-actions {
+                .settings-overlay__link-action {
                   background: transparent;
                   border: none;
                   padding: 0;
                   cursor: pointer;
-                  color: var(--project-settings-overlay-link-action-color);
+                  color: var(--settings-overlay-link-action-color);
                   font-size: var(--font-size-md);
                   text-decoration: underline;
                   text-underline-offset: 3px;
@@ -247,7 +249,7 @@
                   }
 
                   &--danger {
-                    color: var(--project-settings-overlay-link-action-color-danger);
+                    color: var(--settings-overlay-link-action-color-danger);
                   }
                 }
               }
