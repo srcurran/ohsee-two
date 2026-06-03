@@ -1,6 +1,9 @@
 /* Layout primitives — used where spinning up a named component block
-   is overkill. Keep this file tight; don't reinvent Tailwind. */
+   is overkill. Keep this file tight; don't reinvent Tailwind.
 
+   Gap modifiers share one scale across .stack / .row; the base (no modifier)
+   is --gap-md (space-3). Sizes map onto the spacing tokens, NOT 1:1 with their
+   names — reach for the size whose pixel value you want. */
 .stack {
   display: flex;
   flex-direction: column;
@@ -12,6 +15,11 @@
   &--lg { gap: var(--space-4); }
   &--xl { gap: var(--space-6); }
   &--2xl { gap: var(--space-8); }
+  &--3xl { gap: var(--space-10); }
+
+  /* Cross-axis (horizontal) alignment of a column's children. */
+  &--start { align-items: flex-start; }
+  &--center { align-items: center; }
 }
 
 .row {
@@ -25,22 +33,18 @@
   &--lg { gap: var(--space-4); }
   &--xl { gap: var(--space-6); }
   &--2xl { gap: var(--space-8); }
+  &--3xl { gap: var(--space-10); }
 
-  &--between {
-    justify-content: space-between;
-  }
+  /* Main-axis distribution. */
+  &--between { justify-content: space-between; }
+  &--center { justify-content: center; }
+  &--end { justify-content: flex-end; }
 
-  &--baseline {
-    align-items: baseline;
-  }
+  /* Cross-axis alignment. */
+  &--baseline { align-items: baseline; }
+  &--top { align-items: flex-start; }
 
-  &--top {
-    align-items: flex-start;
-  }
-
-  &--wrap {
-    flex-wrap: wrap;
-  }
+  &--wrap { flex-wrap: wrap; }
 }
 
 .cluster {
@@ -50,6 +54,7 @@
   align-items: center;
 }
 
+/* Child-level escape hatches — drop onto a flex child without a wrapper. */
 .grow {
   flex: 1;
   min-width: 0;
@@ -58,6 +63,10 @@
 .shrink-0 {
   flex-shrink: 0;
 }
+
+.self-start { align-self: flex-start; }
+.self-center { align-self: center; }
+.self-end { align-self: flex-end; }
 
 .center {
   display: flex;

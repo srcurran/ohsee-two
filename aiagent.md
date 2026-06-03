@@ -166,6 +166,39 @@ Canonical example: `.project-settings-overlay__panel` sets `padding` +
 `_project-settings-overlay.scss`). Build new layouts this way, and prefer
 fixing existing ones toward it when you touch them.
 
+### Layout utilities — reach for these before authoring a flex block
+
+We keep a **small, curated** set of layout classes in
+`app/styles/utilities/_layout.scss`. When a wrapper's *only* job is to lay
+children out — `display: flex` + a `gap` — use a utility in the JSX instead
+of minting a BEM block. This is a deliberate hybrid, **not** Tailwind: the set
+is intentionally tight, and anything beyond layout still belongs in SCSS.
+
+- **`.stack`** — flex column. **`.row`** — flex row, `align-items: center`.
+  Both take a shared gap scale: `--xs --sm --md --lg --xl --2xl --3xl`
+  (→ `--space-1,2,3,4,6,8,10`). The **base** (no modifier) is `--gap-md`
+  (`space-3`). Sizes map onto the *pixel* of a spacing token, not 1:1 with
+  their names — pick the size whose value you want.
+- **`.row`** distribution / alignment: `--between --center --end` (main axis),
+  `--baseline --top` (cross axis), `--wrap`. **`.stack`** cross-axis:
+  `--start --center`.
+- **`.cluster`** — wrapping row, small gap (chips/tags). **`.center`** —
+  flex centered both axes.
+- Child-level atoms (drop on a flex child, no wrapper): **`.grow`**
+  (`flex: 1; min-width: 0`), **`.shrink-0`**, **`.self-start/-center/-end`**.
+
+**Keep BEM when the block has identity beyond layout** — borders, background,
+typography, `position`, or a selector other code depends on. The two mix
+freely: `class="auth-profile stack stack--xl"` uses the utility for the flex +
+gap and a thin `.auth-profile { padding }` for the rest. Don't add a one-off
+atomic class (`.mt-4`, `.text-center`) — if a utility doesn't exist, either
+use a thin BEM block or, if it's genuinely reusable layout, extend
+`_layout.scss` (and keep it tight).
+
+Canonical example: `_auth-profiles.scss` + `AuthProfilesPanel.tsx` — the
+flex/gap blocks (`__body`, `__field`, `__creds`, `__session`, …) became
+`.stack`/`.row`, leaving SCSS with only the component-specific styling.
+
 ---
 
 ## Component Organization

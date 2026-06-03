@@ -207,7 +207,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
 
   return (
     <div className="auth-profiles">
-      <div className="auth-profiles__body">
+      <div className="stack stack--3xl">
 
         {profiles.length === 0 ? (
           <p className="auth-profiles__empty">No sign-in profiles yet.</p>
@@ -216,8 +216,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
             const cred = credsById[profile.id] ?? EMPTY_CRED;
             return (
                 <>
-              <div key={profile.id} className="auth-profile">
-                <div className="auth-profile__field">
+              <div key={profile.id} className="auth-profile stack stack--xl">
+                <div className="stack">
                   <h2>Test name</h2>
                   <input
                     className="auth-profile__name"
@@ -228,7 +228,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                 </div>
 
                 {electron && (
-                  <div className="auth-profile__creds">
+                  <div className="stack stack--sm">
                     <h2>Credentials</h2>
                     <CredField
                       label="Email"
@@ -243,8 +243,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                       value={cred.password}
                       onChange={(v) => updateCred(profile.id, { password: v })}
                     />
-                    <div className="auth-profile__cred-field">
-                      <label className="auth-profile__cred-label">
+                    <div className="stack stack--xs">
+                      <label className="auth-profile__cred-label row row--sm">
                         Two-factor
                         <code className="auth-profile__var">$OTP$</code>
                         <div className="segmented">
@@ -282,7 +282,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                     </div>
                   </div>
                 )}
-                <div className="auth-profile__field">
+                <div className="stack">
                 <h2>Log in script</h2>
                 <ScriptEditor
                   value={profile.loginScript}
@@ -290,7 +290,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                   defaultUrl={project?.prodUrl}
                 />
                 </div>
-                <div className="auth-profile__session">
+                <div className="row">
                   <button
                     type="button"
                     className="btn btn--outline btn--sm"
@@ -322,7 +322,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
           })
         )}
 
-        <button type="button" className="btn btn--outline auth-profiles__add" onClick={addProfile}>
+        <button type="button" className="btn btn--outline self-start" onClick={addProfile}>
           + Add sign-in profile
         </button>
       </div>
@@ -348,8 +348,8 @@ function CredField({
   placeholder?: string;
 }) {
   return (
-    <div className="auth-profile__cred-field">
-      <label className="auth-profile__cred-label">
+    <div className="stack stack--xs">
+      <label className="auth-profile__cred-label row row--sm">
         {label}
         <code className="auth-profile__var">{variable}</code>
       </label>

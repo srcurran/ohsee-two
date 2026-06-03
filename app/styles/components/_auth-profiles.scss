@@ -1,16 +1,11 @@
-/* AuthProfilesOverlay — site-level sign-in profiles manager. */
+/* AuthProfilesPanel — site-level sign-in profiles manager.
+ *
+ * Layout (flex columns/rows + gaps) is handled by the .stack / .row utilities
+ * in JSX — see app/styles/utilities/_layout.scss. This file only carries the
+ * styling that's specific to this component (typography, the credential input
+ * affordances, the destructive action). */
 
 .auth-profiles {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-10);
-
-  &__body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-10);
-  }
-
   &__title {
     margin: 0 0 var(--space-1);
     font-size: var(--font-size-xl);
@@ -30,23 +25,11 @@
     color: var(--credentials-section-hint-color);
     font-size: var(--font-size-md);
   }
-
-  &__add {
-    align-self: flex-start;
-  }
 }
 
+/* Layout: .stack .stack--xl (JSX). This block owns only the vertical padding. */
 .auth-profile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
   padding: var(--space-1) 0;
-
-  &__field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
 
   &__name {
     padding: var(--space-2) var(--space-3);
@@ -59,23 +42,8 @@
     font-weight: var(--weight-semibold);
   }
 
-  /* Inline credential fields — the values the script's $VARS$ resolve to. */
-  &__creds {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  &__cred-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
+  /* Layout: .row .row--sm (JSX). Owns only the label's type + color. */
   &__cred-label {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
     font-size: var(--font-size-md);
     color: var(--credentials-section-label-color);
   }
@@ -106,13 +74,7 @@
     color: var(--credentials-section-hint-color);
   }
 
-  &__session {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-  }
-
-  /* Push the destructive action to the far end of the action row. */
+  /* Pushes the destructive action to the far end of its .row action bar. */
   &__delete {
     margin-left: auto;
   }
