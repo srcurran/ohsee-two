@@ -18,7 +18,7 @@ import { useTestSettingsData } from "@/components/settings/use/testSettingsData"
 import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
 import { Icon } from "@/components/utility/Icon";
 
-type AccordionId = "steps" | "settings" | "danger";
+type AccordionId = "steps" | "settings" | "signin" | "danger";
 
 interface Props {
   projectId: string;
@@ -47,9 +47,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   const wide = useMediaQuery("(min-width: 768px)");
   const [openAccordion, setOpenAccordion] = useState<AccordionId | null>("steps");
   const [activeSection, setActiveSection] = useState<AccordionId>("steps");
-  // Sign-in profiles manager — a same-panel sub-view (back button) reached
-  // from the Sign-in section, instead of stacking another overlay.
-  const [authView, setAuthView] = useState(false);
 
   // `beforeExit` needs to call into the data hook, which is initialized
   // below — bridge through a ref so the close callback can see the latest
@@ -59,11 +56,8 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
   const { animState, enterMs, exitMs, handleClose } = useOverlayAnim({
     onClose,
-    hasNestedView: !!stepEditor || authView,
-    onBackNested: () => {
-      setStepEditor(null);
-      setAuthView(false);
-    },
+    hasNestedView: !!stepEditor,
+    onBackNested: () => setStepEditor(null),
     beforeExit,
   });
 
@@ -118,7 +112,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
           profiles={project.authProfiles ?? []}
           value={data.authProfileId}
           onChange={(id) => { data.setAuthProfileId(id); data.scheduleSave(); }}
-          onManage={() => setAuthView(true)}
+          onManage={() => { setActiveSection("signin"); setOpenAccordion("signin"); }}
         />
         <ScriptEditor
           value={data.script}
@@ -230,6 +224,11 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     return [
       { id: "steps" as AccordionId, label: isAdvanced ? "Script" : "Test steps", content: stepsContent },
       { id: "settings" as AccordionId, label: "Test settings", content: settingsContent },
+      {
+        id: "signin" as AccordionId,
+        label: "Sign-in profiles",
+        content: <AuthProfilesPanel projectId={projectId} />,
+      },
       { id: "danger" as AccordionId, label: "Danger Zone", content: dangerContent },
     ];
   })();
@@ -250,16 +249,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
       >
         <header className="settings-overlay__header row row--between">
 
-          {authView ? (
-            <button
-              type="button"
-              onClick={() => setAuthView(false)}
-              className="btn btn--text settings-overlay__back"
-            >
-              <Icon name="chevron-left" size={16} />
-              <span>Sign-in profiles</span>
-            </button>
-          ) : stepEditor ? (
+          {stepEditor ? (
             <button
               type="button"
               onClick={() => setStepEditor(null)}
@@ -314,8 +304,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         <div className="settings-overlay__body">
           {!data.project || !data.activeTest ? (
             <p style={{ color: "var(--neutral-dark-500)" }}>Loading...</p>
-          ) : authView ? (
-            <AuthProfilesPanel projectId={projectId} />
           ) : stepEditor ? (
             <AddEditStepView
               projectUrls={[data.project.prodUrl, data.project.devUrl]}
