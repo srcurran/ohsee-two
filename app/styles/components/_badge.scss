@@ -1,40 +1,4 @@
-/* Badge — small count/label indicator. */
-
-/* Header badge group — circle badge + text label pairs for the detail
-   panel header. Reuses the standard .badge circles from the page cards. */
-.header-badge-group {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-
-  .header-badge-group__entry {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1-5);
-  }
-
-  .header-badge-group__label {
-    font-size: var(--font-size-sm);
-    font-weight: var(--weight-regular);
-    color: var(--text-tertiary);
-    white-space: nowrap;
-  }
-}
-
-/* Badge pair — universal (outline) + specific (filled) side-by-side.
-   Slight overlap like the Figma reference. */
-.badge-pair {
-  display: inline-flex;
-  align-items: center;
-
-  > .badge + .badge {
-    margin-left: -4px;
-  }
-
-  > .badge:first-child {
-    z-index: 1;
-  }
-}
+/* Badge — small count/label indicator (see the ChangeBadge component). */
 
 .badge {
   display: inline-flex;
@@ -57,12 +21,6 @@
   &--warning {
     background: var(--badge-warning-background);
     color: var(--badge-warning-color);
-  }
-
-  &--warning-outline {
-    background: transparent;
-    color: var(--badge-warning-background);
-    box-shadow: inset 0 0 0 1.5px var(--badge-warning-background);
   }
 
   &--neutral {
@@ -92,13 +50,5 @@
 
   &--warning-tint {
     background: var(--badge-warning-tint-background);
-  }
-
-  &--flow {
-    background: color-mix(in srgb, var(--badge-flow-color) 10%, transparent);
-    color: var(--badge-flow-color);
-    border-radius: var(--radius-xs);
-    padding: var(--space-0-5) var(--space-2);
-    font-size: var(--font-size-sm);
   }
 }

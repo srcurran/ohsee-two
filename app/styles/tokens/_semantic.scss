@@ -88,16 +88,6 @@
   --sidebar-avatar-color:               var(--neutral-dark-900);
   --sidebar-plus-background:            var(--neutral-light-100);
 
-  /* Settings sub-nav (SettingsSideNav.tsx) — shares the rail concept */
-  --sidenav-back-color:                 var(--neutral-dark-500);
-  --sidenav-back-color-hover:           var(--neutral-dark-900);
-  --sidenav-title-color:                var(--neutral-dark-900);
-  --sidenav-item-color:                 var(--neutral-dark-500);
-  --sidenav-item-background-hover:      var(--neutral-light-200);
-  --sidenav-item-color-hover:           var(--neutral-dark-900);
-  --sidenav-item-background-active:     var(--neutral-light-200);
-  --sidenav-item-color-active:          var(--neutral-dark-900);
-
   /* ── Buttons (.btn variants) ───────────────────────────────────── */
   --btn-primary-background:             var(--action-500);
   --btn-primary-color:                  var(--on-action);
@@ -180,12 +170,6 @@
   --credential-row-background:                 var(--neutral-light-200);
   --credential-row-label-color:                var(--neutral-dark-900);
   --credential-row-key-color:                  var(--neutral-dark-500);
-  --card-border:                               var(--neutral-dark-100);
-  --card-danger-border:                        var(--status-error-500);
-  --card-tinted-background:                    var(--neutral-light-200);
-  --card-content-background:                   var(--neutral-light-100);
-  --card-title-color:                          var(--neutral-dark-900);
-  --card-body-color:                           var(--neutral-dark-500);
   --page-tile-background:                      var(--tint-1);
   --page-tile-thumb-background:                var(--neutral-light-200);
   --page-tile-thumb-border:                    var(--neutral-dark-100);
@@ -336,7 +320,6 @@
   --badge-success-tint-background:      var(--neutral-light-200);
   --badge-warning-tint-background:      var(--neutral-light-200);
   --badge-neutral-color:                var(--neutral-dark-100);
-  --badge-flow-color:                   var(--neutral-dark-500);  /* neutral gray label */
   --pill-background:                    var(--neutral-light-200);
   --pill-background-hover:              var(--surface-hover);
   --pill-color:                         var(--neutral-dark-700);
