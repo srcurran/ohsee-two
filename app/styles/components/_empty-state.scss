@@ -63,3 +63,12 @@
     left: var(--space-5);
   }
 }
+
+/* A single muted line standing in for empty content ("No sign-in profiles
+   yet."). Distinct from .empty-state (a centered, illustrated callout). */
+.empty-note {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-style: italic;
+  color: var(--empty-note-color);
+}

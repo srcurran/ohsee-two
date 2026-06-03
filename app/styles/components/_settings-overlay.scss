@@ -27,7 +27,7 @@
  *           <section .settings-overlay__danger-section .stack .stack--xs>
  *             <h3 .settings-overlay__danger-heading>
  *             <p  .settings-overlay__danger-copy>
- *             <p  .settings-overlay__empty>       ← fallback
+ *             <p  .empty-note>                    ← fallback
  *             <ul .settings-overlay__archived-list>
  *               <li .settings-overlay__archived-row>
  *                 <span .settings-overlay__archived-name>
@@ -199,13 +199,6 @@
             margin: 0 0 var(--space-3) 0;
             font-size: var(--font-size-md);
             color: var(--settings-overlay-danger-copy-color);
-          }
-
-          .settings-overlay__empty {
-            margin: 0;
-            font-size: var(--font-size-md);
-            color: var(--settings-overlay-empty-color);
-            font-style: italic;
           }
 
           .settings-overlay__archived-list {

@@ -211,7 +211,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
       <div className="stack stack--3xl">
 
         {profiles.length === 0 ? (
-          <p className="auth-profiles__empty">No sign-in profiles yet.</p>
+          <p className="empty-note">No sign-in profiles yet.</p>
         ) : (
           profiles.map((profile) => {
             const cred = credsById[profile.id] ?? EMPTY_CRED;

@@ -230,7 +230,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
               This is where archived tests can be restored.
             </p>
             {archivedTests.length === 0 ? (
-              <p className="settings-overlay__empty">No archived tests.</p>
+              <p className="empty-note">No archived tests.</p>
             ) : (
               <ul className="settings-overlay__archived-list">
                 {archivedTests.map((t) => (

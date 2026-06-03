@@ -20,11 +20,6 @@
     line-height: var(--line-base);
   }
 
-  &__empty {
-    margin: 0;
-    color: var(--credentials-section-hint-color);
-    font-size: var(--font-size-md);
-  }
 }
 
 /* Layout: .stack .stack--xl (JSX). This block owns only the vertical padding. */
