@@ -8,6 +8,7 @@ import { checkUrl } from "@/lib/url-validation";
 import type { Project, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
 import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
+import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 import { Accordion } from "@/components/settings/shared/SettingsAccordion";
 import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
 
@@ -282,20 +283,14 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
   ];
 
   return (
-    <div
-      className={`settings-overlay settings-overlay--${animState}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-      style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ENTER_MS}ms` }}
-    >
-      <div
-        className="settings-overlay__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="project-settings-title"
-      >
-        <header className="settings-overlay__header row row--between">
+    <SettingsOverlayShell
+      animState={animState}
+      enterMs={ENTER_MS}
+      exitMs={EXIT_MS}
+      onBackdropClose={handleClose}
+      labelledBy="project-settings-title"
+      header={
+        <>
           {editingName ? (
             <input
               autoFocus
@@ -333,9 +328,9 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
           >
             <Icon name="close" size={20} />
           </button>
-        </header>
-
-        <div className="settings-overlay__body">
+        </>
+      }
+    >
           {wide ? (
             <div className="settings-nav">
               <nav className="settings-nav__rail">
@@ -368,8 +363,6 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
               ))}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </SettingsOverlayShell>
   );
 }

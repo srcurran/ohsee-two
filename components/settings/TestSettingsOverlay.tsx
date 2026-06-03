@@ -7,6 +7,7 @@ import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import { Accordion } from "@/components/settings/shared/SettingsAccordion";
 import AuthProfileSelect from "@/components/settings/shared/AuthProfileSelect";
 import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
+import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
@@ -234,22 +235,14 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
   })();
 
   return (
-    <div
-      className={`settings-overlay settings-overlay--${animState}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-      style={{ transitionDuration: animState === "exiting" ? `${exitMs}ms` : `${enterMs}ms` }}
-    >
-      <div
-        className="settings-overlay__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="test-settings-title"
-      >
-        <header className="settings-overlay__header row row--between">
-
-          {stepEditor ? (
+    <SettingsOverlayShell
+      animState={animState}
+      enterMs={enterMs}
+      exitMs={exitMs}
+      onBackdropClose={handleClose}
+      labelledBy="test-settings-title"
+      header={
+        stepEditor ? (
             <button
               type="button"
               onClick={() => setStepEditor(null)}
@@ -298,10 +291,9 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                 <Icon name="close" size={20} />
               </button>
             </>
-          )}
-        </header>
-
-        <div className="settings-overlay__body">
+          )
+      }
+    >
           {!data.project || !data.activeTest ? (
             <p style={{ color: "var(--neutral-dark-500)" }}>Loading...</p>
           ) : stepEditor ? (
@@ -348,8 +340,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
               ))}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </SettingsOverlayShell>
   );
 }

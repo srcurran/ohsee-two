@@ -11,6 +11,7 @@ import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
 import { Icon } from "@/components/utility/Icon";
 import Segmented from "@/components/utility/Segmented";
+import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 
 const ENTER_MS = 180;
 const EXIT_MS = 140;
@@ -76,20 +77,14 @@ export default function SettingsOverlay() {
   const showCredentials = mounted && isElectronRuntime();
 
   return (
-    <div
-      className={`settings-overlay settings-overlay--${animState}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-      style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ENTER_MS}ms` }}
-    >
-      <div
-        className="settings-overlay__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="app-settings-title"
-      >
-        <header className="settings-overlay__header row row--between">
+    <SettingsOverlayShell
+      animState={animState}
+      enterMs={ENTER_MS}
+      exitMs={EXIT_MS}
+      onBackdropClose={handleClose}
+      labelledBy="app-settings-title"
+      header={
+        <>
           <span id="app-settings-title" className="settings-overlay__title">
             Settings
           </span>
@@ -101,9 +96,9 @@ export default function SettingsOverlay() {
           >
             <Icon name="close" size={20} />
           </button>
-        </header>
-
-        <div className="settings-overlay__body">
+        </>
+      }
+    >
           <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">General</h3>
 
@@ -192,9 +187,7 @@ export default function SettingsOverlay() {
               </section>
             </>
           )}
-        </div>
-      </div>
-    </div>
+    </SettingsOverlayShell>
   );
 }
 
