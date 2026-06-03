@@ -9,8 +9,10 @@ import { basicSetup } from "codemirror";
 import CodegenRecorder from "@/components/settings/CodegenRecorder";
 import { extractScriptBody, insertSnapshotsAfterNavigation } from "@/lib/script-utils";
 
-/** Click-to-insert snippets shown in the quick reference. */
-const SNIPPETS: { label: string; code: string }[] = [
+/** Click-to-insert snippets shown in the quick reference. Statement snippets
+ *  drop in on their own line; `inline` ones (the credential variables) insert
+ *  at the cursor so they can sit inside a `.fill('')`. */
+const SNIPPETS: { label: string; code: string; inline?: boolean }[] = [
   { label: "Go to path", code: "await page.goto('/path');" },
   { label: "Snapshot", code: "await ohsee.snapshot('name');" },
   { label: "Click role", code: "await page.getByRole('button', { name: 'Submit' }).click();" },
@@ -19,6 +21,9 @@ const SNIPPETS: { label: string; code: string }[] = [
   { label: "Fill password", code: "await page.getByLabel('Password').fill('$PASSWORD$');" },
   { label: "Press", code: "await page.keyboard.press('Enter');" },
   { label: "Wait for text", code: "await expect(page.getByText('Welcome')).toBeVisible();" },
+  { label: "$EMAIL$", code: "$EMAIL$", inline: true },
+  { label: "$PASSWORD$", code: "$PASSWORD$", inline: true },
+  { label: "$OTP$", code: "$OTP$", inline: true },
 ];
 
 /**
@@ -72,16 +77,25 @@ export default function ScriptEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Insert text at the cursor (used by the reference snippets). */
-  const insertAtCursor = (text: string) => {
+  /** Insert a reference snippet. Statement snippets land on their own line;
+   *  `inline` ones (credential variables) drop in at the cursor. */
+  const insertAtCursor = (text: string, inline = false) => {
     const view = viewRef.current;
     if (!view) return;
-    const pos = view.state.selection.main.head;
-    const pad = pos > 0 && view.state.doc.sliceString(pos - 1, pos) !== "\n" ? "\n" : "";
-    view.dispatch({
-      changes: { from: pos, insert: `${pad}${text}\n` },
-      selection: { anchor: pos + pad.length + text.length + 1 },
-    });
+    if (inline) {
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+      });
+    } else {
+      const pos = view.state.selection.main.head;
+      const pad = pos > 0 && view.state.doc.sliceString(pos - 1, pos) !== "\n" ? "\n" : "";
+      view.dispatch({
+        changes: { from: pos, insert: `${pad}${text}\n` },
+        selection: { anchor: pos + pad.length + text.length + 1 },
+      });
+    }
     view.focus();
     onChangeRef.current(view.state.doc.toString());
   };
@@ -138,7 +152,7 @@ export default function ScriptEditor({
             key={s.label}
             type="button"
             className="script-editor__snippet"
-            onClick={() => insertAtCursor(s.code)}
+            onClick={() => insertAtCursor(s.code, s.inline)}
             title={s.code}
           >
             {s.label}
