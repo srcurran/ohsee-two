@@ -2,52 +2,65 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptEditor from "@/components/settings/ScriptEditor";
-import { CredentialEditor, type VaultEntryMeta } from "@/components/settings/CredentialEditor";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
 import { formatRelativeTime } from "@/lib/relative-time";
 import type { AuthProfile, Project } from "@/lib/types";
 
-const CREATE_SENTINEL = "__create__";
+/** Inline credential fields, mirrored from the profile's Keychain entry. */
+interface Cred {
+  email: string;
+  password: string;
+  totpSeed: string;
+}
+const EMPTY_CRED: Cred = { email: "", password: "", totpSeed: "" };
 
 /**
- * Site-level auth profiles manager — embedded as a same-panel sub-view (with
- * a back button supplied by the host) rather than a stacked overlay. Each
- * profile bundles a login script with the storage tokens it produces (cached
- * server-side via "Test sign in"). Persistence merges onto the stored
- * profile so it never clobbers server-captured tokens.
+ * Site-level sign-in profiles manager — embedded as a same-panel sub-view.
+ * Each profile owns its credential 1:1: the Email / Password / 2FA fields are
+ * edited inline and written to a per-profile Keychain entry (only the vault
+ * *key* lands in projects.json — never the secret). The sign-in script reads
+ * those values via $EMAIL$ / $PASSWORD$ / $OTP$. Running the script once
+ * (Test sign in) captures the storage state the runner reuses.
  */
 export default function AuthProfilesPanel({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
-  const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(null);
-  const [credEditorFor, setCredEditorFor] = useState<string | null>(null);
+  const [credsById, setCredsById] = useState<Record<string, Cred>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Load the project + profiles, then each profile's credential from the vault.
   useEffect(() => {
     fetch(`/api/projects/${projectId}`)
       .then((r) => r.json())
-      .then((p: Project) => {
+      .then(async (p: Project) => {
         setProject(p);
-        setProfiles(p.authProfiles ?? []);
+        const list = p.authProfiles ?? [];
+        setProfiles(list);
+        const o = getOhsee();
+        if (!o || !isElectronRuntime()) return;
+        const next: Record<string, Cred> = {};
+        await Promise.all(
+          list.map(async (pr) => {
+            if (!pr.vaultEntryId) return;
+            try {
+              const e = await o.vault.get(pr.vaultEntryId);
+              next[pr.id] = {
+                email: e.label ?? "",
+                password: e.secret ?? "",
+                totpSeed: e.totpSeed ?? "",
+              };
+            } catch {
+              // entry may have been removed out-of-band — leave blank
+            }
+          }),
+        );
+        setCredsById(next);
       });
   }, [projectId]);
 
-  const refreshVault = useCallback(async () => {
-    const o = getOhsee();
-    if (!o) return;
-    try {
-      setVaultEntries(await o.vault.list());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
-  useEffect(() => {
-    if (isElectronRuntime()) refreshVault();
-  }, [refreshVault]);
-
-  /** Persist editable fields, merging onto stored profiles so server-captured
+  /** Persist profile fields, merging onto stored profiles so server-captured
    *  storageState / tokensUpdatedAt survive. */
   const persist = useCallback(
     async (next: AuthProfile[]) => {
@@ -69,20 +82,28 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   );
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scheduleSave = (next: AuthProfile[]) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => persist(next), 600);
-  };
-  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+  const credTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      Object.values(credTimers.current).forEach(clearTimeout);
+    },
+    [],
+  );
 
   const update = (id: string, patch: Partial<AuthProfile>, immediate = false) => {
     setProfiles((prev) => {
       const next = prev.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      if (immediate) persist(next);
-      else scheduleSave(next);
+      if (immediate) {
+        persist(next);
+      } else {
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => persist(next), 600);
+      }
       return next;
     });
   };
+
   const addProfile = () => {
     const next: AuthProfile[] = [
       ...profiles,
@@ -91,10 +112,51 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
     setProfiles(next);
     persist(next);
   };
+
   const removeProfile = (id: string) => {
+    const profile = profiles.find((p) => p.id === id);
     const next = profiles.filter((p) => p.id !== id);
     setProfiles(next);
     persist(next);
+    // Best-effort: drop the profile's Keychain entry too.
+    const o = getOhsee();
+    if (o && profile?.vaultEntryId) o.vault.delete(profile.vaultEntryId).catch(() => {});
+  };
+
+  /** Edit a credential field → debounced write to the profile's Keychain entry. */
+  const updateCred = (profileId: string, patch: Partial<Cred>) => {
+    setCredsById((prev) => {
+      const merged = {
+        ...prev,
+        [profileId]: { ...(prev[profileId] ?? EMPTY_CRED), ...patch },
+      };
+      clearTimeout(credTimers.current[profileId]);
+      credTimers.current[profileId] = setTimeout(
+        () => writeCred(profileId, merged[profileId]),
+        600,
+      );
+      return merged;
+    });
+  };
+
+  const writeCred = async (profileId: string, c: Cred) => {
+    // Wait until there's a password to store, so we don't create empty entries.
+    if (!c.password) return;
+    const o = getOhsee();
+    if (!o) return;
+    const profile = profiles.find((p) => p.id === profileId);
+    const key = profile?.vaultEntryId || `signin-${profileId}`;
+    try {
+      await o.vault.set(key, {
+        label: c.email,
+        secret: c.password,
+        totpSeed: c.totpSeed.trim() || undefined,
+      });
+      if (!profile?.vaultEntryId) update(profileId, { vaultEntryId: key }, true);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   const generate = async (profile: AuthProfile) => {
@@ -116,7 +178,6 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
         return;
       }
       const { tokensUpdatedAt } = await res.json();
-      // Display-only: the server already saved storageState + tokensUpdatedAt.
       setProfiles((prev) =>
         prev.map((p) => (p.id === profile.id ? { ...p, tokensUpdatedAt } : p)),
       );
@@ -124,6 +185,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
       setBusyId(null);
     }
   };
+
+  const electron = isElectronRuntime();
 
   return (
     <div className="auth-profiles">
@@ -141,91 +204,117 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
         {profiles.length === 0 ? (
           <p className="auth-profiles__empty">No sign-in profiles yet.</p>
         ) : (
-          profiles.map((profile) => (
-            <div key={profile.id} className="auth-profile">
-              <div className="auth-profile__field">
-                <label className="credentials-section__label">Title</label>
-                <input
-                  className="auth-profile__name"
-                  value={profile.name}
-                  onChange={(e) => update(profile.id, { name: e.target.value })}
-                  placeholder="Profile name"
-                />
-              </div>
-
-              {isElectronRuntime() && (
-                <div className="credentials-section__vault">
-                  <label className="credentials-section__label">Credential</label>
-                  <select
-                    className="credentials-section__select"
-                    value={profile.vaultEntryId ?? ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === CREATE_SENTINEL) { setCredEditorFor(profile.id); return; }
-                      update(profile.id, { vaultEntryId: v || undefined }, true);
-                    }}
-                  >
-                    <option value="">No credential</option>
-                    {vaultEntries?.map((entry) => (
-                      <option key={entry.key} value={entry.key}>
-                        {entry.label}{entry.hasTotp ? " · 2FA" : ""}
-                      </option>
-                    ))}
-                    <option value={CREATE_SENTINEL}>+ Create new credential…</option>
-                  </select>
+          profiles.map((profile) => {
+            const cred = credsById[profile.id] ?? EMPTY_CRED;
+            return (
+              <div key={profile.id} className="auth-profile">
+                <div className="auth-profile__field">
+                  <label className="credentials-section__label">Title</label>
+                  <input
+                    className="auth-profile__name"
+                    value={profile.name}
+                    onChange={(e) => update(profile.id, { name: e.target.value })}
+                    placeholder="Profile name"
+                  />
                 </div>
-              )}
 
-              <ScriptEditor
-                value={profile.loginScript}
-                onChange={(s) => update(profile.id, { loginScript: s })}
-                defaultUrl={project?.prodUrl}
-              />
+                {electron && (
+                  <div className="auth-profile__creds">
+                    <CredField
+                      label="Email"
+                      variable="$EMAIL$"
+                      value={cred.email}
+                      onChange={(v) => updateCred(profile.id, { email: v })}
+                    />
+                    <CredField
+                      label="Password"
+                      variable="$PASSWORD$"
+                      type="password"
+                      value={cred.password}
+                      onChange={(v) => updateCred(profile.id, { password: v })}
+                    />
+                    <CredField
+                      label="2FA seed"
+                      variable="$OTP$"
+                      placeholder="Optional — TOTP secret"
+                      value={cred.totpSeed}
+                      onChange={(v) => updateCred(profile.id, { totpSeed: v })}
+                    />
+                  </div>
+                )}
 
-              <div className="auth-profile__session">
-                <button
-                  type="button"
-                  className="btn btn--outline btn--sm"
-                  onClick={() => generate(profile)}
-                  disabled={busyId === profile.id || !profile.loginScript.trim()}
-                >
-                  {busyId === profile.id ? "Signing in…" : "Test sign in"}
-                </button>
-                <span className="auth-profile__tokens">
-                  {profile.tokensUpdatedAt
-                    ? `Signed in ${formatRelativeTime(profile.tokensUpdatedAt)}`
-                    : "Not signed in yet"}
-                </span>
-                <button
-                  type="button"
-                  className="btn btn--danger-outline btn--sm auth-profile__delete"
-                  onClick={() => removeProfile(profile.id)}
-                >
-                  Delete profile
-                </button>
+                <ScriptEditor
+                  value={profile.loginScript}
+                  onChange={(s) => update(profile.id, { loginScript: s })}
+                  defaultUrl={project?.prodUrl}
+                />
+
+                <div className="auth-profile__session">
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() => generate(profile)}
+                    disabled={busyId === profile.id || !profile.loginScript.trim()}
+                  >
+                    {busyId === profile.id ? "Signing in…" : "Test sign in"}
+                  </button>
+                  <span className="auth-profile__tokens">
+                    {profile.tokensUpdatedAt
+                      ? `Signed in ${formatRelativeTime(profile.tokensUpdatedAt)}`
+                      : "Not signed in yet"}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn--danger-outline btn--sm auth-profile__delete"
+                    onClick={() => removeProfile(profile.id)}
+                  >
+                    Delete profile
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
 
         <button type="button" className="btn btn--outline auth-profiles__add" onClick={addProfile}>
           + Add sign-in profile
         </button>
       </div>
+    </div>
+  );
+}
 
-      {credEditorFor && (
-        <CredentialEditor
-          existing={null}
-          onClose={() => setCredEditorFor(null)}
-          onSaved={(key) => {
-            const id = credEditorFor;
-            setCredEditorFor(null);
-            refreshVault();
-            if (id) update(id, { vaultEntryId: key }, true);
-          }}
-          onError={setError}
-        />
-      )}
+/** One inline credential input with its $VARIABLE$ tag. */
+function CredField({
+  label,
+  variable,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  variable: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <div className="auth-profile__cred-field">
+      <label className="auth-profile__cred-label">
+        {label}
+        <code className="auth-profile__var">{variable}</code>
+      </label>
+      <input
+        className="input input--compact"
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }
