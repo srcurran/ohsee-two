@@ -53,7 +53,7 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
   return (
     <div className="breakpoint-editor">
       <div className="breakpoint-editor__header row row--sm">
-        <span className="breakpoint-editor__label">Breakpoints</span>
+        <h3>Breakpoints</h3>
         <span className="breakpoint-editor__count">
           {breakpoints.length}/{max}
         </span>
@@ -95,7 +95,13 @@ export default function BreakpointEditor({ breakpoints, onChange, max = 6 }: Pro
           Add
         </button>
       </div>
-      
+
+      {breakpoints.length < max && (
+        <div className="row row--sm">
+
+        </div>
+      )}
+
       {error && <p className="error-text error-text--xs" style={{ marginTop: "var(--space-1)" }}>{error}</p>}
     </div>
   );

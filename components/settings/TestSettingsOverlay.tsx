@@ -176,7 +176,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
           onChange={(bp) => { data.setBreakpoints(bp); data.scheduleSave(); }}
         />
         <div className="test-settings-section__variants stack stack--sm">
-          <p className="test-settings-section__label">Variants</p>
+          <h3>Variants</h3>
           <div className="variant-list">
             {BUILT_IN_VARIANTS.map((v) => {
               const active = data.variantIds.includes(v.id);
@@ -205,25 +205,27 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
     const dangerContent = (
       <div className="project-settings-overlay__danger-body">
-        <section className="project-settings-overlay__danger-section stack stack--xs">
-          <h3 className="project-settings-overlay__danger-heading">Archive test</h3>
-          <p className="project-settings-overlay__danger-copy">
-            Hide this test from the sidebar. Reports are preserved and the test
-            can be restored from the project Danger Zone.
-          </p>
-          <button
-            type="button"
-            className="btn btn--outline"
-            onClick={async () => {
-              await data.persist({ archived: true });
-              handleClose();
-            }}
-          >
-            Archive
-          </button>
+        <section className="project-settings-overlay__danger-section stack stack--md">
+          <div className="stack stack--xs">
+            <h3>Archive test</h3>
+            <p className="project-settings-overlay__danger-copy">
+              Hide this test from the sidebar. Reports are preserved and the test
+              can be restored from the project Danger Zone.
+            </p>
+            <button
+                type="button"
+                className="btn btn--outline"
+                onClick={async () => {
+                  await data.persist({ archived: true });
+                  handleClose();
+                }}
+            >
+              Archive
+            </button>
+          </div>
         </section>
       </div>
-    );
+    )
 
     return [
       { id: "steps" as AccordionId, label: isAdvanced ? "Script" : "Test steps", content: stepsContent },
@@ -247,6 +249,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         aria-labelledby="test-settings-title"
       >
         <header className="project-settings-overlay__header row row--between">
+
           {authView ? (
             <button
               type="button"
