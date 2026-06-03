@@ -9,6 +9,7 @@ import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
 import Segmented from "@/components/utility/Segmented";
+import TabBar from "@/components/utility/TabBar";
 
 type Tab = "general" | "defaults" | "credentials";
 
@@ -61,20 +62,7 @@ export default function SettingsPage() {
       <div className="page-header stack stack--lg animate-card-in">
         <h1 className="page-header__title page-header__title--xl">Settings</h1>
 
-        <div className="tab-bar">
-          <div className="tab-bar__list">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`tab ${activeTab === tab.id ? "tab--active" : ""}`}
-              >
-                {tab.label}
-                {activeTab === tab.id && <span className="tab__indicator" />}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TabBar items={tabs} active={activeTab} onSelect={setActiveTab} />
       </div>
 
       <div className="page-shell__body">
