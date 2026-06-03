@@ -195,9 +195,28 @@ atomic class (`.mt-4`, `.text-center`) — if a utility doesn't exist, either
 use a thin BEM block or, if it's genuinely reusable layout, extend
 `_layout.scss` (and keep it tight).
 
+**Two traps that look convertible but aren't:**
+
+1. **No `gap` (or an off-scale gap) → leave it BEM.** Base `.row` / `.stack`
+   carry `gap: space-3` *and* `align-items: center`. Dropping a bare `.row`
+   onto a flex container that had no gap silently adds 12px between children;
+   onto one that relied on the default `align-items: stretch` it re-centers
+   them. Only convert when the existing `gap`/alignment matches a modifier
+   exactly — if the gap is `space-5/7/9` or a raw px (not on the scale), keep
+   the BEM block rather than rounding.
+2. **Descendant selectors → keep the original class.** When the SCSS targets
+   children as *nested real selectors* (`.report-page__header { .report-page__title-row {…} }`
+   → compiles to `.a .b`), the element must keep its class or those rules stop
+   matching. Add the utility *alongside*: `class="report-page__header stack
+   stack--lg"`, and thin the SCSS block to its non-layout rules. (Concatenated
+   `&__child` selectors compile to a standalone `.block__child`, so there it's
+   safe to drop the parent class entirely.)
+
 Canonical example: `_auth-profiles.scss` + `AuthProfilesPanel.tsx` — the
 flex/gap blocks (`__body`, `__field`, `__creds`, `__session`, …) became
-`.stack`/`.row`, leaving SCSS with only the component-specific styling.
+`.stack`/`.row`, leaving SCSS with only component-specific styling. The same
+sweep ran across the settings / detail / shell components, so most of the app
+is now the precedent.
 
 ---
 
