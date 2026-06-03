@@ -313,7 +313,22 @@ export async function captureLoginState(options: {
       page.waitForLoadState("networkidle"),
       page.waitForTimeout(5000),
     ]);
-    const state = (await context.storageState()) as unknown as BrowserStorageState;
+    const raw = await context.storageState();
+    // Cheap sanity guard: a login that established no cookies and no
+    // per-origin localStorage clearly didn't sign in. (A *partial* session
+    // can't be detected here — the script itself should assert the signed-in
+    // state, e.g. waitForURL / expect(...).toBeVisible, before we trust it.)
+    const hasCookies = (raw.cookies?.length ?? 0) > 0;
+    const hasStorage = (raw.origins ?? []).some(
+      (o) => (o.localStorage?.length ?? 0) > 0,
+    );
+    if (!hasCookies && !hasStorage) {
+      throw new Error(
+        "Sign-in produced no session — the login script likely didn't complete " +
+        "(e.g. the code wasn't submitted). End it by waiting for the signed-in page.",
+      );
+    }
+    const state = raw as unknown as BrowserStorageState;
     await context.close();
     return state;
   } finally {
