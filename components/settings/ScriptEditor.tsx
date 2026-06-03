@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
@@ -40,7 +40,6 @@ export default function ScriptEditor({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const [showRef, setShowRef] = useState(false);
 
   // Stable onChange ref so the editor extension always calls the latest.
   const onChangeRef = useRef(onChange);
@@ -128,35 +127,24 @@ export default function ScriptEditor({
             style={{ display: "none" }}
           />
         </label>
-        <button
-          type="button"
-          className="btn btn--text btn--sm script-editor__ref-toggle"
-          onClick={() => setShowRef((v) => !v)}
-        >
-          {showRef ? "Hide reference" : "Reference"}
-        </button>
       </div>
 
       <div ref={editorRef} className="code-editor script-editor__code" />
 
-      {showRef && (
-        <div className="script-editor__reference">
-          <span className="script-editor__reference-title">Click to insert</span>
-          <div className="script-editor__snippets">
-            {SNIPPETS.map((s) => (
-              <button
-                key={s.label}
-                type="button"
-                className="script-editor__snippet"
-                onClick={() => insertAtCursor(s.code)}
-                title={s.code}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="script-editor__reference">
+        <span className="script-editor__reference-title">Click to insert</span>
+        {SNIPPETS.map((s) => (
+          <button
+            key={s.label}
+            type="button"
+            className="script-editor__snippet"
+            onClick={() => insertAtCursor(s.code)}
+            title={s.code}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

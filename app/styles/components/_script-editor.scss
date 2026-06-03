@@ -14,34 +14,28 @@
     gap: var(--space-2);
   }
 
-  &__ref-toggle {
-    margin-left: auto;
-  }
-
   &__code {
     min-width: 0;
     border-radius: var(--radius-md);
   }
 
-  /* Quick reference — a row of insert chips below the editor. */
+  /* Quick reference — always-visible single row of insert chips below the
+     editor; scrolls horizontally if it can't fit. */
   &__reference {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: var(--space-2);
+    overflow-x: auto;
   }
 
   &__reference-title {
+    flex-shrink: 0;
     font-size: var(--font-size-sm);
     color: var(--wizard-hint-color, var(--neutral-dark-500));
   }
 
-  &__snippets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
   &__snippet {
+    flex-shrink: 0;
     padding: var(--space-1-5) var(--space-2);
     border: 1px solid var(--input-border);
     border-radius: var(--radius-sm);
