@@ -6,8 +6,8 @@
  *     <p .field__hint>  or  <p .field__error>
  *
  * .input, .textarea, and .checkbox are independent BEM blocks because
- * they are also used standalone (e.g. inside .flow-step, search bars,
- * checkbox lists) — see grep results in components/. */
+ * they are also used standalone (e.g. in search bars, checkbox lists)
+ * — see grep results in components/. */
 
 .field {
   display: flex;
