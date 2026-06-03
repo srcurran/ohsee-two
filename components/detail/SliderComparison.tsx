@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { SemanticChange } from "@/lib/types";
+import Segmented from "@/components/utility/Segmented";
 
 export type ComparisonMode = "slider" | "tap";
 
@@ -34,20 +35,11 @@ export function ComparisonHeader({
       <span className={`comparison-header__label ${showingDev ? "" : "comparison-header__label--active"}`}>
         Prod
       </span>
-      <div className="segmented">
-        <button
-          onClick={() => onModeChange("tap")}
-          className={`segmented__item ${mode === "tap" ? "segmented__item--active" : ""}`}
-        >
-          Tap
-        </button>
-        <button
-          onClick={() => onModeChange("slider")}
-          className={`segmented__item ${mode === "slider" ? "segmented__item--active" : ""}`}
-        >
-          Slider
-        </button>
-      </div>
+      <Segmented
+        options={[{ value: "tap", label: "Tap" }, { value: "slider", label: "Slider" }]}
+        value={mode as ComparisonMode}
+        onChange={(v) => onModeChange?.(v)}
+      />
       <span className={`comparison-header__label ${showingDev ? "comparison-header__label--active" : ""}`}>
         Dev
       </span>

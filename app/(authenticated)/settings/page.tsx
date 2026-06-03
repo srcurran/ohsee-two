@@ -8,6 +8,7 @@ import CredentialsSettings from "@/components/settings/CredentialsSettings";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
+import Segmented from "@/components/utility/Segmented";
 
 type Tab = "general" | "defaults" | "credentials";
 
@@ -119,18 +120,16 @@ export default function SettingsPage() {
               {mounted && (
                 <section className="section-block animate-card-in" style={{ animationDelay: "50ms" }}>
                   <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Theme</p>
-                  <div className="segmented" style={{ width: "fit-content" }}>
-                    {(["light", "dark", "system"] as const).map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => setTheme(opt)}
-                        className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
-                        style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
+                  <Segmented
+                    options={[
+                      { value: "light", label: "Light" },
+                      { value: "dark", label: "Dark" },
+                      { value: "system", label: "System" },
+                    ]}
+                    value={(theme ?? "system") as "light" | "dark" | "system"}
+                    onChange={setTheme}
+                    className="segmented--fit segmented--lg"
+                  />
                 </section>
               )}
 

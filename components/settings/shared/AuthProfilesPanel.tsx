@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
 import Field, { CopyButton } from "@/components/utility/Field";
+import Segmented from "@/components/utility/Segmented";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
 import { formatRelativeTime } from "@/lib/relative-time";
@@ -247,22 +248,14 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                       <label className="auth-profile__cred-label row row--sm">
                         Two-factor
                         <code className="field__var">$OTP$</code>
-                        <div className="segmented">
-                          <button
-                              type="button"
-                              className={`segmented__item ${cred.otpMode === "totp" ? "segmented__item--active" : ""}`}
-                              onClick={() => updateCred(profile.id, { otpMode: "totp" })}
-                          >
-                            TOTP seed
-                          </button>
-                          <button
-                              type="button"
-                              className={`segmented__item ${cred.otpMode === "static" ? "segmented__item--active" : ""}`}
-                              onClick={() => updateCred(profile.id, { otpMode: "static" })}
-                          >
-                            Fixed code
-                          </button>
-                        </div>
+                        <Segmented
+                          options={[
+                            { value: "totp", label: "TOTP seed" },
+                            { value: "static", label: "Fixed code" },
+                          ]}
+                          value={cred.otpMode}
+                          onChange={(otpMode) => updateCred(profile.id, { otpMode })}
+                        />
                       </label>
                       <div className="field__control">
                         <input
