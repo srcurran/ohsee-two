@@ -30,7 +30,7 @@ export default function ChangeBadge({ count, noData, size, tone = "solid", cap =
   const changed = count > 0;
   cls.push(
     tone === "tint"
-      ? changed ? "badge--warning-tint" : "badge--success-tint"
+      ? "badge--tint"
       : changed ? "badge--warning" : "badge--success",
   );
   return <span className={cls.join(" ")}>{count > cap ? `${cap}+` : count}</span>;

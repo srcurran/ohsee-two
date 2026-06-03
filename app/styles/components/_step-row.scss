@@ -17,6 +17,8 @@
  *     <span .step-row__deleted-label>
  *     <button .step-row__undo>
  * ────────────────────────────────────────────────────────────────────── */
+@use "../mixins/reset" as *;
+
 .step-row {
   display: flex;
   align-items: center;
@@ -69,16 +71,12 @@
   }
 
   .step-row__label {
+    @include button-reset;
     flex: 1 1 auto;
     min-width: 0;
     text-align: left;
-    background: transparent;
-    border: none;
-    padding: 0;
     color: var(--step-row-label-color);
-    font-family: inherit;
     font-size: var(--font-size-base);
-    cursor: pointer;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

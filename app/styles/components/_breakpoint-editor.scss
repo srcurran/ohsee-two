@@ -10,6 +10,8 @@
  *     <div .row .row--sm>            ← input + add button
  */
 
+@use "../mixins/reset" as *;
+
 .breakpoint-editor {
   /* Layout: .row .row--sm (JSX). Owns only the spacing below + label type. */
   .breakpoint-editor__header {
@@ -44,10 +46,7 @@
   color: var(--bp-chip-color);
 
   .bp-chip__remove {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0;
+    @include button-reset;
     display: inline-flex;
     align-items: center;
     justify-content: center;

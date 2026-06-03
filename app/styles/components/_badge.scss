@@ -44,11 +44,9 @@
     font-weight: var(--weight-regular);
   }
 
-  &--success-tint {
-    background: var(--badge-success-tint-background);
-  }
-
-  &--warning-tint {
-    background: var(--badge-warning-tint-background);
+  /* The success/warning tints render identically (a neutral surface, no
+     colored text), so they're one rule. */
+  &--tint {
+    background: var(--badge-tint-background);
   }
 }

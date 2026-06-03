@@ -80,9 +80,7 @@
     border-left-color: var(--change-entry-border-error);
   }
 
-  &--info {
-    border-left-color: var(--change-entry-border-info);
-  }
+  /* --info is the base default border, so no modifier rule is needed. */
 
   &--ok {
     border-left-color: var(--change-entry-border-ok);

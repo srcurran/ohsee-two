@@ -28,16 +28,14 @@
  *     settings (no separate icon button beside it).
  */
 
+@use "../mixins/reset" as *;
+
 .report__project-label {
   font-size: var(--font-size-lg);
   color: var(--report-project-label-color);
 
   &--button {
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font-family: inherit;
+    @include button-reset;
     font-size: inherit;
     color: inherit;
     transition: var(--transition-colors);

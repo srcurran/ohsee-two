@@ -313,8 +313,7 @@
   --badge-success-color:                var(--on-success);   /* black on green */
   --badge-warning-background:           var(--status-error-500);
   --badge-warning-color:                var(--on-error);     /* white on red   */
-  --badge-success-tint-background:      var(--neutral-light-200);
-  --badge-warning-tint-background:      var(--neutral-light-200);
+  --badge-tint-background:              var(--neutral-light-200);
   --badge-neutral-color:                var(--neutral-dark-100);
   --filter-pill-background:                    var(--neutral-light-200);
   --filter-pill-background-hover:              var(--surface-hover);
