@@ -7,13 +7,16 @@ import { resolveVaultCredentials } from "@/lib/vault-resolve";
 import { formatRelativeTime } from "@/lib/relative-time";
 import type { AuthProfile, Project } from "@/lib/types";
 
-/** Inline credential fields, mirrored from the profile's Keychain entry. */
+/** Inline credential fields, mirrored from the profile's Keychain entry.
+ *  `$OTP$` is either a TOTP seed (a fresh code is generated each run) or a
+ *  fixed/static code — `otpMode` picks which. */
 interface Cred {
   email: string;
   password: string;
-  totpSeed: string;
+  otpMode: "totp" | "static";
+  otpValue: string;
 }
-const EMPTY_CRED: Cred = { email: "", password: "", totpSeed: "" };
+const EMPTY_CRED: Cred = { email: "", password: "", otpMode: "totp", otpValue: "" };
 
 /**
  * Site-level sign-in profiles manager — embedded as a same-panel sub-view.
@@ -49,7 +52,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
               next[pr.id] = {
                 email: e.label ?? "",
                 password: e.secret ?? "",
-                totpSeed: e.totpSeed ?? "",
+                otpMode: e.staticOtp ? "static" : "totp",
+                otpValue: e.staticOtp ?? e.totpSeed ?? "",
               };
             } catch {
               // entry may have been removed out-of-band — leave blank
@@ -147,10 +151,12 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
     const profile = profiles.find((p) => p.id === profileId);
     const key = profile?.vaultEntryId || `signin-${profileId}`;
     try {
+      const otp = c.otpValue.trim();
       await o.vault.set(key, {
         label: c.email,
         secret: c.password,
-        totpSeed: c.totpSeed.trim() || undefined,
+        totpSeed: c.otpMode === "totp" && otp ? otp : undefined,
+        staticOtp: c.otpMode === "static" && otp ? otp : undefined,
       });
       if (!profile?.vaultEntryId) update(profileId, { vaultEntryId: key }, true);
       setError(null);
@@ -233,13 +239,42 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                       value={cred.password}
                       onChange={(v) => updateCred(profile.id, { password: v })}
                     />
-                    <CredField
-                      label="2FA seed"
-                      variable="$OTP$"
-                      placeholder="Optional — TOTP secret"
-                      value={cred.totpSeed}
-                      onChange={(v) => updateCred(profile.id, { totpSeed: v })}
-                    />
+                    <div className="auth-profile__cred-field">
+                      <label className="auth-profile__cred-label">
+                        Two-factor
+                        <code className="auth-profile__var">$OTP$</code>
+                      </label>
+                      <div className="auth-profile__otp">
+                        <div className="segmented">
+                          <button
+                            type="button"
+                            className={`segmented__item ${cred.otpMode === "totp" ? "segmented__item--active" : ""}`}
+                            onClick={() => updateCred(profile.id, { otpMode: "totp" })}
+                          >
+                            TOTP seed
+                          </button>
+                          <button
+                            type="button"
+                            className={`segmented__item ${cred.otpMode === "static" ? "segmented__item--active" : ""}`}
+                            onClick={() => updateCred(profile.id, { otpMode: "static" })}
+                          >
+                            Fixed code
+                          </button>
+                        </div>
+                        <input
+                          className="input input--compact auth-profile__otp-input"
+                          value={cred.otpValue}
+                          placeholder={
+                            cred.otpMode === "totp"
+                              ? "Optional — TOTP secret (base32)"
+                              : "Optional — fixed code"
+                          }
+                          spellCheck={false}
+                          autoComplete="off"
+                          onChange={(e) => updateCred(profile.id, { otpValue: e.target.value })}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
