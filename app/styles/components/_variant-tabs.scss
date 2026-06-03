@@ -4,13 +4,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-
-  &__label {
-    font-size: var(--font-size-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--variant-tabs-label-color);
-  }
 }
 
 .variant-tab {

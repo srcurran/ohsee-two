@@ -33,20 +33,10 @@
  *   <div .test-settings-section>
  *     <BreakpointEditor … />
  *     <div .test-settings-section__variants .stack .stack--sm>
- *       <p .test-settings-section__label>
  *       <div .variant-list> …
  * ────────────────────────────────────────────────────────────────────── */
 .test-settings-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-
-  /* Layout: .stack .stack--sm (JSX). This block anchors its label child. */
-  .test-settings-section__variants {
-    .test-settings-section__label {
-      margin: 0;
-      font-size: var(--font-size-md);
-      color: var(--test-settings-section-label-color);
-    }
-  }
 }

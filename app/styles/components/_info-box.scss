@@ -6,11 +6,6 @@
   padding: var(--space-3);
   background: color-mix(in srgb, var(--info-box-background-tint) 30%, transparent);
 
-  &--accent {
-    border-color: color-mix(in srgb, var(--info-box-accent-tint) 30%, transparent);
-    background: color-mix(in srgb, var(--info-box-accent-tint) 5%, transparent);
-  }
-
   &__title {
     margin: 0 0 var(--space-1-5) 0;
     font-size: var(--font-size-sm);

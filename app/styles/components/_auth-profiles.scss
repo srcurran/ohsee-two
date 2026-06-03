@@ -6,13 +6,6 @@
  * affordances, the destructive action). */
 
 .auth-profiles {
-  &__title {
-    margin: 0 0 var(--space-1);
-    font-size: var(--font-size-xl);
-    font-weight: var(--weight-bold);
-    color: var(--modal-title-color);
-  }
-
   &__hint {
     margin: 0;
     font-size: var(--font-size-sm);

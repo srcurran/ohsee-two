@@ -5,12 +5,6 @@
 .page-header {
   padding: var(--space-5) var(--space-6);
 
-  &__top {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-  }
-
   &__title {
     margin: 0;
     font-size: var(--font-size-5xl);

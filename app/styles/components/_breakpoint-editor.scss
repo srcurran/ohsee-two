@@ -2,7 +2,6 @@
  * Structure mirrors the JSX tree:
  *   <div .breakpoint-editor>
  *     <div .breakpoint-editor__header>
- *       <span .breakpoint-editor__label>
  *       <span .breakpoint-editor__count>
  *     <div .breakpoint-editor__chips>
  *       <div .bp-chip>              ← per breakpoint (separate top-level class)
@@ -16,11 +15,6 @@
   /* Layout: .row .row--sm (JSX). Owns only the spacing below + label type. */
   .breakpoint-editor__header {
     margin-bottom: var(--space-2);
-
-    .breakpoint-editor__label {
-      font-size: var(--font-size-base);
-      color: var(--breakpoint-editor-label-color);
-    }
 
     .breakpoint-editor__count {
       font-size: var(--font-size-sm);

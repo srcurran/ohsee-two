@@ -139,7 +139,6 @@
   /* ── App shell + sign-in + page-detail (layout/structural) ─────── */
   --app-shell-background:                      var(--neutral-light-200);
   --app-shell-background-flat:                 var(--neutral-light-100);
-  --app-main-content-background:               var(--neutral-light-100);
   --app-main-background-flat:                  var(--neutral-light-100);
   --sign-in-background:                        var(--neutral-light-200);
   --sign-in-logo-color:                        var(--neutral-dark-900);
@@ -209,8 +208,6 @@
   --empty-steps-copy-color:                    var(--neutral-dark-500);
   --settings-accordion-border:                       var(--neutral-dark-100);
   --settings-accordion-glyph-color:                  var(--neutral-dark-500);
-  --test-settings-section-label-color:         var(--neutral-dark-500);
-  --credentials-section-row-color:             var(--neutral-dark-900);
   --credentials-section-label-color:           var(--neutral-dark-500);
   --credentials-section-hint-color:            var(--neutral-dark-500);
   --add-step-fork-copy-color:                  var(--neutral-dark-500);
@@ -284,7 +281,6 @@
   --textarea-border:                    var(--neutral-dark-100);
   --textarea-border-focus:              var(--neutral-dark-900);
   --textarea-placeholder-color:         var(--neutral-dark-500);
-  --wizard-section-title-color:         var(--neutral-dark-500);
   --wizard-hint-color:                  var(--neutral-dark-500);
   --wizard-step-count-color:            var(--neutral-dark-500);
   --wizard-step-item-border:            var(--neutral-dark-100);
@@ -313,7 +309,6 @@
   --tab-bar-border:                     var(--neutral-dark-150);
   --tab-color:                          var(--neutral-dark-900);
   --tab-indicator-background:           var(--neutral-dark-900);
-  --variant-tabs-label-color:           var(--neutral-dark-400);
   --variant-tab-color:                  var(--neutral-dark-500);
   --variant-tab-color-hover:            var(--neutral-dark-900);
   --variant-tab-color-active:           var(--neutral-dark-900);
@@ -326,7 +321,6 @@
   --segmented-item-color-active:        var(--neutral-dark-900);
 
   /* ── Breakpoint editor + change-list + diff + flow + slider ────── */
-  --breakpoint-editor-label-color:       var(--neutral-dark-900);
   --breakpoint-editor-count-color:       var(--neutral-dark-500);
   --bp-chip-border:                      var(--neutral-dark-100);
   --bp-chip-color:                       var(--neutral-dark-900);
@@ -364,15 +358,12 @@
   --code-inline-background:              var(--neutral-light-200);
   --code-editor-border:                  var(--neutral-dark-100);
   --test-result-border:                  var(--neutral-dark-100);
-  --test-result-pass-tint:               var(--status-success-500);
-  --test-result-pass-color:              var(--status-success-500);
   --test-result-fail-border:             var(--status-error-500);
   --test-result-fail-background:         var(--neutral-light-200);
   --test-result-fail-color:              var(--status-error-500);
   --test-result-duration-color:          var(--neutral-dark-500);
   --info-box-border:                     var(--neutral-dark-100);
   --info-box-background-tint:            var(--neutral-light-200);
-  --info-box-accent-tint:                var(--status-success-500);
   --info-box-title-color:                var(--neutral-dark-500);
   --info-box-list-color:                 var(--neutral-dark-500);
   --error-text-color:                    var(--status-error-500);

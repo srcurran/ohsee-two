@@ -10,7 +10,6 @@
  *       <button .icon-btn>                  ← close
  *     <div .wizard__body .stack .stack--lg> ← step content slot
  *       <div .wizard__fields .stack .stack--lg> ← from step children
- *         <h3 .wizard__section-title>
  *         <p .wizard__hint>
  *         <ul .wizard__step-list>
  *           <li .wizard__step-item>
@@ -34,13 +33,6 @@
 .wizard__body {
   /* .wizard__fields is also .stack .stack--lg in JSX. */
   .wizard__fields {
-    .wizard__section-title {
-      margin: 0;
-      font-size: var(--font-size-md);
-      font-weight: var(--weight-regular);
-      color: var(--wizard-section-title-color);
-    }
-
     .wizard__hint {
       margin: 0;
       font-size: var(--font-size-md);
@@ -116,13 +108,6 @@
           line-height: var(--line-base);
         }
       }
-    }
-
-    /* Side-by-side actions, e.g. "Add Playwright script" + "Record". */
-    .wizard__action-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
     }
 
     /* Layout: .row .row--top (JSX). Owns the top inset + the field/button
