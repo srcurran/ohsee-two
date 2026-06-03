@@ -305,6 +305,14 @@ export async function captureLoginState(options: {
       setTimeout(() => reject(new Error(`Login script timed out after ${SCRIPT_TIMEOUT}ms`)), SCRIPT_TIMEOUT),
     );
     await Promise.race([fn(page, expectFn), timeoutPromise]);
+    // Let the sign-in settle before snapshotting — the script's last action
+    // (submitting a code / clicking through) often triggers a redirect that
+    // sets the session cookie. Capturing too early grabs a half-authenticated
+    // state. Capped so a script that never finishes signing in still returns.
+    await Promise.race([
+      page.waitForLoadState("networkidle"),
+      page.waitForTimeout(5000),
+    ]);
     const state = (await context.storageState()) as unknown as BrowserStorageState;
     await context.close();
     return state;
