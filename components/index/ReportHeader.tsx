@@ -50,7 +50,7 @@ export function ReportHeader({
             <Icon name="play" size={20} className="run-pill__icon" />
           </button>
         ) : (
-          <div className="progress">
+          <div className="progress row">
             <div className="progress__bar">
               <div
                 className="progress__fill"

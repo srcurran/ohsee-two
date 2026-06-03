@@ -97,7 +97,7 @@ const MaterialField = forwardRef<HTMLInputElement, Props>(function MaterialField
   const trailingNode = trailing ?? defaultTrailing(effectiveStatus);
 
   return (
-    <div className="material-field">
+    <div className="material-field stack stack--xs">
       <div
         className={[
           "material-field__shell",

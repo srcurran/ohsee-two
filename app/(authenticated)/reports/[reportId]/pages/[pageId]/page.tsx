@@ -142,7 +142,7 @@ function PageDetailInner() {
             )}
           </div>
 
-          <div className="report-page__body">
+          <div className="report-page__body stack stack--lg">
             {bpResult ? (
               <PageRouteCompareRow
                 bpResult={bpResult}

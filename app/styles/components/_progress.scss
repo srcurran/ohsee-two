@@ -1,10 +1,7 @@
 /* Progress — run progress bar */
 
+/* Layout: .row (JSX). This block owns only the bar/fill/text pieces. */
 .progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-
   &__bar {
     height: 6px;
     width: 120px;

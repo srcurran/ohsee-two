@@ -13,11 +13,8 @@
  * the dominant element; a trailing slot holds a status icon (or custom
  * content). */
 
+/* Layout: .stack .stack--xs (JSX). This block owns the shell + caption. */
 .material-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-
   .material-field__shell {
     display: flex;
     align-items: center;
