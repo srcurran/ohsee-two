@@ -2,26 +2,32 @@
 
 import { useEffect, useRef } from "react";
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
+import {
+  snippet,
+  nextSnippetField,
+  prevSnippetField,
+  clearSnippet,
+} from "@codemirror/autocomplete";
 import { basicSetup } from "codemirror";
 import CodegenRecorder from "@/components/settings/CodegenRecorder";
 import { extractScriptBody, insertSnapshotsAfterNavigation } from "@/lib/script-utils";
 
-/** Click-to-insert snippets shown in the quick reference. Statement snippets
- *  drop in on their own line; `inline` ones insert at the cursor. The
- *  credential variables ($EMAIL$ / $PASSWORD$ / $OTP$) live on the credential
+/** Click-to-insert snippets. `${…}` marks an editable field: inserting selects
+ *  the first one so you can type immediately, and Tab jumps to the next.
+ *  Credential variables ($EMAIL$ / $PASSWORD$ / $OTP$) live on the credential
  *  fields instead — copy them from there. */
-const SNIPPETS: { label: string; code: string; inline?: boolean }[] = [
-  { label: "Go to path", code: "await page.goto('/path');" },
-  { label: "Snapshot", code: "await ohsee.snapshot('name');" },
-  { label: "Click role", code: "await page.getByRole('button', { name: 'Submit' }).click();" },
-  { label: "Click text", code: "await page.getByText('Sign in').click();" },
-  { label: "Fill field", code: "await page.getByLabel('Email').fill('$EMAIL$');" },
-  { label: "Fill password", code: "await page.getByLabel('Password').fill('$PASSWORD$');" },
-  { label: "Press", code: "await page.keyboard.press('Enter');" },
-  { label: "Wait for text", code: "await expect(page.getByText('Welcome')).toBeVisible();" },
+const SNIPPETS: { label: string; code: string }[] = [
+  { label: "Go to path", code: "await page.goto('${/path}');" },
+  { label: "Snapshot", code: "await ohsee.snapshot('${name}');" },
+  { label: "Click role", code: "await page.getByRole('${button}', { name: '${Submit}' }).click();" },
+  { label: "Click text", code: "await page.getByText('${Sign in}').click();" },
+  { label: "Fill field", code: "await page.getByLabel('${Email}').fill('$EMAIL$');" },
+  { label: "Fill password", code: "await page.getByLabel('${Password}').fill('$PASSWORD$');" },
+  { label: "Press", code: "await page.keyboard.press('${Enter}');" },
+  { label: "Wait for text", code: "await expect(page.getByText('${Welcome}')).toBeVisible();" },
 ];
 
 /**
@@ -65,7 +71,15 @@ export default function ScriptEditor({
           "// and capture with `await ohsee.snapshot('name')`.\n" +
           "await page.goto('/');\nawait ohsee.snapshot('home');",
         ),
-        keymap.of([]),
+        // Tab/Shift-Tab move between active snippet fields; the commands
+        // no-op (return false) when no field is active, so Tab is otherwise
+        // unaffected. Highest precedence so it wins over default bindings.
+        Prec.highest(
+          keymap.of([
+            { key: "Tab", run: nextSnippetField, shift: prevSnippetField },
+            { key: "Escape", run: clearSnippet },
+          ]),
+        ),
       ],
     });
     const view = new EditorView({ state, parent: editorRef.current });
@@ -75,27 +89,16 @@ export default function ScriptEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Insert a reference snippet. Statement snippets land on their own line;
-   *  `inline` ones (credential variables) drop in at the cursor. */
-  const insertAtCursor = (text: string, inline = false) => {
+  /** Insert a snippet on its own line and select its first `${…}` field.
+   *  Tab then moves between fields. onChange fires via the update listener. */
+  const insertSnippet = (template: string) => {
     const view = viewRef.current;
     if (!view) return;
-    if (inline) {
-      const { from, to } = view.state.selection.main;
-      view.dispatch({
-        changes: { from, to, insert: text },
-        selection: { anchor: from + text.length },
-      });
-    } else {
-      const pos = view.state.selection.main.head;
-      const pad = pos > 0 && view.state.doc.sliceString(pos - 1, pos) !== "\n" ? "\n" : "";
-      view.dispatch({
-        changes: { from: pos, insert: `${pad}${text}\n` },
-        selection: { anchor: pos + pad.length + text.length + 1 },
-      });
-    }
+    const pos = view.state.selection.main.head;
+    const atLineStart = pos === 0 || view.state.doc.sliceString(pos - 1, pos) === "\n";
+    const full = `${atLineStart ? "" : "\n"}${template}\n`;
+    snippet(full)(view, null, pos, pos);
     view.focus();
-    onChangeRef.current(view.state.doc.toString());
   };
 
   /** Append a cleaned, snapshot-annotated script body (record / upload). */
@@ -150,7 +153,7 @@ export default function ScriptEditor({
             key={s.label}
             type="button"
             className="script-editor__snippet"
-            onClick={() => insertAtCursor(s.code, s.inline)}
+            onClick={() => insertSnippet(s.code)}
             title={s.code}
           >
             {s.label}
