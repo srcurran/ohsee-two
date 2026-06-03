@@ -1,0 +1,130 @@
+/* The add/edit-step sub-views (TestSettingsStepEditor.tsx, ScriptStepEditor.tsx,
+ * TestSettingsEmpty.tsx): the empty placeholder, the Path/Playwright fork, and
+ * the field editor. (Split out of _test-settings.scss.) */
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Empty-state placeholder (TestSettingsEmpty.tsx):
+ *   <div .empty-steps .stack .stack--start>
+ *     <p .empty-steps__heading>
+ *     <p .empty-steps__copy>
+ *     <div .empty-steps__actions .row>
+ * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--start (JSX). Owns only the vertical padding. */
+.empty-steps {
+  padding: var(--space-4) 0;
+
+  .empty-steps__heading {
+    margin: 0;
+    color: var(--empty-steps-heading-color);
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-bold);
+  }
+
+  .empty-steps__copy {
+    margin: 0;
+    color: var(--empty-steps-copy-color);
+    font-size: var(--font-size-md);
+    line-height: var(--line-base);
+    max-width: 48ch;
+  }
+
+  /* Layout: .row (JSX). Owns only the gap above the action buttons. */
+  .empty-steps__actions {
+    margin-top: var(--space-1);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Add-step fork — first screen of the step editor sub-view
+ * (TestSettingsStepEditor.tsx):
+ *   <div .add-step-fork .stack .stack--lg>
+ *     <p .add-step-fork__copy>
+ *     <div .add-step-fork__cards>
+ *       <button .add-step-fork__card>          ← x2 (Path / Playwright)
+ *         <Icon .add-step-fork__card-icon />
+ *         <span .add-step-fork__card-title>
+ *         <span .add-step-fork__card-copy>
+ * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--lg (JSX). This block only anchors its children. */
+.add-step-fork {
+  .add-step-fork__copy {
+    margin: 0;
+    color: var(--add-step-fork-copy-color);
+    font-size: var(--font-size-md);
+  }
+
+  .add-step-fork__cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+
+    .add-step-fork__card {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--space-5);
+      background: transparent;
+      border: 1px solid var(--add-step-fork-card-border);
+      border-radius: var(--radius-md);
+      text-align: left;
+      cursor: pointer;
+      color: var(--add-step-fork-card-color);
+      transition: var(--transition-colors);
+
+      &:hover {
+        border-color: var(--add-step-fork-card-border-hover);
+        background: var(--add-step-fork-card-background-hover);
+      }
+
+      .add-step-fork__card-icon {
+        color: var(--add-step-fork-card-icon-color);
+      }
+
+      .add-step-fork__card-title {
+        font-size: var(--font-size-lg);
+        font-weight: var(--weight-bold);
+      }
+
+      .add-step-fork__card-copy {
+        font-size: var(--font-size-md);
+        color: var(--add-step-fork-card-copy-color);
+        line-height: var(--line-base);
+      }
+    }
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Path/Playwright step editor sub-view (TestSettingsStepEditor.tsx /
+ * ScriptStepEditor.tsx):
+ *   <div .step-editor .stack .stack--lg>
+ *     <label .step-editor__field .stack .stack--xs> ← used by ScriptStepEditor
+ *       <span .step-editor__label>
+ *       <input/textarea ... />
+ *     <p .step-editor__hint>
+ *     <div .step-editor__actions .row .row--end>
+ * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--lg (JSX). This block anchors its children + carries
+   the children's own non-layout styling. */
+.step-editor {
+  /* Layout: .stack .stack--xs (JSX) — the <label> stacks its caption + input. */
+  .step-editor__field {
+    .step-editor__label {
+      font-size: var(--font-size-sm);
+      color: var(--step-editor-label-color);
+    }
+  }
+
+  /* .step-editor__hint-row is .row .row--between in JSX. */
+
+  .step-editor__hint {
+    margin: 0;
+    color: var(--step-editor-hint-color);
+    font-size: var(--font-size-md);
+  }
+
+  /* Layout: .row .row--end (JSX). Owns only the gap above the action row. */
+  .step-editor__actions {
+    margin-top: var(--space-3);
+  }
+}

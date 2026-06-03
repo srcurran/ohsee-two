@@ -13,7 +13,7 @@ interface AccordionProps {
 
 export function Accordion({ title, open, onToggle, children }: AccordionProps) {
   return (
-    <div className={`ts-accordion ${open ? "ts-accordion--open" : ""}`}>
+    <div className={`settings-accordion ${open ? "settings-accordion--open" : ""}`}>
       <button
         type="button"
         className="settings-overlay__danger-toggle"
@@ -22,13 +22,13 @@ export function Accordion({ title, open, onToggle, children }: AccordionProps) {
       >
         <span className="settings-overlay__section-title">{title}</span>
         <span
-          className={`ts-accordion__glyph ${open ? "ts-accordion__glyph--open" : ""}`}
+          className={`settings-accordion__glyph ${open ? "settings-accordion__glyph--open" : ""}`}
           aria-hidden="true"
         />
       </button>
-      <div className="ts-accordion__collapse" aria-hidden={!open}>
-        <div className="ts-accordion__collapse-inner">
-          <div className="ts-accordion__body">{children}</div>
+      <div className="settings-accordion__collapse" aria-hidden={!open}>
+        <div className="settings-accordion__collapse-inner">
+          <div className="settings-accordion__body">{children}</div>
         </div>
       </div>
     </div>

@@ -1,0 +1,54 @@
+/* SettingsOverlay sections (.settings-section) — title + label/hint rows
+ * inside the app-level settings overlay. (Split out of _test-settings.scss.) */
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Sections inside the app-level SettingsOverlay (and reusable elsewhere)
+ * when the panel chrome is provided by .settings-overlay:
+ *   <section .settings-section .stack .stack--lg>
+ *     <h3 .settings-section__title>
+ *     <div .settings-section__row [--column]>
+ *       <p/label .settings-section__label>
+ *       <p .settings-section__hint>
+ *     <div .settings-section__actions>
+ * ────────────────────────────────────────────────────────────────────── */
+/* Layout: .stack .stack--lg (JSX). This block anchors its children. */
+.settings-section {
+  .settings-section__title {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--weight-regular);
+    color: var(--settings-section-title-color);
+  }
+
+  .settings-section__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+
+    &--column {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-2);
+    }
+  }
+
+  /* Used both inside .settings-section__row (label) and as a direct
+     child of .settings-section (subhead hint under section title). */
+  .settings-section__label {
+    margin: 0;
+    color: var(--settings-section-label-color);
+    font-size: var(--font-size-base);
+  }
+
+  .settings-section__hint {
+    margin: 0;
+    color: var(--settings-section-hint-color);
+    font-size: var(--font-size-md);
+  }
+
+  .settings-section__actions {
+    display: flex;
+    margin-top: var(--space-2);
+  }
+}

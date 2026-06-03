@@ -355,7 +355,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
               </div>
             </div>
           ) : (
-            <div className="ts-accordion-group">
+            <div className="settings-accordion-group">
               {sections.map((s) => (
                 <Accordion
                   key={s.id}

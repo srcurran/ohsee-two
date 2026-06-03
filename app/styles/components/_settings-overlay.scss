@@ -3,7 +3,7 @@
  * settings surfaces: ProjectSettingsOverlay, SettingsOverlay, TestSettingsOverlay.
  *
  * Centered modal-style panel anchored to the active window. Width follows
- * the Figma (640px); the danger zone is rendered inside a .ts-accordion
+ * the Figma (640px); the danger zone is rendered inside a .settings-accordion
  * (defined elsewhere) so the danger body markup lives a few wrappers
  * below __body in the actual DOM — descendant selectors still resolve
  * cleanly through that accordion shell.
@@ -23,7 +23,7 @@
  *         <hr     .settings-overlay__divider>     ← SettingsOverlay only
  *         <button .settings-overlay__danger-toggle>
  *           <span .settings-overlay__section-title>
- *         <div    .settings-overlay__danger-body> ← inside ts-accordion
+ *         <div    .settings-overlay__danger-body> ← inside settings-accordion
  *           <section .settings-overlay__danger-section .stack .stack--xs>
  *             <h3 .settings-overlay__danger-heading>
  *             <p  .settings-overlay__danger-copy>
@@ -152,7 +152,7 @@
         margin: 0;
       }
 
-      /* Lives inside .ts-accordion in the DOM — descendant selector still
+      /* Lives inside .settings-accordion in the DOM — descendant selector still
          matches through that wrapper. Closed accordion rows want compact
          padding so adjacent toggles sit close together with the divider
          between (matches Figma 169:877). */
@@ -178,7 +178,7 @@
         }
       }
 
-      /* Nested inside .ts-accordion__collapse-inner in the DOM. */
+      /* Nested inside .settings-accordion__collapse-inner in the DOM. */
       .settings-overlay__danger-body {
         display: flex;
         flex-direction: column;

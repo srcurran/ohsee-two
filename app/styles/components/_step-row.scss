@@ -1,0 +1,126 @@
+/* TestSettingsStepRow — one row in the test step list: drag grip, type
+ * icon, label, actions (camera/trash), and the inline-undo variant.
+ * (Split out of _test-settings.scss.) */
+
+/* ──────────────────────────────────────────────────────────────────────
+ * One row in the step list (TestSettingsStepRow.tsx):
+ *   <li .step-row [--dragging | --deleted]>
+ *     <span .step-row__grip>
+ *     <span .step-row__type-icon [--url | --microtest]>
+ *     <button .step-row__label>
+ *     <div .step-row__actions>
+ *       <button .step-row__camera [--on | --off]>
+ *       <button .step-row__trash>
+ *
+ *   Pending-delete variant (PendingDeleteRow):
+ *   <li .step-row .step-row--deleted>
+ *     <span .step-row__deleted-label>
+ *     <button .step-row__undo>
+ * ────────────────────────────────────────────────────────────────────── */
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--step-row-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  /* Inline-undo replacement for a removed step. Soft-pink fill, persists for
+     3 s, replaces the visual slot of the deleted row so the layout doesn't
+     jump. */
+  &--deleted {
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    background: var(--step-row-deleted-background);
+    border-radius: var(--radius-sm);
+    border-bottom: none;
+  }
+
+  /* Drag preview — fades the row being moved without removing it from
+     layout, so the surrounding rows can shift around it visibly. */
+  &--dragging {
+    opacity: 0.4;
+  }
+
+  .step-row__grip {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    color: var(--step-row-grip-color);
+    line-height: 1;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .step-row__type-icon {
+    color: var(--step-row-type-icon-color);
+    flex-shrink: 0;
+    display: inline-flex;
+
+    &--microtest {
+      color: var(--step-row-type-icon-color-microtest);
+    }
+  }
+
+  .step-row__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--step-row-label-color);
+    font-family: inherit;
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  .step-row__actions {
+    display: flex;
+    gap: var(--space-1);
+    flex-shrink: 0;
+
+    .step-row__camera {
+      color: var(--step-row-camera-color);
+
+      &--off {
+        opacity: 0.4;
+      }
+
+      &--on {
+        color: var(--step-row-camera-color-on);
+      }
+    }
+
+    .step-row__trash {
+      color: var(--step-row-trash-color);
+
+      &:hover {
+        color: var(--step-row-trash-color-hover);
+      }
+    }
+  }
+
+  .step-row__deleted-label {
+    color: var(--step-row-deleted-label-color);
+    font-size: var(--font-size-md);
+  }
+
+  .step-row__undo {
+    color: var(--step-row-undo-color);
+  }
+}

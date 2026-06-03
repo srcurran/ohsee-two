@@ -347,7 +347,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
               </div>
             </div>
           ) : (
-            <div className="ts-accordion-group">
+            <div className="settings-accordion-group">
               {sections.map((s) => (
                 <Accordion
                   key={s.id}
