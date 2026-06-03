@@ -9,6 +9,7 @@
   flex-direction: column;
   gap: var(--gap-md);
 
+  &--2xs { gap: 0; }
   &--xs { gap: var(--space-1); }
   &--sm { gap: var(--space-2); }
   &--md { gap: var(--space-3); }

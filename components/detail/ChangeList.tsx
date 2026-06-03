@@ -243,14 +243,8 @@ function ChangeEntry({
       onClick={onClick}
       className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls}`}
     >
-      <span
-        className="change-entry__icon"
-        style={{ color: cfg.color }}
-        title={cfg.label}
-      >
-        {cfg.icon}
-      </span>
-      <div className="change-entry__body stack stack--sm">
+      <div className="change-entry__body stack stack--xs">
+        <div className="stack stack--2xs">
         <span
           className="change-entry__description"
           title={change.descriptionFull ?? change.description}
@@ -258,18 +252,20 @@ function ChangeEntry({
           {change.description}
 
         </span>
-        {locationLine && (
-          <span
-            className="change-entry__selector"
-            title={change.locationFull ?? locationLine}
-          >
-            {locationLine}
-          </span>
-        )}
+        </div>
         {scopeLabel && (
             <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
         )}
+
+        <button className="btn--text self-start">Approve</button>
       </div>
+      <span
+          className="change-entry__icon"
+          style={{ color: cfg.color }}
+          title={cfg.label}
+      >
+        {cfg.icon}
+      </span>
     </div>
   );
 }

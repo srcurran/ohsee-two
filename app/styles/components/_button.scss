@@ -126,19 +126,6 @@
       color: var(--btn-text-color-hover);
     }
   }
-
-  &--link {
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    font-size: var(--font-size-base);
-    color: var(--btn-link-color);
-    font-weight: var(--weight-regular);
-
-    &:hover:not(:disabled) {
-      color: var(--btn-link-color-hover);
-    }
-  }
 }
 
 /* Small square icon-only button used for nav arrows, close, settings */
