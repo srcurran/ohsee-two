@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Icon } from "@/components/utility/Icon";
 import ScriptEditor from "@/components/settings/ScriptEditor";
 import { CredentialEditor, type VaultEntryMeta } from "@/components/settings/CredentialEditor";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
@@ -12,18 +11,13 @@ import type { AuthProfile, Project } from "@/lib/types";
 const CREATE_SENTINEL = "__create__";
 
 /**
- * Site-level auth profiles manager. Each profile bundles a login script with
- * the storage tokens it produces (cached server-side via "Generate session").
- * Editable fields persist via the project PUT; persistence merges onto the
- * stored profile so it never clobbers server-captured tokens.
+ * Site-level auth profiles manager — embedded as a same-panel sub-view (with
+ * a back button supplied by the host) rather than a stacked overlay. Each
+ * profile bundles a login script with the storage tokens it produces (cached
+ * server-side via "Generate session"). Persistence merges onto the stored
+ * profile so it never clobbers server-captured tokens.
  */
-export default function AuthProfilesOverlay({
-  projectId,
-  onClose,
-}: {
-  projectId: string;
-  onClose: () => void;
-}) {
+export default function AuthProfilesPanel({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
   const [vaultEntries, setVaultEntries] = useState<VaultEntryMeta[] | null>(null);
@@ -132,102 +126,90 @@ export default function AuthProfilesOverlay({
   };
 
   return (
-    <div className="modal" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal__panel modal__panel--lg auth-profiles">
-        <div className="wizard__head">
-          <span aria-hidden />
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close" title="Close">
-            <Icon name="close" size={20} />
-          </button>
-        </div>
+    <div className="auth-profiles">
+      <div className="auth-profiles__body">
+        <p className="auth-profiles__hint">
+          Record a login once; its session tokens are reused so tests start
+          already signed in. Different profiles let you compare the site as
+          different identities (e.g. new vs existing customer).
+        </p>
 
-        <div className="auth-profiles__body">
-          <div className="auth-profiles__intro">
-            <h2 className="auth-profiles__title">Sign-in profiles</h2>
-            <p className="auth-profiles__hint">
-              Record a login once; its session tokens are reused so tests start
-              already signed in. Different profiles let you compare the site as
-              different identities (e.g. new vs existing customer).
-            </p>
-          </div>
+        {error && (
+          <p className="credentials-section__hint credentials-section__hint--error">{error}</p>
+        )}
 
-          {error && (
-            <p className="credentials-section__hint credentials-section__hint--error">{error}</p>
-          )}
-
-          {profiles.length === 0 ? (
-            <p className="auth-profiles__empty">No sign-in profiles yet.</p>
-          ) : (
-            profiles.map((profile) => (
-              <div key={profile.id} className="auth-profile">
-                <div className="auth-profile__head">
-                  <input
-                    className="auth-profile__name"
-                    value={profile.name}
-                    onChange={(e) => update(profile.id, { name: e.target.value })}
-                    placeholder="Profile name"
-                  />
-                  <button
-                    type="button"
-                    className="btn btn--text auth-profile__remove"
-                    onClick={() => removeProfile(profile.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                {isElectronRuntime() && (
-                  <div className="credentials-section__vault">
-                    <label className="credentials-section__label">Credential</label>
-                    <select
-                      className="credentials-section__select"
-                      value={profile.vaultEntryId ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === CREATE_SENTINEL) { setCredEditorFor(profile.id); return; }
-                        update(profile.id, { vaultEntryId: v || undefined }, true);
-                      }}
-                    >
-                      <option value="">No credential</option>
-                      {vaultEntries?.map((entry) => (
-                        <option key={entry.key} value={entry.key}>
-                          {entry.label}{entry.hasTotp ? " · 2FA" : ""}
-                        </option>
-                      ))}
-                      <option value={CREATE_SENTINEL}>+ Create new credential…</option>
-                    </select>
-                  </div>
-                )}
-
-                <ScriptEditor
-                  value={profile.loginScript}
-                  onChange={(s) => update(profile.id, { loginScript: s })}
-                  defaultUrl={project?.prodUrl}
+        {profiles.length === 0 ? (
+          <p className="auth-profiles__empty">No sign-in profiles yet.</p>
+        ) : (
+          profiles.map((profile) => (
+            <div key={profile.id} className="auth-profile">
+              <div className="auth-profile__head">
+                <input
+                  className="auth-profile__name"
+                  value={profile.name}
+                  onChange={(e) => update(profile.id, { name: e.target.value })}
+                  placeholder="Profile name"
                 />
-
-                <div className="auth-profile__session">
-                  <button
-                    type="button"
-                    className="btn btn--outline btn--sm"
-                    onClick={() => generate(profile)}
-                    disabled={busyId === profile.id || !profile.loginScript.trim()}
-                  >
-                    {busyId === profile.id ? "Generating…" : "Generate session"}
-                  </button>
-                  <span className="auth-profile__tokens">
-                    {profile.tokensUpdatedAt
-                      ? `Session captured ${formatRelativeTimeShort(profile.tokensUpdatedAt)} ago`
-                      : "No session yet"}
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn--text auth-profile__remove"
+                  onClick={() => removeProfile(profile.id)}
+                >
+                  Remove
+                </button>
               </div>
-            ))
-          )}
 
-          <button type="button" className="btn btn--outline auth-profiles__add" onClick={addProfile}>
-            + Add sign-in profile
-          </button>
-        </div>
+              {isElectronRuntime() && (
+                <div className="credentials-section__vault">
+                  <label className="credentials-section__label">Credential</label>
+                  <select
+                    className="credentials-section__select"
+                    value={profile.vaultEntryId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === CREATE_SENTINEL) { setCredEditorFor(profile.id); return; }
+                      update(profile.id, { vaultEntryId: v || undefined }, true);
+                    }}
+                  >
+                    <option value="">No credential</option>
+                    {vaultEntries?.map((entry) => (
+                      <option key={entry.key} value={entry.key}>
+                        {entry.label}{entry.hasTotp ? " · 2FA" : ""}
+                      </option>
+                    ))}
+                    <option value={CREATE_SENTINEL}>+ Create new credential…</option>
+                  </select>
+                </div>
+              )}
+
+              <ScriptEditor
+                value={profile.loginScript}
+                onChange={(s) => update(profile.id, { loginScript: s })}
+                defaultUrl={project?.prodUrl}
+              />
+
+              <div className="auth-profile__session">
+                <button
+                  type="button"
+                  className="btn btn--outline btn--sm"
+                  onClick={() => generate(profile)}
+                  disabled={busyId === profile.id || !profile.loginScript.trim()}
+                >
+                  {busyId === profile.id ? "Generating…" : "Generate session"}
+                </button>
+                <span className="auth-profile__tokens">
+                  {profile.tokensUpdatedAt
+                    ? `Session captured ${formatRelativeTimeShort(profile.tokensUpdatedAt)} ago`
+                    : "No session yet"}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+
+        <button type="button" className="btn btn--outline auth-profiles__add" onClick={addProfile}>
+          + Add sign-in profile
+        </button>
       </div>
 
       {credEditorFor && (

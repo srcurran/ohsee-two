@@ -7,6 +7,7 @@ import { useSidebar } from "@/components/utility/SidebarProvider";
 import { checkUrl } from "@/lib/url-validation";
 import type { Project, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
+import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
 
 const ENTER_MS = 180;
 const EXIT_MS = 140;
@@ -27,9 +28,12 @@ interface Props {
 
 export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
   const router = useRouter();
-  const { refreshProjects, openAuthProfiles } = useSidebar();
+  const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [animState, setAnimState] = useState<"entering" | "visible" | "exiting">("entering");
+  // Sub-view: the sign-in profiles manager renders in this same panel (with a
+  // back button) instead of stacking another overlay.
+  const [view, setView] = useState<"main" | "auth">("main");
 
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
@@ -177,7 +181,26 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
         aria-labelledby="project-settings-title"
       >
         <header className="project-settings-overlay__header">
-          {editingName ? (
+          {view === "auth" ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setView("main")}
+                className="btn btn--text project-settings-overlay__back"
+              >
+                <Icon name="chevron-left" size={16} />
+                <span>Sign-in profiles</span>
+              </button>
+              <button
+                type="button"
+                className="icon-btn project-settings-overlay__close"
+                onClick={handleClose}
+                title="Close"
+              >
+                <Icon name="close" size={20} />
+              </button>
+            </>
+          ) : editingName ? (
             <input
               autoFocus
               className="project-settings-overlay__title-input"
@@ -217,6 +240,10 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
         </header>
 
         <div className="project-settings-overlay__body">
+          {view === "auth" ? (
+            <AuthProfilesPanel projectId={projectId} />
+          ) : (
+          <>
           <MaterialField
             label="Prod URL"
             value={prodUrl}
@@ -241,7 +268,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
           <button
             type="button"
             className="btn btn--outline"
-            onClick={() => openAuthProfiles(projectId)}
+            onClick={() => setView("auth")}
           >
             Sign-in profiles
           </button>
@@ -339,6 +366,8 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
               </div>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

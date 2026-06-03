@@ -6,6 +6,7 @@ import { useSidebar } from "@/components/utility/SidebarProvider";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import { Accordion } from "@/components/settings/TestSettingsAccordion";
 import AuthProfileSelect from "@/components/settings/AuthProfileSelect";
+import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
 import ScriptEditor from "@/components/settings/ScriptEditor";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
@@ -29,7 +30,7 @@ interface Props {
  * Holds only the small bits of UI state that don't fit into a hook:
  * editor-vs-list mode, inline rename, and which accordion is open. */
 export default function TestSettingsOverlay({ projectId, testId, onClose }: Props) {
-  const { refreshProjects, openAuthProfiles } = useSidebar();
+  const { refreshProjects } = useSidebar();
 
   // Sub-views: when an step is being added or edited, the overlay body is
   // replaced by AddEditStepView. `null` = step list is shown.
@@ -41,6 +42,9 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
   const [editingName, setEditingName] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<AccordionId | null>("steps");
+  // Sign-in profiles manager — a same-panel sub-view (back button) reached
+  // from the Sign-in section, instead of stacking another overlay.
+  const [authView, setAuthView] = useState(false);
 
   // `beforeExit` needs to call into the data hook, which is initialized
   // below — bridge through a ref so the close callback can see the latest
@@ -50,8 +54,11 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
 
   const { animState, enterMs, exitMs, handleClose } = useOverlayAnim({
     onClose,
-    hasNestedView: !!stepEditor,
-    onBackNested: () => setStepEditor(null),
+    hasNestedView: !!stepEditor || authView,
+    onBackNested: () => {
+      setStepEditor(null);
+      setAuthView(false);
+    },
     beforeExit,
   });
 
@@ -110,7 +117,16 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         aria-labelledby="test-settings-title"
       >
         <header className="project-settings-overlay__header">
-          {stepEditor ? (
+          {authView ? (
+            <button
+              type="button"
+              onClick={() => setAuthView(false)}
+              className="btn btn--text project-settings-overlay__back"
+            >
+              <Icon name="chevron-left" size={16} />
+              <span>Sign-in profiles</span>
+            </button>
+          ) : stepEditor ? (
             <button
               type="button"
               onClick={() => setStepEditor(null)}
@@ -165,6 +181,8 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         <div className="project-settings-overlay__body">
           {!data.project || !data.activeTest ? (
             <p style={{ color: "var(--neutral-dark-500)" }}>Loading...</p>
+          ) : authView ? (
+            <AuthProfilesPanel projectId={projectId} />
           ) : stepEditor ? (
             <AddEditStepView
               projectUrls={[data.project.prodUrl, data.project.devUrl]}
@@ -307,7 +325,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
                         data.setAuthProfileId(id);
                         data.scheduleSave();
                       }}
-                      onManage={() => openAuthProfiles(projectId)}
+                      onManage={() => setAuthView(true)}
                     />
                   </Accordion>
                 )}

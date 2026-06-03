@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import MaterialField from "@/components/utility/MaterialField";
 import ScriptEditor from "@/components/settings/ScriptEditor";
 import AuthProfileSelect from "@/components/settings/AuthProfileSelect";
+import AuthProfilesPanel from "@/components/settings/AuthProfilesPanel";
 import BreakpointEditor from "@/components/settings/BreakpointEditor";
 import Wizard from "@/components/settings/Wizard";
 import { Icon } from "@/components/utility/Icon";
@@ -43,7 +44,7 @@ type TestType = "simple" | "advanced";
  */
 export default function NewTestWizard({ projectId, initialName, testId, onClose }: Props) {
   const router = useRouter();
-  const { refreshProjects, openAuthProfiles } = useSidebar();
+  const { refreshProjects } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
 
   // The persisted test id. Set after Step 1's POST, or seeded from `testId`
@@ -61,6 +62,9 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
 
   // Step 3: chosen test type (null = show the simple/advanced fork).
   const [chosenType, setChosenType] = useState<TestType | null>(null);
+  // Sign-in profiles manager, shown in-place (back button) from the advanced
+  // editor's profile picker rather than stacking another overlay.
+  const [authView, setAuthView] = useState(false);
 
   // Editing state, hydrated from the draft on resume.
   const [steps, setSteps] = useState<TestStep[]>([]); // simple: url steps
@@ -355,6 +359,23 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
     );
   }
 
+  // Sign-in profiles manager (reached from the advanced profile picker).
+  if (authView) {
+    return (
+      <Wizard
+        title="New test"
+        step={3}
+        totalSteps={TOTAL_STEPS}
+        hideNext
+        onPrev={() => setAuthView(false)}
+        onNext={() => {}}
+        onClose={onClose}
+      >
+        <AuthProfilesPanel projectId={projectId} />
+      </Wizard>
+    );
+  }
+
   // 3a / 3b (editor): footer is Back / Save / Run.
   return (
     <Wizard
@@ -430,7 +451,7 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
               setAuthProfileId(id);
               persist({ authProfileId: id });
             }}
-            onManage={() => openAuthProfiles(projectId)}
+            onManage={() => setAuthView(true)}
           />
         </div>
       )}

@@ -29,10 +29,6 @@ interface SidebarContextValue {
   projectSettingsId: string | null;
   openProjectSettings: (projectId: string) => void;
   closeProjectSettings: () => void;
-  /** ID of the project whose sign-in (auth) profiles overlay is open. */
-  authProfilesProjectId: string | null;
-  openAuthProfiles: (projectId: string) => void;
-  closeAuthProfiles: () => void;
   /** Project + test ids whose test settings overlay is open. */
   testSettings: { projectId: string; testId: string } | null;
   openTestSettings: (projectId: string, testId: string) => void;
@@ -72,9 +68,6 @@ const SidebarContext = createContext<SidebarContextValue>({
   projectSettingsId: null,
   openProjectSettings: () => {},
   closeProjectSettings: () => {},
-  authProfilesProjectId: null,
-  openAuthProfiles: () => {},
-  closeAuthProfiles: () => {},
   testSettings: null,
   openTestSettings: () => {},
   closeTestSettings: () => {},
@@ -127,7 +120,6 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [pageHeader, setPageHeaderState] = useState<ReactNode>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
-  const [authProfilesProjectId, setAuthProfilesProjectId] = useState<string | null>(null);
   const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
   const [newProjectWizardOpen, setNewProjectWizardOpen] = useState(false);
   const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string; testId?: string } | null>(null);
@@ -158,8 +150,6 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const openProjectSettings = useCallback((id: string) => setProjectSettingsId(id), []);
   const closeProjectSettings = useCallback(() => setProjectSettingsId(null), []);
-  const openAuthProfiles = useCallback((id: string) => setAuthProfilesProjectId(id), []);
-  const closeAuthProfiles = useCallback(() => setAuthProfilesProjectId(null), []);
   const openTestSettings = useCallback(
     (projectId: string, testId: string) => setTestSettingsState({ projectId, testId }),
     [],
@@ -262,9 +252,6 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       projectSettingsId,
       openProjectSettings,
       closeProjectSettings,
-      authProfilesProjectId,
-      openAuthProfiles,
-      closeAuthProfiles,
       testSettings,
       openTestSettings,
       closeTestSettings,
@@ -294,9 +281,6 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       projectSettingsId,
       openProjectSettings,
       closeProjectSettings,
-      authProfilesProjectId,
-      openAuthProfiles,
-      closeAuthProfiles,
       testSettings,
       openTestSettings,
       closeTestSettings,

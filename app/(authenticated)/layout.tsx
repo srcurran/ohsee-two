@@ -24,10 +24,6 @@ const TestSettingsOverlay = dynamic(
   () => import("@/components/settings/TestSettingsOverlay"),
   { ssr: false },
 );
-const AuthProfilesOverlay = dynamic(
-  () => import("@/components/settings/AuthProfilesOverlay"),
-  { ssr: false },
-);
 const NewProjectWizard = dynamic(
   () => import("@/components/settings/NewProjectWizard"),
   { ssr: false },
@@ -59,7 +55,6 @@ export default function AuthenticatedLayout({
           <MainFrame>{children}</MainFrame>
           <SettingsHost />
           <ProjectSettingsHost />
-          <AuthProfilesHost />
           <TestSettingsHost />
           <NewProjectWizardHost />
           <NewTestWizardHost />
@@ -88,18 +83,6 @@ function ProjectSettingsHost() {
     <ProjectSettingsOverlay
       projectId={projectSettingsId}
       onClose={closeProjectSettings}
-    />
-  );
-}
-
-/** Mounts the site-level sign-in (auth) profiles overlay while open. */
-function AuthProfilesHost() {
-  const { authProfilesProjectId, closeAuthProfiles } = useSidebar();
-  if (!authProfilesProjectId) return null;
-  return (
-    <AuthProfilesOverlay
-      projectId={authProfilesProjectId}
-      onClose={closeAuthProfiles}
     />
   );
 }
