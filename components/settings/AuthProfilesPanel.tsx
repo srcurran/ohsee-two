@@ -32,7 +32,17 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
   const [credsById, setCredsById] = useState<Record<string, Cred>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Errors are per-profile so they render next to that profile's button.
+  const [errorById, setErrorById] = useState<Record<string, string>>({});
+  const setError = (profileId: string, message: string | null) =>
+    setErrorById((prev) => {
+      if (message === null) {
+        const next = { ...prev };
+        delete next[profileId];
+        return next;
+      }
+      return { ...prev, [profileId]: message };
+    });
 
   // Load the project + profiles, then each profile's credential from the vault.
   useEffect(() => {
@@ -160,15 +170,15 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
         staticOtp: c.otpMode === "static" && otp ? otp : undefined,
       });
       if (!profile?.vaultEntryId) update(profileId, { vaultEntryId: key }, true);
-      setError(null);
+      setError(profileId, null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(profileId, err instanceof Error ? err.message : String(err));
     }
   };
 
   const generate = async (profile: AuthProfile) => {
     setBusyId(profile.id);
-    setError(null);
+    setError(profile.id, null);
     try {
       const creds = await resolveVaultCredentials(profile.vaultEntryId);
       const res = await fetch(
@@ -181,7 +191,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
       );
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        setError(e.error || "Sign-in test failed");
+        setError(profile.id, e.error || "Sign-in test failed");
         return;
       }
       const { tokensUpdatedAt } = await res.json();
@@ -198,10 +208,6 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   return (
     <div className="auth-profiles">
       <div className="auth-profiles__body">
-
-        {error && (
-          <p className="credentials-section__hint credentials-section__hint--error">{error}</p>
-        )}
 
         {profiles.length === 0 ? (
           <p className="auth-profiles__empty">No sign-in profiles yet.</p>
@@ -306,6 +312,9 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                     Delete profile
                   </button>
                 </div>
+                {errorById[profile.id] && (
+                  <p className="auth-profile__error">{errorById[profile.id]}</p>
+                )}
               </div>
             <div className="auth-keyline" />
             </>

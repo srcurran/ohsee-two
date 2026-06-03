@@ -121,6 +121,14 @@
     font-size: var(--font-size-sm);
     color: var(--credentials-section-hint-color);
   }
+
+  /* Per-profile failure, shown right under its action row (not buried at the
+     top of the panel). */
+  &__error {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--status-error-500);
+  }
 }
 
 .auth-keyline {
