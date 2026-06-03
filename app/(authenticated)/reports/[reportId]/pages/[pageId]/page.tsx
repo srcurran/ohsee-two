@@ -98,7 +98,16 @@ function PageDetailInner() {
           activeChanges(bp.semanticChanges, params.reportId, accepted),
         ),
       );
-      const bpChangeCounts = computeBpChangeCounts(activeBpData);
+      // Accepted (expected) diffs are stripped so the deviation dots match
+      // the (also accepted-filtered) header total.
+      const bpChangeCounts = computeBpChangeCounts(
+        Object.fromEntries(
+          Object.entries(activeBpData).map(([bp, r]) => [
+            bp,
+            { ...r, semanticChanges: activeChanges(r.semanticChanges, params.reportId, accepted) },
+          ]),
+        ),
+      );
 
       content = (
         <div className="report-page">

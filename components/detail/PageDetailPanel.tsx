@@ -25,7 +25,6 @@ import {
   resolvePageUrl,
 } from "@/components/detail/utils/pageDetail";
 import { classifyChanges } from "@/components/detail/utils/changeScope";
-import type { ChangeScope } from "@/components/detail/utils/changeScope";
 import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 
 interface Props {
@@ -112,10 +111,26 @@ export default function PageDetailPanel({
 
   // These walk the full report / page tree — memoize so they don't re-run
   // on every peek/hover state change inside the panel.
+  const { accepted } = useAcceptedChanges();
+  // Accepted (expected) diffs are stripped from the count inputs so the header
+  // badge AND the per-breakpoint deviation dots ignore them. The Detected
+  // Changes list below still receives the full data (accepted entries stay
+  // visible, styled as accepted).
+  const activeBpDataForCounts = useMemo(() => {
+    if (accepted.size === 0) return activeBpData;
+    const out: typeof activeBpData = {};
+    for (const [bp, r] of Object.entries(activeBpData)) {
+      out[bp] = { ...r, semanticChanges: activeChanges(r.semanticChanges, report.id, accepted) };
+    }
+    return out;
+  }, [activeBpData, accepted, report.id]);
   const bpChangeCounts = useMemo(
-    () => computeBpChangeCounts(activeBpData),
-    [activeBpData],
+    () => computeBpChangeCounts(activeBpDataForCounts),
+    [activeBpDataForCounts],
   );
+  // Scope (universal vs specific) for the dots, computed from the same
+  // accepted-filtered data so the dot colour stays consistent with its count.
+  const dotScope = useMemo(() => classifyChanges(activeBpDataForCounts), [activeBpDataForCounts]);
   const reportBreakpoints = useMemo(
     () => collectReportBreakpoints(report),
     [report],
@@ -156,7 +171,6 @@ export default function PageDetailPanel({
   // Total unique change count across every breakpoint — the header badge
   // shows the same number as the Detected Changes list and the page-card
   // badge, regardless of which viewport tab is active.
-  const { accepted } = useAcceptedChanges();
   // Accepted (expected) diffs don't count toward the header badge.
   const totalChangeCount = activeChanges(crossBpChanges, report.id, accepted).length;
   // Merge scope-aware specific counts into the per-breakpoint stats so the
@@ -170,7 +184,7 @@ export default function PageDetailPanel({
   const bpChangeCountsWithScope = useMemo(() => {
     const merged = { ...bpChangeCounts };
     for (const [bp, stats] of Object.entries(merged)) {
-      const specific = changeScope.specificCountPerBp[bp] ?? 0;
+      const specific = dotScope.specificCountPerBp[bp] ?? 0;
       merged[bp] = {
         ...stats,
         universalCount: stats.changeCount - specific,
@@ -178,7 +192,7 @@ export default function PageDetailPanel({
       };
     }
     return merged;
-  }, [bpChangeCounts, changeScope]);
+  }, [bpChangeCounts, dotScope]);
 
   // Early return must follow every hook above so hook order stays stable.
   if (!currentPage) return null;
