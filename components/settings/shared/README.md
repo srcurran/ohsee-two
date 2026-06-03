@@ -14,6 +14,11 @@ If you change one, check every consumer in the table.
 | `Wizard`            | NewProjectWizard, NewTestWizard                                     |
 | `CodegenRecorder`   | ScriptEditor, ScriptStepEditor                                     |
 | `SettingsAccordion` | ProjectSettingsOverlay, TestSettingsOverlay                        |
+| `SettingsOverlayShell` | SettingsOverlay, ProjectSettingsOverlay, TestSettingsOverlay     |
+
+Cross-area UI primitives that the overlays also lean on live in
+`components/utility/` — `Field` (labeled inputs), `Segmented`, `TabBar`,
+`ChangeBadge`, `CopyButton`.
 
 Surfaces (`*Overlay`, `*Wizard`) and their own single-owner children
 (`TestSettings*`) stay one level up in `components/settings/`.

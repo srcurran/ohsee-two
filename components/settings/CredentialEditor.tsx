@@ -58,7 +58,7 @@ export function CredentialEditor({
 
   return (
     <div className="modal">
-      <div className="modal__panel" style={{ width: 520, maxWidth: 520, padding: "var(--space-6)" }}>
+      <div className="modal__panel modal__panel--compact">
         <h3 className="modal__title" style={{ fontSize: "var(--font-size-xl)", marginBottom: "var(--space-4)" }}>
           {isEditing ? "Edit credential" : "New credential"}
         </h3>
