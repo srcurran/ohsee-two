@@ -137,11 +137,12 @@ export default function ScriptEditor({
         </button>
       </div>
 
-      <div className="script-editor__body">
-        <div ref={editorRef} className="code-editor script-editor__code" />
-        {showRef && (
-          <div className="script-editor__reference">
-            <p className="script-editor__reference-title">Click to insert</p>
+      <div ref={editorRef} className="code-editor script-editor__code" />
+
+      {showRef && (
+        <div className="script-editor__reference">
+          <span className="script-editor__reference-title">Click to insert</span>
+          <div className="script-editor__snippets">
             {SNIPPETS.map((s) => (
               <button
                 key={s.label}
@@ -154,8 +155,8 @@ export default function ScriptEditor({
               </button>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

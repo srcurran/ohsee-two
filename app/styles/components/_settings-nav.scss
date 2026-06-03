@@ -5,7 +5,10 @@
 .settings-nav {
   display: flex;
   gap: var(--space-6);
-  align-items: flex-start;
+  align-items: stretch;
+  /* Fill the overlay body so the content pane can run full height. */
+  flex: 1;
+  min-height: 0;
 
   &__rail {
     flex-shrink: 0;
@@ -13,8 +16,6 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
-    position: sticky;
-    top: 0;
   }
 
   &__item {
@@ -50,5 +51,35 @@
   &__pane {
     flex: 1;
     min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+
+    /* The Script/Steps section and its editor fill the pane height. Scoped
+       to the direct section so the multi-editor sign-in panel and other
+       sections aren't forced to stretch. The high specificity also beats
+       .code-editor's max-height cap. */
+    > .test-steps {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+
+      > .script-editor {
+        flex: 1;
+        min-height: 0;
+
+        .script-editor__code {
+          flex: 1;
+          min-height: 0;
+          max-height: none;
+          overflow: hidden;
+
+          .cm-editor { height: 100%; }
+          .cm-scroller { overflow: auto; }
+        }
+      }
+    }
   }
 }
