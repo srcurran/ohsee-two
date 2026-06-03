@@ -39,13 +39,13 @@ export default function AuthProfileSelect({
         {profiles.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
-            {p.tokensUpdatedAt ? "" : " · no session yet"}
+            {p.tokensUpdatedAt ? "" : " · not signed in yet"}
           </option>
         ))}
         <option value="__manage">Manage sign-in profiles…</option>
       </select>
       <p className="credentials-section__hint">
-        The profile&apos;s saved session starts this test already signed in.
+        Runs this test signed in using the selected profile.
       </p>
     </div>
   );

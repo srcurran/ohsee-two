@@ -204,6 +204,28 @@ Hook filenames are the export name minus the `use` prefix
 
 ---
 
+## Copy & terminology
+
+**One term per concept, consistent noun/verb forms.** Don't mix synonyms for
+the same thing on a screen (or across the app). Pick the word once.
+
+Authentication vocabulary (user-facing copy):
+
+- **sign in** (verb) / **sign-in** (noun + adjective, hyphenated) — the term
+  for authenticating. NOT "log in" / "login", NOT "session" in copy.
+- **credential** — a stored identity (the vault entry: email / password / OTP).
+- **sign-in profile** — a reusable authenticated state (a credential + the
+  sign-in script + its captured state). Tests reference one to start signed in.
+
+Verbs match the noun: the button that runs the sign-in script is **"Test sign
+in"**, its result reads **"Signed in 2 hours ago"** — not "Generate session" /
+"Session captured".
+
+Code identifiers may keep technical names (`loginScript`, `storageState`,
+`captureLoginState`) — this rule governs **user-facing strings**, not symbols.
+
+---
+
 ## Things to Avoid
 
 - **Literal hex colors in component SCSS.** Always go through a

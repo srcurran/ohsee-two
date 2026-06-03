@@ -5,7 +5,7 @@ import ScriptEditor from "@/components/settings/ScriptEditor";
 import { CredentialEditor, type VaultEntryMeta } from "@/components/settings/CredentialEditor";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
-import { formatRelativeTimeShort } from "@/lib/relative-time";
+import { formatRelativeTime } from "@/lib/relative-time";
 import type { AuthProfile, Project } from "@/lib/types";
 
 const CREATE_SENTINEL = "__create__";
@@ -14,7 +14,7 @@ const CREATE_SENTINEL = "__create__";
  * Site-level auth profiles manager — embedded as a same-panel sub-view (with
  * a back button supplied by the host) rather than a stacked overlay. Each
  * profile bundles a login script with the storage tokens it produces (cached
- * server-side via "Generate session"). Persistence merges onto the stored
+ * server-side via "Test sign in"). Persistence merges onto the stored
  * profile so it never clobbers server-captured tokens.
  */
 export default function AuthProfilesPanel({ projectId }: { projectId: string }) {
@@ -112,7 +112,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
       );
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        setError(e.error || "Failed to generate session");
+        setError(e.error || "Sign-in test failed");
         return;
       }
       const { tokensUpdatedAt } = await res.json();
@@ -129,9 +129,9 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
     <div className="auth-profiles">
       <div className="auth-profiles__body">
         <p className="auth-profiles__hint">
-          Record a login once; its session tokens are reused so tests start
-          already signed in. Different profiles let you compare the site as
-          different identities (e.g. new vs existing customer).
+          Record a sign-in once and reuse it, so tests start already signed in.
+          Different profiles let you compare the site as different identities
+          (e.g. new vs existing customer).
         </p>
 
         {error && (
@@ -195,12 +195,12 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                   onClick={() => generate(profile)}
                   disabled={busyId === profile.id || !profile.loginScript.trim()}
                 >
-                  {busyId === profile.id ? "Generating…" : "Generate session"}
+                  {busyId === profile.id ? "Signing in…" : "Test sign in"}
                 </button>
                 <span className="auth-profile__tokens">
                   {profile.tokensUpdatedAt
-                    ? `Session captured ${formatRelativeTimeShort(profile.tokensUpdatedAt)} ago`
-                    : "No session yet"}
+                    ? `Signed in ${formatRelativeTime(profile.tokensUpdatedAt)}`
+                    : "Not signed in yet"}
                 </span>
               </div>
             </div>
