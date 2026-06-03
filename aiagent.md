@@ -147,6 +147,25 @@ backgrounds — brightness scales proportionally. Transparent variants
 (outline, ghost, secondary, danger-outline) still set their own
 hover bg since brightness has nothing to dim on transparent.
 
+### Spacing & layout: the wrapper owns it
+
+Lay containers out **top-down with flexbox** and keep spacing in **one
+place — the wrapping element** — never repeated on its children.
+
+- A container that stacks children is `display: flex; flex-direction:
+  column` with a `gap` for the space *between* them. Don't fake that gap
+  with `margin-bottom` on each child, or with a trailing/leading padding.
+- The wrapper owns the inset `padding`. Children do **not** re-declare the
+  same `padding-inline`. The classic smell is `__header` and `__body` both
+  setting `padding: … var(--space-7) …` — hoist it to the parent.
+- A child only owns spacing that is genuinely its own — e.g. the gap
+  *between rows inside* the body — not the inset it shares with its siblings.
+
+Canonical example: `.project-settings-overlay__panel` sets `padding` +
+`gap`; `__header` and `__body` set neither (see
+`_project-settings-overlay.scss`). Build new layouts this way, and prefer
+fixing existing ones toward it when you touch them.
+
 ---
 
 ## Component Organization
@@ -201,6 +220,10 @@ Hook filenames are the export name minus the `use` prefix
   of related"). The 1:1 rule is the readability win.
 - **Reaching across buckets via relative imports.** Always use
   `@/components/{bucket}/X`.
+- **Repeating padding/gaps across sibling children.** Spacing lives on the
+  flex wrapper (`gap` + one `padding`), not duplicated on `__header`/`__body`-
+  style children or faked with per-child `margin-bottom`. See "Spacing &
+  layout: the wrapper owns it" above.
 
 ---
 
