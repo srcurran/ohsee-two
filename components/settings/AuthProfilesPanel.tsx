@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptEditor from "@/components/settings/ScriptEditor";
+import { Icon } from "@/components/utility/Icon";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
 import { formatRelativeTime } from "@/lib/relative-time";
@@ -197,11 +198,6 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   return (
     <div className="auth-profiles">
       <div className="auth-profiles__body">
-        <p className="auth-profiles__hint">
-          Record a sign-in once and reuse it, so tests start already signed in.
-          Different profiles let you compare the site as different identities
-          (e.g. new vs existing customer).
-        </p>
 
         {error && (
           <p className="credentials-section__hint credentials-section__hint--error">{error}</p>
@@ -213,9 +209,10 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
           profiles.map((profile) => {
             const cred = credsById[profile.id] ?? EMPTY_CRED;
             return (
+                <>
               <div key={profile.id} className="auth-profile">
                 <div className="auth-profile__field">
-                  <label className="credentials-section__label">Title</label>
+                  <h2>Test name</h2>
                   <input
                     className="auth-profile__name"
                     value={profile.name}
@@ -226,6 +223,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
 
                 {electron && (
                   <div className="auth-profile__creds">
+                    <h2>Credentials</h2>
                     <CredField
                       label="Email"
                       variable="$EMAIL$"
@@ -243,26 +241,26 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                       <label className="auth-profile__cred-label">
                         Two-factor
                         <code className="auth-profile__var">$OTP$</code>
-                      </label>
-                      <div className="auth-profile__otp">
                         <div className="segmented">
                           <button
-                            type="button"
-                            className={`segmented__item ${cred.otpMode === "totp" ? "segmented__item--active" : ""}`}
-                            onClick={() => updateCred(profile.id, { otpMode: "totp" })}
+                              type="button"
+                              className={`segmented__item ${cred.otpMode === "totp" ? "segmented__item--active" : ""}`}
+                              onClick={() => updateCred(profile.id, { otpMode: "totp" })}
                           >
                             TOTP seed
                           </button>
                           <button
-                            type="button"
-                            className={`segmented__item ${cred.otpMode === "static" ? "segmented__item--active" : ""}`}
-                            onClick={() => updateCred(profile.id, { otpMode: "static" })}
+                              type="button"
+                              className={`segmented__item ${cred.otpMode === "static" ? "segmented__item--active" : ""}`}
+                              onClick={() => updateCred(profile.id, { otpMode: "static" })}
                           >
                             Fixed code
                           </button>
                         </div>
+                      </label>
+                      <div className="auth-profile__cred-input">
                         <input
-                          className="input input--compact auth-profile__otp-input"
+                          className="input input--compact auth-profile__cred-input-el"
                           value={cred.otpValue}
                           placeholder={
                             cred.otpMode === "totp"
@@ -273,17 +271,19 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                           autoComplete="off"
                           onChange={(e) => updateCred(profile.id, { otpValue: e.target.value })}
                         />
+                        <CopyVarButton variable="$OTP$" />
                       </div>
                     </div>
                   </div>
                 )}
-
+                <div className="auth-profile__field">
+                <h2>Log in script</h2>
                 <ScriptEditor
                   value={profile.loginScript}
                   onChange={(s) => update(profile.id, { loginScript: s })}
                   defaultUrl={project?.prodUrl}
                 />
-
+                </div>
                 <div className="auth-profile__session">
                   <button
                     type="button"
@@ -307,6 +307,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                   </button>
                 </div>
               </div>
+            <div className="auth-keyline" />
+            </>
             );
           })
         )}
@@ -319,7 +321,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   );
 }
 
-/** One inline credential input with its $VARIABLE$ tag. */
+/** One inline credential input with its $VARIABLE$ tag and a button that
+ *  copies the variable for pasting into the sign-in script. */
 function CredField({
   label,
   variable,
@@ -341,15 +344,50 @@ function CredField({
         {label}
         <code className="auth-profile__var">{variable}</code>
       </label>
-      <input
-        className="input input--compact"
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        spellCheck={false}
-        autoComplete="off"
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <div className="auth-profile__cred-input">
+        <input
+          className="input input--compact auth-profile__cred-input-el"
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          spellCheck={false}
+          autoComplete="off"
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <CopyVarButton variable={variable} />
+      </div>
     </div>
+  );
+}
+
+/** Copy-to-clipboard button for a script variable ($EMAIL$ etc.). Sits inside
+ *  a credential input and flashes a check on success. */
+function CopyVarButton({ variable }: { variable: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => clearTimeout(timer.current ?? undefined), []);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(variable);
+      setCopied(true);
+      clearTimeout(timer.current ?? undefined);
+      timer.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable — nothing to fall back to
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="icon-btn icon-btn--sm auth-profile__copy-var"
+      onClick={copy}
+      title={copied ? "Copied!" : `Copy ${variable}`}
+      aria-label={`Copy ${variable}`}
+    >
+      <Icon name={copied ? "check" : "copy"} size={16} />
+    </button>
   );
 }

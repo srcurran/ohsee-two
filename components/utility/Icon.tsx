@@ -32,6 +32,7 @@ export type IconName =
   | "globe"
   | "warning"
   | "check"
+  | "copy"
   | "alert-circle"
   | "monitor"
   | "project-menu"
@@ -143,6 +144,15 @@ const ICONS: Record<IconName, VectorDef | RasterDef> = {
   check: {
     viewBox: "0 0 24 24",
     body: <path d="M5 12l5 5 9-11" stroke="currentColor" />,
+  },
+  copy: {
+    viewBox: "0 0 24 24",
+    body: (
+      <>
+        <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" />
+        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" />
+      </>
+    ),
   },
   "alert-circle": {
     viewBox: "0 0 24 24",

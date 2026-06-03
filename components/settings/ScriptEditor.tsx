@@ -10,8 +10,9 @@ import CodegenRecorder from "@/components/settings/CodegenRecorder";
 import { extractScriptBody, insertSnapshotsAfterNavigation } from "@/lib/script-utils";
 
 /** Click-to-insert snippets shown in the quick reference. Statement snippets
- *  drop in on their own line; `inline` ones (the credential variables) insert
- *  at the cursor so they can sit inside a `.fill('')`. */
+ *  drop in on their own line; `inline` ones insert at the cursor. The
+ *  credential variables ($EMAIL$ / $PASSWORD$ / $OTP$) live on the credential
+ *  fields instead — copy them from there. */
 const SNIPPETS: { label: string; code: string; inline?: boolean }[] = [
   { label: "Go to path", code: "await page.goto('/path');" },
   { label: "Snapshot", code: "await ohsee.snapshot('name');" },
@@ -21,11 +22,6 @@ const SNIPPETS: { label: string; code: string; inline?: boolean }[] = [
   { label: "Fill password", code: "await page.getByLabel('Password').fill('$PASSWORD$');" },
   { label: "Press", code: "await page.keyboard.press('Enter');" },
   { label: "Wait for text", code: "await expect(page.getByText('Welcome')).toBeVisible();" },
-  // Quoted so they drop into a .fill() as a valid string literal — the
-  // runner substitutes the value inside the quotes ('$EMAIL$' → 'value').
-  { label: "$EMAIL$", code: "'$EMAIL$'", inline: true },
-  { label: "$PASSWORD$", code: "'$PASSWORD$'", inline: true },
-  { label: "$OTP$", code: "'$OTP$'", inline: true },
 ];
 
 /**

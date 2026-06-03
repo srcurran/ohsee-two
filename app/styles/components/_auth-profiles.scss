@@ -3,12 +3,12 @@
 .auth-profiles {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-10);
 
   &__body {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: var(--space-10);
   }
 
   &__title {
@@ -39,15 +39,13 @@
 .auth-profile {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--input-border);
-  border-radius: var(--radius-lg);
+  gap: var(--space-6);
+  padding: var(--space-1) 0;
 
   &__field {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--space-3);
   }
 
   &__name {
@@ -88,17 +86,24 @@
     color: var(--credentials-section-hint-color);
   }
 
-  /* 2FA mode toggle + value, side by side (wraps on narrow). */
-  &__otp {
+  /* Credential value + a button overlaid at the trailing edge that copies
+     the field's $VAR$ token for pasting into the sign-in script. */
+  &__cred-input {
+    position: relative;
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2);
   }
 
-  &__otp-input {
-    flex: 1;
-    min-width: 200px;
+  &__cred-input-el {
+    /* Reserve space so typed text never slides under the copy button. */
+    padding-right: var(--space-8);
+  }
+
+  &__copy-var {
+    position: absolute;
+    top: 50%;
+    right: var(--space-1);
+    transform: translateY(-50%);
+    color: var(--credentials-section-hint-color);
   }
 
   &__session {
@@ -116,4 +121,8 @@
     font-size: var(--font-size-sm);
     color: var(--credentials-section-hint-color);
   }
+}
+
+.auth-keyline {
+  border-bottom: 1px solid var(--input-border);
 }
