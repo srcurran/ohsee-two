@@ -143,20 +143,14 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
         ) : (
           profiles.map((profile) => (
             <div key={profile.id} className="auth-profile">
-              <div className="auth-profile__head">
+              <div className="auth-profile__field">
+                <label className="credentials-section__label">Title</label>
                 <input
                   className="auth-profile__name"
                   value={profile.name}
                   onChange={(e) => update(profile.id, { name: e.target.value })}
                   placeholder="Profile name"
                 />
-                <button
-                  type="button"
-                  className="btn btn--text auth-profile__remove"
-                  onClick={() => removeProfile(profile.id)}
-                >
-                  Remove
-                </button>
               </div>
 
               {isElectronRuntime() && (
@@ -202,6 +196,13 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                     ? `Signed in ${formatRelativeTime(profile.tokensUpdatedAt)}`
                     : "Not signed in yet"}
                 </span>
+                <button
+                  type="button"
+                  className="btn btn--danger-outline btn--sm auth-profile__delete"
+                  onClick={() => removeProfile(profile.id)}
+                >
+                  Delete profile
+                </button>
               </div>
             </div>
           ))
