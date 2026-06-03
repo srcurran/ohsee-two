@@ -33,9 +33,17 @@
       background: var(--surface-hover-soft);
     }
 
+    /* Persistent highlight for the active section. The sidebar's active token
+       is near-white (reads only against the tinted sidebar bg), so on the
+       white panel use a computed tint that stays visible — and keep it on
+       hover so the active item doesn't lighten. */
     &--active {
-      background: var(--sidebar-item-background-active);
+      background: var(--surface-hover);
       font-weight: var(--weight-semibold);
+
+      &:hover {
+        background: var(--surface-hover);
+      }
     }
   }
 
