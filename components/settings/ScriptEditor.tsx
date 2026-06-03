@@ -21,9 +21,11 @@ const SNIPPETS: { label: string; code: string; inline?: boolean }[] = [
   { label: "Fill password", code: "await page.getByLabel('Password').fill('$PASSWORD$');" },
   { label: "Press", code: "await page.keyboard.press('Enter');" },
   { label: "Wait for text", code: "await expect(page.getByText('Welcome')).toBeVisible();" },
-  { label: "$EMAIL$", code: "$EMAIL$", inline: true },
-  { label: "$PASSWORD$", code: "$PASSWORD$", inline: true },
-  { label: "$OTP$", code: "$OTP$", inline: true },
+  // Quoted so they drop into a .fill() as a valid string literal — the
+  // runner substitutes the value inside the quotes ('$EMAIL$' → 'value').
+  { label: "$EMAIL$", code: "'$EMAIL$'", inline: true },
+  { label: "$PASSWORD$", code: "'$PASSWORD$'", inline: true },
+  { label: "$OTP$", code: "'$OTP$'", inline: true },
 ];
 
 /**

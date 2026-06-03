@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { writeJsonFile } from "@/lib/data";
 import { userProjectsFile } from "@/lib/constants";
-import { requireUserId, handleApiError } from "@/lib/auth-helpers";
+import { requireUserId, AuthError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import { captureLoginState } from "@/lib/micro-test-runner";
 import type { ScriptCredentials } from "@/lib/types";
@@ -53,6 +53,17 @@ export async function POST(
       tokensUpdatedAt: profile.tokensUpdatedAt,
     });
   } catch (err) {
-    return handleApiError(err, "auth-profile session");
+    if (err instanceof AuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // Surface the real reason — it's almost always the user's own login
+    // script (a syntax error, a failed selector, a timeout), and seeing it
+    // beats a generic "Internal server error".
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("auth-profile session failed:", message);
+    return NextResponse.json(
+      { error: `Couldn't capture session: ${message}` },
+      { status: 500 },
+    );
   }
 }
