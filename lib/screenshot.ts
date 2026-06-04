@@ -3,6 +3,7 @@ import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
+import { withCaptureSlot } from "./capture-semaphore";
 import type { DomSnapshot, BrowserStorageState } from "./types";
 
 export interface ScreenshotResult {
@@ -41,7 +42,10 @@ export async function captureScreenshots(options: {
   });
 
   try {
-    const settled = await Promise.all(breakpoints.map(async (bp) => {
+    // Gate each context behind the process-wide capture semaphore so a
+    // multi-page run (and parallel runs) don't burst the target backend with
+    // simultaneous authenticated loads — see lib/capture-semaphore.ts.
+    const settled = await Promise.all(breakpoints.map((bp) => withCaptureSlot(async () => {
       let context;
       try {
         context = await browser.newContext(
@@ -88,7 +92,7 @@ export async function captureScreenshots(options: {
         await context?.close().catch(() => {});
         await onProgress?.(bp, "done");
       }
-    }));
+    })));
 
     return settled.filter((r): r is ScreenshotResult => r !== null);
   } finally {
