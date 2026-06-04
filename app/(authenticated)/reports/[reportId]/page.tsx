@@ -137,6 +137,8 @@ function ReportPageInner() {
             onNavigate={(pid) => openPage(pid)}
             onBpChange={handleBpChange}
             onVariantChange={handleVariantChange}
+            filterMode={filterMode}
+            onFilterChange={handleFilterChange}
           />
         )}
 

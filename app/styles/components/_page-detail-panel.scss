@@ -9,8 +9,9 @@
  *             <div .page-detail-panel__date-group>
  *               <span .page-detail-panel__date> … </span>
  *           …icon-btns + PageNavDropdown
- *         <div> VariantTabs </div>
- *         <div .page-detail-panel__breakpoints> BreakpointTabs </div>
+ *         <div .page-detail-panel__breakpoints>
+ *           <div .page-detail-panel__bp-group> BreakpointTabs + VariantTabs </div>
+ *           <TabBar />                          ← changes filter (>1 page)
  *         <div .page-detail-panel__divider />
  *         <div .page-detail-panel__main>
  *           <div .page-detail-panel__screenshot-col [--sticky-header]>
@@ -95,6 +96,14 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 var(--space-6);
+
+      /* Breakpoint + mode switchers grouped on the left; the changes filter
+         (TabBar) sits opposite on the right — mirrors the report bar. */
+      .page-detail-panel__bp-group {
+        display: flex;
+        align-items: center;
+        gap: var(--space-8);
+      }
     }
 
     .page-detail-panel__divider {

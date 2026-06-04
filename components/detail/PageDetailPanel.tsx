@@ -3,8 +3,10 @@
 import { useMemo, useRef, useState } from "react";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
+import TabBar from "@/components/utility/TabBar";
 import SliderComparison from "@/components/detail/SliderComparison";
-import type { Project, Report, SemanticChange } from "@/lib/types";
+import type { Project, Report, ReportPage, SemanticChange } from "@/lib/types";
+import type { ReportFilterMode } from "@/components/index/use/reportUrlState";
 import { changeGroupKey } from "@/lib/change-identity";
 import { PageDetailHeader } from "@/components/detail/PageDetailHeader";
 import { PageDetailViewToggle } from "@/components/detail/PageDetailViewToggle";
@@ -39,6 +41,10 @@ interface Props {
   onNavigate: (pageId: string) => void;
   onBpChange: (bp: number) => void;
   onVariantChange: (variant: string | null) => void;
+  /** Shared report-grid filter. "changes" makes prev/next/keyboard navigation
+   *  skip pages with no unaccepted changes. */
+  filterMode: ReportFilterMode;
+  onFilterChange: (mode: ReportFilterMode) => void;
 }
 
 /** Top-level page-detail overlay shell. Composes the animation, view-mode,
@@ -56,6 +62,8 @@ export default function PageDetailPanel({
   onNavigate,
   onBpChange,
   onVariantChange,
+  filterMode,
+  onFilterChange,
 }: Props) {
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(
     null,
@@ -81,13 +89,40 @@ export default function PageDetailPanel({
     screenshotRef,
   } = usePageDetailViewMode({ pageId });
 
+  const { accepted } = useAcceptedChanges();
+
+  // A page is navigable under the Changes-only filter when it still has at
+  // least one unaccepted change (at the active variant) — the same rule the
+  // report grid uses to decide which page cards to show.
+  const pageHasChanges = (page: ReportPage) => {
+    const bpData =
+      activeVariant && page.variants?.[activeVariant]
+        ? page.variants[activeVariant]
+        : page.breakpoints;
+    return Object.values(bpData).some(
+      (r) => activeChanges(r.semanticChanges ?? [], report.id, accepted).length > 0,
+    );
+  };
+
   const currentIndex = report.pages.findIndex((p) => p.pageId === pageId);
   const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
-  const prevPage = currentIndex > 0 ? report.pages[currentIndex - 1] : null;
-  const nextPage =
-    currentIndex < report.pages.length - 1
-      ? report.pages[currentIndex + 1]
-      : null;
+
+  // Prev/next walk outward from the current page, skipping non-matching pages
+  // when the Changes-only filter is on, so sequential navigation (arrows +
+  // keyboard) mirrors the filtered grid. Works even when the current page
+  // itself has no changes (e.g. the filter was toggled on while viewing it).
+  const navigable = (page: ReportPage) =>
+    filterMode !== "changes" || pageHasChanges(page);
+  let prevPage: ReportPage | null = null;
+  let nextPage: ReportPage | null = null;
+  if (currentIndex >= 0) {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (navigable(report.pages[i])) { prevPage = report.pages[i]; break; }
+    }
+    for (let i = currentIndex + 1; i < report.pages.length; i++) {
+      if (navigable(report.pages[i])) { nextPage = report.pages[i]; break; }
+    }
+  }
 
   usePageDetailKeyboardNav({
     prevPage,
@@ -111,7 +146,6 @@ export default function PageDetailPanel({
 
   // These walk the full report / page tree — memoize so they don't re-run
   // on every peek/hover state change inside the panel.
-  const { accepted } = useAcceptedChanges();
   // Accepted (expected) diffs are stripped from the count inputs so the header
   // badge AND the per-breakpoint deviation dots ignore them. The Detected
   // Changes list below still receives the full data (accepted entries stay
@@ -269,18 +303,30 @@ export default function PageDetailPanel({
               className="page-detail-panel__breakpoints animate-card-in"
               style={{ animationDelay: "15ms" }}
             >
-              <BreakpointTabs
-                active={activeBp}
-                onChange={onBpChange}
-                changeCounts={bpChangeCountsWithScope}
-                breakpoints={reportBreakpoints}
-                align="start"
-              />
-              <VariantTabs
-                variants={reportVariants}
-                active={activeVariant}
-                onChange={onVariantChange}
-              />
+              <div className="page-detail-panel__bp-group">
+                <BreakpointTabs
+                  active={activeBp}
+                  onChange={onBpChange}
+                  changeCounts={bpChangeCountsWithScope}
+                  breakpoints={reportBreakpoints}
+                  align="start"
+                />
+                <VariantTabs
+                  variants={reportVariants}
+                  active={activeVariant}
+                  onChange={onVariantChange}
+                />
+              </div>
+              {report.pages.length > 1 && (
+                <TabBar<ReportFilterMode>
+                  items={[
+                    { id: "all", label: "Show all" },
+                    { id: "changes", label: "Changes only" },
+                  ]}
+                  active={filterMode}
+                  onSelect={onFilterChange}
+                />
+              )}
             </div>
 
             <div className="page-detail-panel__divider" />

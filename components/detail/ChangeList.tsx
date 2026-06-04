@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 import { changeGroupKey } from "@/lib/change-identity";
@@ -24,6 +24,9 @@ interface ChangeListProps {
 // How far the pointer must move before we treat the gesture as a drag and
 // suppress the trailing click on whichever filter-pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
+
+// Duration of the FLIP reorder animation when an accepted entry drops down.
+const REORDER_MS = 320;
 
 export default function ChangeList({ changes, activeBp, changeScope, onChangeClick, reportId }: ChangeListProps) {
   const { accepted, toggle } = useAcceptedChanges();
@@ -68,6 +71,49 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
       (a, b) => Number(isAccepted(a)) - Number(isAccepted(b)),
     );
   }, [filtered, accepted, reportId]);
+
+  // FLIP: when accepting reorders the list (an entry drops to the bottom),
+  // slide every entry that moved from its old position to its new one instead
+  // of letting them jump. We record positions each commit, then on the next
+  // one measure the new positions, invert (translate back to the old spot),
+  // and release on the next frame so the browser animates to natural place.
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevRects = useRef<Map<string, DOMRect>>(new Map());
+  useLayoutEffect(() => {
+    const next = new Map<string, DOMRect>();
+    itemRefs.current.forEach((el, key) => next.set(key, el.getBoundingClientRect()));
+
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) {
+      next.forEach((newRect, key) => {
+        const old = prevRects.current.get(key);
+        const el = itemRefs.current.get(key);
+        if (!old || !el) return;
+        const dy = old.top - newRect.top;
+        if (Math.abs(dy) < 1) return;
+        el.style.transition = "none";
+        el.style.transform = `translateY(${dy}px)`;
+        requestAnimationFrame(() => {
+          el.style.transition = `transform ${REORDER_MS}ms var(--ease-decel)`;
+          el.style.transform = "";
+          const done = () => {
+            el.style.transition = "";
+            el.style.transform = "";
+            el.removeEventListener("transitionend", done);
+          };
+          el.addEventListener("transitionend", done);
+        });
+      });
+    }
+    prevRects.current = next;
+  }, [displayed]);
+
+  const registerItem = (key: string) => (el: HTMLDivElement | null) => {
+    if (el) itemRefs.current.set(key, el);
+    else itemRefs.current.delete(key);
+  };
 
   // Early return must follow every hook above so hook order stays stable
   // across renders (changes can go empty ⇄ non-empty).
@@ -205,6 +251,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
             // phantom rows that only clear on a full refresh.
             <ChangeEntry
               key={changeGroupKey(change)}
+              rootRef={registerItem(changeGroupKey(change))}
               change={change}
               changeScope={changeScope}
               dimmed={dimmed}
@@ -230,6 +277,7 @@ function ChangeEntry({
   accepted,
   onToggleAccepted,
   onClick,
+  rootRef,
 }: {
   change: SemanticChange;
   changeScope?: ChangeScope;
@@ -237,6 +285,8 @@ function ChangeEntry({
   accepted?: boolean;
   onToggleAccepted?: () => void;
   onClick?: () => void;
+  /** Registers the entry's root node with the parent FLIP map. */
+  rootRef?: (el: HTMLDivElement | null) => void;
 }) {
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
@@ -264,6 +314,7 @@ function ChangeEntry({
 
   return (
     <div
+      ref={rootRef}
       onClick={onClick}
       className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls} ${acceptedCls}`}
     >
