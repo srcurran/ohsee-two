@@ -9,6 +9,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
+import { useAcceptedChanges } from "@/lib/accepted-changes";
 import type { Report } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
 
@@ -34,6 +35,7 @@ export function ReportHeader({
   settingsTitle,
 }: ReportHeaderProps) {
   const [showReportNav, setShowReportNav] = useState(false);
+  const { accepted } = useAcceptedChanges();
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
@@ -79,7 +81,7 @@ export function ReportHeader({
               {formatRelativeTime(report.createdAt)}
             </span>
             <span
-              className={`status-dot status-dot--${reportDotModifier(report)}`}
+              className={`status-dot status-dot--${reportDotModifier(report, accepted)}`}
             />
           </button>
           <button
@@ -119,7 +121,7 @@ export function ReportHeader({
                         {formatRelativeTime(r.createdAt)}
                       </span>
                       <span
-                        className={`status-dot status-dot--${reportDotModifier(r)}`}
+                        className={`status-dot status-dot--${reportDotModifier(r, accepted)}`}
                       />
                     </Link>
                   );

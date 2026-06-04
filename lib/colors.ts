@@ -1,4 +1,5 @@
 import type { ChangeCategory, ChangeSeverity, Report } from "./types";
+import { changeGroupKey } from "./change-identity";
 
 /**
  * Category colors for semantic diff markers.
@@ -59,10 +60,41 @@ export function getReportTotalChanges(r: Report): number {
 }
 
 /**
- * BEM modifier suffix for a report status dot — used as `.status-dot--{mod}`.
+ * Like getReportTotalChanges but ignores changes the user has accepted, so a
+ * report whose every diff has been reviewed reads as having none left. Falls
+ * back to the raw changeCount for breakpoints with no semantic change list
+ * (e.g. pixel-only diffs, which can't be accepted individually).
  */
-export function reportDotModifier(r: Report): "running" | "inactive" | "warning" | "success" {
+export function getReportActiveChanges(r: Report, accepted: Set<string>): number {
+  if (accepted.size === 0) return getReportTotalChanges(r);
+  let total = 0;
+  for (const page of r.pages) {
+    for (const bp of Object.values(page.breakpoints)) {
+      const changes = bp.semanticChanges;
+      if (changes && changes.length > 0) {
+        for (const c of changes) {
+          if (!accepted.has(`${r.id}::${changeGroupKey(c)}`)) total++;
+        }
+      } else {
+        total += bp.changeCount || 0;
+      }
+    }
+  }
+  return total;
+}
+
+/**
+ * BEM modifier suffix for a report status dot — used as `.status-dot--{mod}`.
+ * Pass `accepted` (the per-browser accepted-changes set) to make the dot go
+ * green once every diff has been accepted, even though the report still
+ * technically contains them.
+ */
+export function reportDotModifier(
+  r: Report,
+  accepted?: Set<string>,
+): "running" | "inactive" | "warning" | "success" {
   if (r.status === "running") return "running";
   if (r.status === "failed" || r.status === "cancelled") return "inactive";
-  return getReportTotalChanges(r) > 0 ? "warning" : "success";
+  const changes = accepted ? getReportActiveChanges(r, accepted) : getReportTotalChanges(r);
+  return changes > 0 ? "warning" : "success";
 }

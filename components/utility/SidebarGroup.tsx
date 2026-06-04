@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import ProjectFavicon from "@/components/utility/ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
+import { useAcceptedChanges } from "@/lib/accepted-changes";
 import { useViewedReports } from "@/lib/viewed-reports";
 import type { Project, Report, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
@@ -163,7 +164,8 @@ function SidebarTestRow({
   onClick,
   onOpenSettings,
 }: SidebarTestRowProps) {
-  const dotMod = latestReport ? reportDotModifier(latestReport) : "inactive";
+  const { accepted } = useAcceptedChanges();
+  const dotMod = latestReport ? reportDotModifier(latestReport, accepted) : "inactive";
   const lastRanAt = latestReport?.createdAt ?? test.lastRunAt;
   const timeAgo = latestReport
     ? formatRelativeTimeShort(latestReport.createdAt)
