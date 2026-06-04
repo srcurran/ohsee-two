@@ -57,6 +57,17 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
     [activeFilter, changes],
   );
 
+  // Accepted changes sink to the bottom of the list so the open items stay up
+  // top. Array.sort is stable, so entries keep their original relative order
+  // within the accepted / not-accepted groups.
+  const displayed = useMemo(() => {
+    const isAccepted = (c: SemanticChange) =>
+      accepted.has(acceptedChangeKey(reportId, c));
+    return [...filtered].sort(
+      (a, b) => Number(isAccepted(a)) - Number(isAccepted(b)),
+    );
+  }, [filtered, accepted, reportId]);
+
   // Early return must follow every hook above so hook order stays stable
   // across renders (changes can go empty ⇄ non-empty).
   if (!changes || changes.length === 0) {
@@ -177,7 +188,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
       </div>
 
       <div className="change-list__items stack stack--xs">
-        {filtered.map((change) => {
+        {displayed.map((change) => {
           // A change is "for this viewport" if its scope (the set of
           // breakpoints it appears at) includes the active one. Anything
           // else renders dimmed and non-interactive — same idea as a
@@ -232,9 +243,6 @@ function ChangeEntry({
   const dimmedCls = dimmed ? "change-entry--dimmed" : "";
   const acceptedCls = accepted ? "change-entry--accepted" : "";
 
-  // Locate the change by content ("the header", "the “Pricing” section").
-  const locationLine = change.location;
-
   // Scope label — every change is tagged as either spanning all
   // breakpoints or being specific to certain ones, so the user can tell
   // universal changes from viewport-dependent ones at a glance.
@@ -264,7 +272,7 @@ function ChangeEntry({
 
         </span>
         </div>
-        {scopeLabel && (
+        {!accepted && scopeLabel && (
             <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
         )}
 
@@ -279,13 +287,15 @@ function ChangeEntry({
           {accepted ? "✓ Accepted — undo" : "Accept"}
         </button>
       </div>
-      <span
-          className="change-entry__icon"
-          style={{ color: cfg.color }}
-          title={cfg.label}
-      >
-        {cfg.icon}
-      </span>
+      {!accepted && (
+        <span
+            className="change-entry__icon"
+            style={{ color: cfg.color }}
+            title={cfg.label}
+        >
+          {cfg.icon}
+        </span>
+      )}
     </div>
   );
 }
