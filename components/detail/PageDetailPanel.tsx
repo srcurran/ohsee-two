@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
 import TabBar from "@/components/utility/TabBar";
@@ -127,6 +127,34 @@ export default function PageDetailPanel({
       if (navigable(report.pages[i])) { nextPage = report.pages[i]; break; }
     }
   }
+
+  // Page-to-page transition: when the user moves to a different page (arrows /
+  // keyboard / picking another tile), slide the main column in from the side
+  // they're heading — from the right for the next page, the left for the
+  // previous — with a quick fade. Driven imperatively via the Web Animations
+  // API rather than a keyed remount: remounting would orphan the scroll
+  // container's listener that preserves scroll position across view-mode
+  // toggles. The initial open is left to the panel's own entrance animation.
+  const mainRef = useRef<HTMLDivElement>(null);
+  const prevPageIdRef = useRef(pageId);
+  useEffect(() => {
+    const prevId = prevPageIdRef.current;
+    prevPageIdRef.current = pageId;
+    if (prevId === pageId) return;
+    const el = mainRef.current;
+    if (!el) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const prevIdx = report.pages.findIndex((p) => p.pageId === prevId);
+    const curIdx = report.pages.findIndex((p) => p.pageId === pageId);
+    const dir = curIdx < prevIdx ? -1 : 1;
+    el.animate(
+      [
+        { opacity: 0, transform: `translateX(${dir * 20}px)` },
+        { opacity: 1, transform: "translateX(0)" },
+      ],
+      { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+  }, [pageId, report.pages]);
 
   usePageDetailKeyboardNav({
     prevPage,
@@ -336,6 +364,7 @@ export default function PageDetailPanel({
             <div className="page-detail-panel__divider" />
 
             <div
+              ref={mainRef}
               className="page-detail-panel__main animate-card-in"
               style={{ animationDelay: "30ms" }}
             >
