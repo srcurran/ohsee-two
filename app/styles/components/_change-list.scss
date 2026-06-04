@@ -134,28 +134,42 @@
     }
   }
 
-  /* The accept checkbox — an empty box that fills with a check once accepted. */
+  /* The accept control — a bare check, faint while open and solid green once
+     accepted. Transitions (not keyframes) so the pop only fires on toggle, not
+     when an already-accepted entry mounts; the back easing overshoots for the
+     pop. */
   .change-entry__check {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    border: 1.5px solid var(--change-entry-checkbox-border);
-    border-radius: var(--radius-xs);
+    padding: var(--space-1);
+    border: none;
     background: transparent;
-    color: var(--change-entry-checkbox-check);
+    color: var(--change-entry-check-color);
+    opacity: 0.45;
+    transform: scale(0.9);
     cursor: pointer;
-    transition: var(--transition-colors);
+    transition:
+      transform var(--duration-base) var(--ease-back),
+      color var(--duration-fast) var(--ease-standard),
+      opacity var(--duration-fast) var(--ease-standard);
 
     &:hover {
-      border-color: var(--change-entry-checkbox-border-hover);
+      color: var(--change-entry-check-color-hover);
+      opacity: 0.8;
     }
 
     &--checked {
-      border-color: var(--change-entry-checkbox-check);
+      color: var(--change-entry-check-color-active);
+      opacity: 1;
+      transform: scale(1);
+
+      /* Stay solid green on hover — the explicit "undo" carries the reversal. */
+      &:hover {
+        color: var(--change-entry-check-color-active);
+        opacity: 1;
+      }
     }
   }
 

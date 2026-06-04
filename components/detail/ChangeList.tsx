@@ -274,8 +274,9 @@ function ChangeEntry({
         >
           {change.description}
         </span>
-        {/* Accept toggle — a checkbox pinned to the top-right corner so the
-            hit target is consistent across every entry. */}
+        {/* Accept toggle — a check pinned to the top-right corner so the hit
+            target is consistent across every entry. Faint while open, solid
+            green once accepted. */}
         <button
           type="button"
           className={`change-entry__check${accepted ? " change-entry__check--checked" : ""}`}
@@ -284,7 +285,7 @@ function ChangeEntry({
           title={accepted ? "Accepted — click to undo" : "Accept"}
           onClick={toggleAccepted}
         >
-          {accepted && <Icon name="check" size={14} />}
+          <Icon name="check" size={20} />
         </button>
       </div>
 
