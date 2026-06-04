@@ -42,3 +42,11 @@
   }
 }
 
+/* Quiet run-duration line at the end of the grid. */
+.page-grid__duration {
+  margin: 0 0 var(--space-8);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--neutral-dark-500);
+}
+

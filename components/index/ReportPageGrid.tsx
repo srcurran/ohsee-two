@@ -11,6 +11,7 @@ import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
 import { changeGroupKey } from "@/lib/change-identity";
 import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
+import { formatDuration } from "@/lib/relative-time";
 import type { ReportFilterMode } from "@/components/index/use/reportUrlState";
 
 /** Page-tile thumbnail with a shimmer placeholder shown until the image is
@@ -160,6 +161,14 @@ function ReportPageGridComponent({
             {visiblePages.map((page, i) => renderPageCard(page, i))}
           </div>
         </div>
+      )}
+
+      {/* Run duration, quietly noted at the end of the grid — for comparing
+          fast mode vs normal without cluttering the header. */}
+      {!isRunning && hasVisible && report.completedAt && (
+        <p className="page-grid__duration">
+          Ran in {formatDuration(report.createdAt, report.completedAt)}
+        </p>
       )}
 
       {/* While a capture runs, a spinner is pinned to the viewport centre
