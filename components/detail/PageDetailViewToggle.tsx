@@ -44,8 +44,8 @@ export function PageDetailViewToggle({
         Prod
       </button>
       <div className="segmented segmented--content-bg">
-        {(["tap", "slider"] as const).map((m) => {
-          const label = m === "tap" ? "Tap" : "Slider";
+        {(["tap", "blend", "slider"] as const).map((m) => {
+          const label = m === "tap" ? "Tap" : m === "blend" ? "Blend" : "Slider";
           const active = viewMode === m;
           return (
             <button

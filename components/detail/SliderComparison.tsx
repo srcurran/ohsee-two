@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import type { SemanticChange } from "@/lib/types";
 import Segmented from "@/components/utility/Segmented";
 
-export type ComparisonMode = "slider" | "tap";
+export type ComparisonMode = "slider" | "tap" | "blend";
 
 interface Props {
   prodSrc: string;
@@ -36,7 +36,7 @@ export function ComparisonHeader({
         Prod
       </span>
       <Segmented
-        options={[{ value: "tap", label: "Tap" }, { value: "slider", label: "Slider" }]}
+        options={[{ value: "tap", label: "Tap" }, { value: "blend", label: "Blend" }, { value: "slider", label: "Slider" }]}
         value={mode as ComparisonMode}
         onChange={(v) => onModeChange?.(v)}
       />
@@ -133,6 +133,8 @@ export default function SliderComparison({
 
       {mode === "tap" ? (
         <TapReveal prodSrc={prodSrc} devSrc={devSrc} onPressedChange={onPressedChange} forceDev={forceDev} overlay={anchors} />
+      ) : mode === "blend" ? (
+        <BlendReveal prodSrc={prodSrc} devSrc={devSrc} overlay={anchors} />
       ) : (
         <SliderReveal prodSrc={prodSrc} devSrc={devSrc} overlay={anchors} />
       )}
@@ -180,6 +182,40 @@ function TapReveal({
         alt="Prod version"
         className="comparison__overlay"
         style={{ opacity: showingDev ? 0 : 1 }}
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+      />
+      {overlay}
+    </div>
+  );
+}
+
+/**
+ * Blend view — stacks prod over dev and lets CSS do the diffing: each side is
+ * tinted a complementary hue (prod red, dev cyan) and screen-blended, so
+ * matching pixels cancel to neutral grey while anything that differs glows in
+ * its side's colour. No interaction — it's a single at-a-glance composite.
+ */
+function BlendReveal({
+  prodSrc,
+  devSrc,
+  overlay,
+}: Props & { overlay?: React.ReactNode }) {
+  return (
+    <div className="comparison comparison--blend">
+      <img
+        src={devSrc}
+        alt="Dev version"
+        className="comparison__image comparison__blend comparison__blend--dev"
+        draggable={false}
+        loading="lazy"
+        decoding="async"
+      />
+      <img
+        src={prodSrc}
+        alt="Prod version"
+        className="comparison__overlay comparison__blend comparison__blend--prod"
         draggable={false}
         loading="lazy"
         decoding="async"

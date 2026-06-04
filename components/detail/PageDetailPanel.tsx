@@ -359,15 +359,17 @@ export default function PageDetailPanel({
                     {/* Tap/Slider compare prod vs dev. The Diff toggle swaps
                         the plain aligned screenshots for their change-
                         highlighted variants (falling back to plain when a
-                        side has no highlight — e.g. zero-change pages). */}
+                        side has no highlight — e.g. zero-change pages). Blend
+                        derives its own diff from the plain images, so it always
+                        uses the un-highlighted aligned pair. */}
                     <SliderComparison
                       prodSrc={`/api/screenshots/${
-                        diffMode && bpResult.highlightScreenshot
+                        diffMode && viewMode !== "blend" && bpResult.highlightScreenshot
                           ? bpResult.highlightScreenshot
                           : bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot
                       }`}
                       devSrc={`/api/screenshots/${
-                        diffMode && bpResult.highlightDevScreenshot
+                        diffMode && viewMode !== "blend" && bpResult.highlightDevScreenshot
                           ? bpResult.highlightDevScreenshot
                           : bpResult.alignedDevScreenshot ?? bpResult.devScreenshot
                       }`}
