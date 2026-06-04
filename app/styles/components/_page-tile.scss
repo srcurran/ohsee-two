@@ -48,9 +48,11 @@
     .page-tile__thumb-img {
       display: block;
       width: 100%;
+      max-width: fit-content;
       height: auto;
       border: 1px solid var(--page-tile-thumb-border);
       border-radius: var(--radius-xs);
+      margin: 0 auto;
     }
 
     /* Shimmer placeholder shown while the thumbnail image streams in —
