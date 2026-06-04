@@ -259,6 +259,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                       </label>
                       <div className="field__control">
                         <input
+                          type="password"
                           className="input input--with-trailing"
                           value={cred.otpValue}
                           placeholder={
