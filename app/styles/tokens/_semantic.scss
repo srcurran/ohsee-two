@@ -307,7 +307,9 @@
   --status-dot-error-background:        var(--status-error-500);
   --status-dot-running-background:      var(--status-running-400);
   --tab-bar-border:                     var(--neutral-dark-150);
-  --tab-color:                          var(--neutral-dark-900);
+  --tab-color:                          var(--neutral-dark-500);
+  --tab-color-hover:                    var(--neutral-dark-900);
+  --tab-color-active:                   var(--neutral-dark-900);
   --tab-indicator-background:           var(--neutral-dark-900);
   --variant-tab-color:                  var(--neutral-dark-500);
   --variant-tab-color-hover:            var(--neutral-dark-900);
