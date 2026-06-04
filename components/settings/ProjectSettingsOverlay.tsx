@@ -10,6 +10,7 @@ import { Icon } from "@/components/utility/Icon";
 import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
 import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 import { Accordion } from "@/components/settings/shared/SettingsAccordion";
+import FastModeToggle from "@/components/settings/shared/FastModeToggle";
 import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
 
 type ProjSectionId = "general" | "auth" | "danger";
@@ -198,6 +199,7 @@ export default function ProjectSettingsOverlay({ projectId, onClose }: Props) {
             placeholder="http://localhost:3000"
             spellCheck={false}
           />
+          <FastModeToggle />
         </>
       ),
     },

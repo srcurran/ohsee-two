@@ -9,6 +9,7 @@ import AuthProfileSelect from "@/components/settings/shared/AuthProfileSelect";
 import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
 import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
+import FastModeToggle from "@/components/settings/shared/FastModeToggle";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
 import { AddEditStepView } from "@/components/settings/TestSettingsStepEditor";
@@ -239,6 +240,7 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             })}
           </div>
         </div>
+        <FastModeToggle />
       </div>
     );
 
