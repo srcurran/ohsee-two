@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Icon } from "@/components/utility/Icon";
 
 interface Props {
@@ -34,9 +34,12 @@ interface Props {
  * the standard `.modal` scrim + panel chrome with a title row, a body slot
  * for the active step, and a Previous / Primary footer.
  *
- * The shell intentionally has no transition logic between steps — the host
- * component swaps `children` and the user perceives it as a step change.
- * Keeps state ownership in one place and avoids fighting with react keys.
+ * The host swaps `children` and bumps `step`; the shell persists across steps
+ * (same tree position) so it owns the cross-step transition: it compares the
+ * new `step` against the previous render to pick a slide direction, then keys
+ * the body on `step` so the incoming content remounts and replays the slide.
+ * The panel is capped to the viewport with a consistent min-height body that
+ * scrolls — so the frame neither jumps between steps nor outgrows the window.
  */
 export default function Wizard({
   step,
@@ -53,6 +56,19 @@ export default function Wizard({
   children,
 }: Props) {
   const showPrev = step > 1 && !!onPrev;
+
+  // Direction of the most recent step change, for the slide animation. Uses the
+  // store-previous-render-value pattern (adjusting state during render, which
+  // React resolves before paint) so `direction` is already correct on the same
+  // render the body remounts. Going to a higher step → "forward" (slide in from
+  // the right); lower → "back".
+  const [prevStep, setPrevStep] = useState(step);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  if (step !== prevStep) {
+    setDirection(step < prevStep ? "back" : "forward");
+    setPrevStep(step);
+  }
+
   return (
     <div
       className="modal"
@@ -60,7 +76,7 @@ export default function Wizard({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal__panel modal__panel--md">
+      <div className="modal__panel modal__panel--md modal__panel--wizard">
         <div className="wizard__head row row--between row--xs">
           {showPrev ? (
             <button
@@ -86,7 +102,12 @@ export default function Wizard({
           </button>
         </div>
 
-        <div className="wizard__body stack stack--lg">{children}</div>
+        <div
+          key={step}
+          className={`wizard__body stack stack--lg wizard__body--${direction}`}
+        >
+          {children}
+        </div>
 
         <div className="wizard__footer row row--between">
           <span className="wizard__step-count" aria-hidden>

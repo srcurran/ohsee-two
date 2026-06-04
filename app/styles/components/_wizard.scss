@@ -24,6 +24,14 @@
   flex-direction: column;
   gap: var(--space-5);
 }
+
+/* Cap the wizard panel to the viewport. The .modal scrim centers it and insets
+   it by space-4 all round, so 100% of the flex item resolves to the window
+   minus that padding. Tall steps scroll inside .wizard__body instead of
+   pushing the panel off-screen. */
+.modal__panel--wizard {
+  max-height: 100%;
+}
 /* Layout: .row .row--between .row--xs (JSX). Owns only the full-bleed width. */
 .wizard__head {
   width: 100%;
@@ -31,6 +39,29 @@
 
 /* Layout: .stack .stack--lg (JSX). */
 .wizard__body {
+  /* Fill the capped panel and scroll when a step is taller than the window.
+     min-height gives every step a consistent floor, so the frame stays put
+     between short and tall steps instead of resizing on each transition. */
+  flex: 1 1 auto;
+  min-height: 16rem;
+  overflow-y: auto;
+  /* Inset the scroll-clip box by space-1 and pull it back with a matching
+     negative margin, so an edge element's focus outline isn't clipped by the
+     overflow while the content's width and position stay unchanged. */
+  padding: var(--space-1);
+  margin: calc(-1 * var(--space-1));
+
+  /* Cross-step slide + fade (keyframes in base/_animations.scss). The body is
+     keyed on `step` in Wizard.tsx, so the incoming step remounts and replays
+     the slide in the direction the host moved. */
+  &--forward { animation: wizard-step-in-right var(--duration-fast) var(--ease-decel) both; }
+  &--back    { animation: wizard-step-in-left  var(--duration-fast) var(--ease-decel) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    &--forward,
+    &--back { animation: none; }
+  }
+
   /* .wizard__fields is also .stack .stack--lg in JSX. */
   .wizard__fields {
     .wizard__hint {

@@ -49,3 +49,16 @@
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
 }
+
+/* Wizard step transitions — a subtle horizontal slide + fade keyed on the
+   step-change direction: forward slides the new step in from the right, back
+   from the left. Travel is small (one space step) so the moving panel stays
+   inside the modal's padding and needs no clipping. */
+@keyframes wizard-step-in-right {
+  from { opacity: 0; transform: translateX(var(--space-5)); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes wizard-step-in-left {
+  from { opacity: 0; transform: translateX(calc(-1 * var(--space-5))); }
+  to   { opacity: 1; transform: translateX(0); }
+}
