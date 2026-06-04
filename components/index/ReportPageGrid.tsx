@@ -11,6 +11,7 @@ import type { Report, ReportPage } from "@/lib/types";
 import { getPageBp } from "@/components/index/utils/report";
 import { changeGroupKey } from "@/lib/change-identity";
 import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
+import type { ReportFilterMode } from "@/components/index/use/reportUrlState";
 
 /** Page-tile thumbnail with a shimmer placeholder shown until the image is
  *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
@@ -73,6 +74,7 @@ interface ReportPageGridProps {
   report: Report;
   activeBp: number;
   activeVariant: string | null;
+  filterMode: ReportFilterMode;
   onOpenPage: (pageId: string, e?: React.MouseEvent) => void;
 }
 
@@ -80,17 +82,17 @@ function ReportPageGridComponent({
   report,
   activeBp,
   activeVariant,
+  filterMode,
   onOpenPage,
 }: ReportPageGridProps) {
   const { accepted } = useAcceptedChanges();
-  const renderPageCard = (page: ReportPage, index: number) => {
-    const bpResult = getPageBp(page, String(activeBp), activeVariant);
-    const hasScreenshot = !!bpResult?.prodScreenshot;
 
-    // Total unique changes across every breakpoint for this page. Counting
-    // per active-bp would make the badge jump around as the user switches
-    // viewports even though the underlying issue list is the same — this
-    // matches the detail panel's header badge and the Detected Changes list.
+  // Total unique (unaccepted) changes across every breakpoint for a page.
+  // Counting per active-bp would make the badge jump around as the user
+  // switches viewports even though the underlying issue list is the same —
+  // this matches the detail panel's header badge and the Detected Changes
+  // list, and drives both the card badge and the "Changes only" filter.
+  const pageChangeCount = (page: ReportPage): number => {
     const bpData =
       activeVariant && page.variants?.[activeVariant]
         ? page.variants[activeVariant]
@@ -98,11 +100,16 @@ function ReportPageGridComponent({
     const uniqueKeys = new Set<string>();
     for (const r of Object.values(bpData)) {
       for (const c of r.semanticChanges ?? []) {
-        // Accepted (expected) diffs don't count toward the card badge.
         if (!accepted.has(acceptedChangeKey(report.id, c))) uniqueKeys.add(changeGroupKey(c));
       }
     }
-    const changeCount = uniqueKeys.size;
+    return uniqueKeys.size;
+  };
+
+  const renderPageCard = (page: ReportPage, index: number) => {
+    const bpResult = getPageBp(page, String(activeBp), activeVariant);
+    const hasScreenshot = !!bpResult?.prodScreenshot;
+    const changeCount = pageChangeCount(page);
 
     // Prefer the highlight image (prod with changed pixels tinted) when
     // available — it gives an at-a-glance view of what changed. Falls
@@ -136,14 +143,21 @@ function ReportPageGridComponent({
 
   const isRunning = report.status === "running";
   const hasPages = report.pages.length > 0;
+  // The "Changes only" filter never applies mid-run — the grid is partial and
+  // covered by the capture scrim, so show everything captured so far.
+  const visiblePages =
+    !isRunning && filterMode === "changes"
+      ? report.pages.filter((p) => pageChangeCount(p) > 0)
+      : report.pages;
+  const hasVisible = visiblePages.length > 0;
 
   return (
     <>
-      {hasPages && (
+      {hasVisible && (
         <div className={`page-grid-wrap stack stack--2xl${isRunning ? " page-grid-wrap--running" : ""}`}>
           {isRunning && <div className="page-grid-wrap__scrim" />}
           <div className="page-grid">
-            {report.pages.map((page, i) => renderPageCard(page, i))}
+            {visiblePages.map((page, i) => renderPageCard(page, i))}
           </div>
         </div>
       )}
@@ -155,6 +169,13 @@ function ReportPageGridComponent({
           <div className="loader-spinner" />
           <p className="loader-text">Capturing…</p>
         </div>
+      )}
+
+      {/* Pages exist, but the "Changes only" filter hid them all. */}
+      {!isRunning && hasPages && !hasVisible && filterMode === "changes" && (
+        <p className="loader-text" style={{ textAlign: "center" }}>
+          No pages with changes.
+        </p>
       )}
 
       {!hasPages && !isRunning && (

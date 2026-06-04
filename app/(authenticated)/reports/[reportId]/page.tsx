@@ -4,6 +4,7 @@ import { useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
+import Segmented from "@/components/utility/Segmented";
 import ErrorModal from "@/components/utility/ErrorModal";
 import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
@@ -43,12 +44,14 @@ function ReportPageInner() {
     bpParam,
     activeVariant,
     activePageId,
+    filterMode,
     pageOriginRect,
     pageOriginThumb,
     setPageOriginRect,
     setPageOriginThumb,
     handleBpChange,
     handleVariantChange,
+    handleFilterChange,
     openPage,
     closePage,
   } = useReportUrlState();
@@ -151,19 +154,40 @@ function ReportPageInner() {
 
           <ReportStatusBanner report={report} />
 
-          <div className="report__breakpoints">
-            <BreakpointTabs
-              active={activeBp}
-              onChange={handleBpChange}
-              changeCounts={bpChangeCounts}
-              breakpoints={reportBreakpoints}
-              align="start"
-            />
-            <VariantTabs
-              variants={reportVariants}
-              active={activeVariant}
-              onChange={handleVariantChange}
-            />
+          <div className="report__bar">
+            <div className="report__variants">
+              <div className="report__breakpoints">
+                <BreakpointTabs
+                  active={activeBp}
+                  onChange={handleBpChange}
+                  changeCounts={bpChangeCounts}
+                  breakpoints={reportBreakpoints}
+                  align="start"
+                />
+              </div>
+              {reportVariants.length > 0 && (
+                <div className="report__modes">
+                  <VariantTabs
+                    variants={reportVariants}
+                    active={activeVariant}
+                    onChange={handleVariantChange}
+                  />
+                </div>
+              )}
+            </div>
+
+            {report.status !== "running" && (
+              <div className="report__filter">
+                <Segmented<typeof filterMode>
+                  options={[
+                    { value: "all", label: "Show all" },
+                    { value: "changes", label: "Changes only" },
+                  ]}
+                  value={filterMode}
+                  onChange={handleFilterChange}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -172,6 +196,7 @@ function ReportPageInner() {
             report={report}
             activeBp={activeBp}
             activeVariant={activeVariant}
+            filterMode={filterMode}
             onOpenPage={openPage}
           />
         </div>

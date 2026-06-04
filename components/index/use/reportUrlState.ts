@@ -5,10 +5,14 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+/** Grid filter: every page, or only pages that still have (unaccepted) changes. */
+export type ReportFilterMode = "all" | "changes";
+
 interface UseReportUrlStateResult {
   bpParam: number | null;
   activeVariant: string | null;
   activePageId: string | null;
+  filterMode: ReportFilterMode;
   pageOriginRect: DOMRect | null;
   pageOriginThumb: { rect: DOMRect; src: string } | null;
   setPageOriginRect: React.Dispatch<React.SetStateAction<DOMRect | null>>;
@@ -17,6 +21,7 @@ interface UseReportUrlStateResult {
   >;
   handleBpChange: (bp: number) => void;
   handleVariantChange: (variantId: string | null) => void;
+  handleFilterChange: (mode: ReportFilterMode) => void;
   openPage: (pageId: string, e?: React.MouseEvent) => void;
   closePage: () => void;
 }
@@ -33,6 +38,8 @@ export function useReportUrlState(): UseReportUrlStateResult {
   const bpParam = Number(searchParams.get("bp")) || null;
   const activeVariant = searchParams.get("variant") || null;
   const activePageId = searchParams.get("page") || null;
+  const filterMode: ReportFilterMode =
+    searchParams.get("filter") === "changes" ? "changes" : "all";
 
   const handleBpChange = (bp: number) => {
     const p = new URLSearchParams(searchParams.toString());
@@ -72,16 +79,29 @@ export function useReportUrlState(): UseReportUrlStateResult {
     router.push(`?${p.toString()}`, { scroll: false });
   };
 
+  const handleFilterChange = (mode: ReportFilterMode) => {
+    const p = new URLSearchParams(searchParams.toString());
+    // "all" is the default — keep it out of the URL.
+    if (mode === "changes") {
+      p.set("filter", "changes");
+    } else {
+      p.delete("filter");
+    }
+    router.push(`?${p.toString()}`, { scroll: false });
+  };
+
   return {
     bpParam,
     activeVariant,
     activePageId,
+    filterMode,
     pageOriginRect,
     pageOriginThumb,
     setPageOriginRect,
     setPageOriginThumb,
     handleBpChange,
     handleVariantChange,
+    handleFilterChange,
     openPage,
     closePage,
   };

@@ -24,7 +24,7 @@
 .page-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
+  gap: var(--space-14);
 
   /* 2-up below the desktop breakpoint where the side-by-side change
      panel still fits next to the screenshot column. */

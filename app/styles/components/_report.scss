@@ -13,8 +13,11 @@
  *       <div .report__status-banner [--error]>   ← ReportStatusBanner
  *         <p .report__status-banner-title [--error]>
  *         <pre .report__status-banner-detail>
- *       <VariantTabs />
- *       <div .report__breakpoints> BreakpointTabs </div>
+ *       <div .report__bar>                          ← bottom toolbar
+ *         <div .report__variants>                   ← left switcher group
+ *           <div .report__breakpoints> BreakpointTabs </div>
+ *           <div .report__modes> VariantTabs </div>   ← only when modes exist
+ *         <div .report__filter> Segmented </div>      ← show all / changes only
  *     <div .report__grid-wrap>
  *       <ReportPageGrid>
  *
@@ -46,7 +49,11 @@
 .report {
   position: relative;
   min-height: 100%;
-  padding: var(--space-3) var(--space-5);
+  /* No top padding: the sticky header owns its own top inset (below). Keeping
+     that inset inside the sticky element — rather than on .report's padding —
+     means the header content sits at the same offset whether the header is at
+     rest or stuck, so it doesn't shift up by the padding amount on scroll. */
+  padding: 0 var(--space-5) var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -55,6 +62,8 @@
     position: sticky;
     top: 0;
     z-index: var(--z-dropdown);
+    /* The top inset that used to live on .report's padding (see above). */
+    padding-top: var(--space-3);
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
     background: var(--report-sticky-background);
@@ -155,12 +164,21 @@
       }
     }
 
-    .report__breakpoints {
+    /* Bottom toolbar of the sticky header: breakpoint + mode switchers on the
+       left (grouped as .report__variants), the change filter on the right. */
+    .report__bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--tab-bar-border);
 
+      .report__variants {
+        display: flex;
+        align-items: center;
+        gap: var(--space-8);
+      }
+
+      /* TabBar carries its own underline; the bar already draws one. */
       .tab-bar {
         border-bottom: none;
       }
@@ -170,13 +188,15 @@
   .report__grid-wrap {
     position: relative;
     flex: 1;
+    /* Clip the page-tile shadows so they don't bleed up past the grid's top
+       edge and show through behind the sticky header on scroll. */
+    overflow: hidden;
 
     /* While capturing, fill the available column space without growing to
        the (sparse, partial) grid behind the overlay — keeps the centered
        loader inside the viewport instead of riding tall content. */
     &--running {
       min-height: 0;
-      overflow: hidden;
     }
   }
 }
