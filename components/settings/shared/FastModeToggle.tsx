@@ -36,7 +36,7 @@ export default function FastModeToggle() {
   };
 
   return (
-    <div className="test-settings-section__speed stack stack--sm">
+    <div className="fast-mode stack stack--sm">
       <h3>Test Speed</h3>
       <label className="variant-option">
         <input
@@ -48,7 +48,7 @@ export default function FastModeToggle() {
         />
         Enable fast mode
       </label>
-      <p className="settings-section__hint">
+      <p className="fast-mode__note">
         Faster runs, but more likely to hit errors. Applies to all tests.
       </p>
     </div>
