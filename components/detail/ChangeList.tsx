@@ -340,20 +340,25 @@ function ChangeEntry({
         </button>
       </div>
 
-      {!accepted && scopeLabel && (
-        <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
-      )}
-
-      {accepted && (
-        <div className="change-entry__accepted">
-          <span className="change-entry__accepted-label">Accepted</span>
-          <button
-            type="button"
-            className="btn--text change-entry__undo"
-            onClick={toggleAccepted}
-          >
-            undo
-          </button>
+      {/* Meta slot under the description — a fixed-height row that toggles
+          between the breakpoints label and the accepted label + undo, so
+          accepting an entry never changes its height. */}
+      {(accepted || scopeLabel) && (
+        <div className="change-entry__meta">
+          {accepted ? (
+            <>
+              <span className="change-entry__accepted-label">Accepted</span>
+              <button
+                type="button"
+                className="btn--text change-entry__undo"
+                onClick={toggleAccepted}
+              >
+                undo
+              </button>
+            </>
+          ) : (
+            <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
+          )}
         </div>
       )}
     </div>

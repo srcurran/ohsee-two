@@ -13,10 +13,10 @@
  *     <div .change-entry__top>
  *       <span .change-entry__description>
  *       <button .change-entry__check [--checked]>   ← accept toggle, top-right
- *     <span .change-entry__scope>                     ← only when not accepted
- *     <div .change-entry__accepted>                   ← only when accepted
- *       <span .change-entry__accepted-label>          ← lower-left
- *       <button .change-entry__undo>                  ← lower-right
+ *     <div .change-entry__meta>                       ← fixed-height; shown when accepted or scoped
+ *       (not accepted) <span .change-entry__scope>            ← breakpoints label
+ *       (accepted)     <span .change-entry__accepted-label>   ← lower-left
+ *                      <button .change-entry__undo>           ← lower-right
  *
  *   <div .change-notice>                       ← empty-state callout
  *     <span .change-notice__icon>
@@ -173,30 +173,33 @@
     }
   }
 
-  .change-entry__scope {
-    border-radius: var(--radius-xs);
-    background: color-mix(in srgb, var(--neutral-dark-400) 20%, transparent);
-    color: var(--neutral-dark-500);
-    font-size: var(--font-size-sm);
-    line-height: var(--line-none);
-    white-space: nowrap;
-  }
-
-  /* Accepted footer: the "Accepted" label sits lower-left, the undo action
-     lower-right. */
-  .change-entry__accepted {
+  /* Meta slot under the description: toggles between the breakpoints label
+     (not accepted) and the "Accepted" label + undo (accepted). Pinned to one
+     small-text line in both states so accepting an entry never changes its
+     height — which would otherwise break the list's vertical rhythm. UA buttons
+     force line-height: normal, so the line metrics are set here (inherited by
+     the spans) and again on the undo button. */
+  .change-entry__meta {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-height: var(--font-size-sm);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-none);
+  }
 
-    .change-entry__accepted-label {
-      font-size: var(--font-size-sm);
-      color: var(--change-entry-description-color);
-    }
+  .change-entry__scope {
+    color: var(--neutral-dark-500);
+    white-space: nowrap;
+  }
+
+  .change-entry__accepted-label {
+    color: var(--change-entry-description-color);
   }
 
   .change-entry__undo {
     font-size: var(--font-size-sm);
+    line-height: var(--line-none);
   }
 }
 
