@@ -25,8 +25,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-14);
-  /* Breathing room below the last row, matched to the grid gap. */
-  padding-bottom: var(--space-14);
+  /* Side gutters + breathing room below the last row (matched to the gap). */
+  padding: 0 var(--space-8) var(--space-14);
 
   /* 2-up below the desktop breakpoint where the side-by-side change
      panel still fits next to the screenshot column. */
