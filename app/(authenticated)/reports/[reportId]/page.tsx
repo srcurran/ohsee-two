@@ -172,41 +172,46 @@ function ReportPageInner() {
 
           <ReportStatusBanner report={report} />
 
-          <div className="report__bar">
-            <div className="report__variants">
-              <div className="report__breakpoints">
-                <BreakpointTabs
-                  active={activeBp}
-                  onChange={handleBpChange}
-                  changeCounts={bpChangeCounts}
-                  breakpoints={reportBreakpoints}
-                  align="start"
-                />
+          {/* The bar (and its underline) only appears once a captured page
+              gives us breakpoints — otherwise a fresh run shows a stray line
+              under the title with no tabs beneath it. */}
+          {reportBreakpoints.length > 0 && (
+            <div className="report__bar">
+              <div className="report__variants">
+                <div className="report__breakpoints">
+                  <BreakpointTabs
+                    active={activeBp}
+                    onChange={handleBpChange}
+                    changeCounts={bpChangeCounts}
+                    breakpoints={reportBreakpoints}
+                    align="start"
+                  />
+                </div>
+                {reportVariants.length > 0 && (
+                  <div className="report__modes">
+                    <VariantTabs
+                      variants={reportVariants}
+                      active={activeVariant}
+                      onChange={handleVariantChange}
+                    />
+                  </div>
+                )}
               </div>
-              {reportVariants.length > 0 && (
-                <div className="report__modes">
-                  <VariantTabs
-                    variants={reportVariants}
-                    active={activeVariant}
-                    onChange={handleVariantChange}
+
+              {report.status !== "running" && (
+                <div className="report__filter">
+                  <TabBar<typeof filterMode>
+                    items={[
+                      { id: "all", label: `All pages (${allPagesCount})` },
+                      { id: "changes", label: `Changes only (${changedPagesCount})` },
+                    ]}
+                    active={filterMode}
+                    onSelect={handleFilterChange}
                   />
                 </div>
               )}
             </div>
-
-            {report.status !== "running" && (
-              <div className="report__filter">
-                <TabBar<typeof filterMode>
-                  items={[
-                    { id: "all", label: `All pages (${allPagesCount})` },
-                    { id: "changes", label: `Changes only (${changedPagesCount})` },
-                  ]}
-                  active={filterMode}
-                  onSelect={handleFilterChange}
-                />
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         <div className={`report__grid-wrap${report.status === "running" ? " report__grid-wrap--running" : ""}`}>
