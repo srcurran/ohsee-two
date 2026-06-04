@@ -18,8 +18,25 @@ import { useStepsState } from "@/components/settings/use/stepsState";
 import { useTestSettingsData } from "@/components/settings/use/testSettingsData";
 import { useMediaQuery } from "@/components/utility/use/useMediaQuery";
 import { Icon } from "@/components/utility/Icon";
+import type { TestStep } from "@/lib/types";
 
 type AccordionId = "steps" | "settings" | "signin" | "danger";
+
+/** Seed a Playwright script from a simple test's steps when upgrading it:
+ *  each path becomes a goto + snapshot; any legacy inline Playwright step is
+ *  inlined as-is. A sensible starting point the user can then edit. */
+function scriptFromSteps(steps: TestStep[]): string {
+  const parts: string[] = [];
+  for (const s of steps) {
+    if (s.type === "url" && s.url) {
+      const slug = s.url.replace(/^\/+|\/+$/g, "").replace(/\//g, "-") || "home";
+      parts.push(`await page.goto('${s.url}');\nawait ohsee.snapshot('${slug}');`);
+    } else if (s.type === "microtest" && s.script) {
+      parts.push(s.script.trim());
+    }
+  }
+  return (parts.length ? parts.join("\n\n") : "await page.goto('/');\nawait ohsee.snapshot('home');") + "\n";
+}
 
 interface Props {
   projectId: string;
@@ -99,6 +116,21 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
     setStepEditor(null);
   };
 
+  // One-way upgrade: turn a simple (path) test into an advanced Playwright
+  // test, seeding the script from its current steps.
+  const handleConvertToPlaywright = async () => {
+    if (
+      !window.confirm(
+        "Convert this to a Playwright test? Your path steps become an editable script. This can't be undone.",
+      )
+    )
+      return;
+    const script = scriptFromSteps(data.steps);
+    data.setScript(script);
+    data.setSteps([]);
+    await data.persist({ testType: "advanced", script, steps: [] });
+  };
+
   // Advanced tests author a single script; simple tests use the step list.
   const isAdvanced = data.activeTest?.testType === "advanced";
 
@@ -132,7 +164,6 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         {data.steps.length === 0 ? (
           <EmptySteps
             onPickUrl={() => setStepEditor({ mode: "create", initialType: "url" })}
-            onPickMicrotest={() => setStepEditor({ mode: "create", initialType: "microtest" })}
           />
         ) : (
           <ul className="test-steps__list">
@@ -163,9 +194,16 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
         <button
           type="button"
           className="btn btn--outline test-steps__add"
-          onClick={() => setStepEditor({ mode: "create" })}
+          onClick={() => setStepEditor({ mode: "create", initialType: "url" })}
         >
-          Add step
+          Add path
+        </button>
+        <button
+          type="button"
+          className="btn--text self-start test-steps__convert"
+          onClick={handleConvertToPlaywright}
+        >
+          Convert to a Playwright test
         </button>
       </section>
     );
