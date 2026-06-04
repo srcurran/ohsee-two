@@ -140,7 +140,7 @@ export function CredentialEditor({
           {otpMode === "static" && (
             <>
               <input
-                type="text"
+                type="password"
                 value={staticOtp}
                 onChange={(e) => setStaticOtp(e.target.value)}
                 placeholder="123456"
