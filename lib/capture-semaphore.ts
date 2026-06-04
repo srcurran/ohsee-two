@@ -10,19 +10,20 @@
  *
  * This counting semaphore bounds how many capture blocks run at once across
  * the whole process (every run shares this one instance), smoothing the burst.
- * The ceiling is driven by the user's "fast mode" setting (see runReport):
- * NORMAL is the safe default, FAST trades reliability for speed.
+ * The ceiling is driven by the test's "fast mode" flag (see runReport): normal
+ * keeps the safe default; fast mode removes the cap entirely (unbounded) for
+ * raw speed, at the cost of more backend errors.
  */
 const NORMAL_CONCURRENCY = 8;
-const FAST_CONCURRENCY = 16;
 
 let maxConcurrent = NORMAL_CONCURRENCY;
 let active = 0;
 const waiters: Array<() => void> = [];
 
-/** Set the cap from the fast-mode preference. Read once per run at its start. */
+/** Set the cap from the fast-mode flag. Read once per run at its start.
+ *  Fast mode = Infinity (uncapped). */
 export function setCaptureConcurrency(fast: boolean): void {
-  maxConcurrent = fast ? FAST_CONCURRENCY : NORMAL_CONCURRENCY;
+  maxConcurrent = fast ? Infinity : NORMAL_CONCURRENCY;
   // Raising the cap mid-flight: let any waiters that now fit start immediately.
   while (active < maxConcurrent && waiters.length > 0) {
     active++;
