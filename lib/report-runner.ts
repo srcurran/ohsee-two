@@ -32,13 +32,19 @@ export function cancelReport(reportId: string): boolean {
 }
 
 /**
- * Cancel all running reports for a given project. Returns cancelled report IDs.
+ * Cancel running reports for a specific test — used to supersede an in-progress
+ * run of the SAME test when it's re-run. Scoped to the test, not the whole
+ * project, so sibling tests keep running and multiple tests in one project can
+ * run in parallel. Returns cancelled report IDs.
  */
-export function cancelRunningReportsForProject(projectId: string): string[] {
+export function cancelRunningReportsForTest(
+  projectId: string,
+  siteTestId: string,
+): string[] {
   const cancelled: string[] = [];
   for (const [reportId, controller] of runningReports.entries()) {
-    const meta = reportProjectMap.get(reportId);
-    if (meta === projectId) {
+    const meta = reportMeta.get(reportId);
+    if (meta?.projectId === projectId && meta.siteTestId === siteTestId) {
       controller.abort();
       cancelled.push(reportId);
     }
@@ -46,8 +52,8 @@ export function cancelRunningReportsForProject(projectId: string): string[] {
   return cancelled;
 }
 
-/** Maps reportId → projectId for lookup during cancellation */
-const reportProjectMap = new Map<string, string>();
+/** Maps reportId → its project + test, for scoped cancellation. */
+const reportMeta = new Map<string, { projectId: string; siteTestId?: string }>();
 
 class ReportCancelledError extends Error {
   constructor() {
@@ -82,7 +88,7 @@ export async function runReport(
 ): Promise<void> {
   const controller = new AbortController();
   runningReports.set(reportId, controller);
-  reportProjectMap.set(reportId, project.id);
+  reportMeta.set(reportId, { projectId: project.id, siteTestId: siteTest?.id });
 
   const scriptCredentials = options?.scriptCredentials;
   const authCredentials = options?.authCredentials;
@@ -584,7 +590,7 @@ export async function runReport(
     await prodBrowser?.close().catch(() => {});
     await devBrowser?.close().catch(() => {});
     runningReports.delete(reportId);
-    reportProjectMap.delete(reportId);
+    reportMeta.delete(reportId);
     if (options?.onComplete) {
       try {
         options.onComplete(report);

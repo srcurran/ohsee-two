@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
 import { userReportsDir, BREAKPOINTS } from "@/lib/constants";
 import { requireUserId, handleApiError } from "@/lib/auth-helpers";
-import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
+import { runReport, cancelRunningReportsForTest } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import { checkProjectUrlsReachable } from "@/lib/url-reachability";
 import { getTestSteps } from "@/lib/test-steps";
@@ -96,7 +96,9 @@ export async function POST(
       );
     }
 
-    cancelRunningReportsForProject(id);
+    // Supersede only an in-progress run of THIS test (not the whole project),
+    // so other tests in the project can run in parallel.
+    cancelRunningReportsForTest(id, testId);
 
     const reportId = uuidv4();
     const bpCount = project.breakpoints?.length || BREAKPOINTS.length;
