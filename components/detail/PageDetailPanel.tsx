@@ -320,7 +320,7 @@ export default function PageDetailPanel({
               {report.pages.length > 1 && (
                 <TabBar<ReportFilterMode>
                   items={[
-                    { id: "all", label: "Show all" },
+                    { id: "all", label: "All pages" },
                     { id: "changes", label: "Changes only" },
                   ]}
                   active={filterMode}

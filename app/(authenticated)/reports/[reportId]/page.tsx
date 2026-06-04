@@ -182,7 +182,7 @@ function ReportPageInner() {
               <div className="report__filter">
                 <TabBar<typeof filterMode>
                   items={[
-                    { id: "all", label: "Show all" },
+                    { id: "all", label: "All pages" },
                     { id: "changes", label: "Changes only" },
                   ]}
                   active={filterMode}
