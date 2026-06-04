@@ -454,6 +454,10 @@
   --text-dim:     color-mix(in srgb, var(--foreground) 72%, transparent);
   --text-subdued: color-mix(in srgb, var(--foreground) 82%, transparent);
 
+  /* Screenshot letterbox backing — neutral-dark-400 flips to translucent
+     WHITE in dark, casting the page-detail view white. Keep it a dark wash. */
+  --comparison-background: rgba(0, 0, 0, 0.3);
+
   /* Legacy alias */
   --background: #1e1e1e;
 }

@@ -35,6 +35,9 @@
   justify-content: center;
   border-radius: var(--radius-sm);
   background: transparent;
+  /* Muted, theme-aware icon colour (the sidebar glyph paints with
+     currentColor) so the toggle inverts in dark mode. */
+  color: var(--icon-btn-color);
   border: none;
   cursor: pointer;
   /* Stay clickable inside the .titlebar-drag-region strip. */
