@@ -41,8 +41,8 @@
   gap: var(--space-5);
 }
 
-/* FastModeToggle (shared across settings panels) — its caption matches the
-   small, muted breakpoint count (e.g. "4/6") rather than the larger hint. */
+/* Test Speed (fast mode) caption — matches the small, muted breakpoint count
+   (e.g. "4/6") rather than the larger settings hint. */
 .fast-mode__note {
   margin: 0;
   font-size: var(--font-size-sm);

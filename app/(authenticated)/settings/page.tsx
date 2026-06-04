@@ -135,20 +135,6 @@ export default function SettingsPage() {
                 </label>
               </section>
 
-              <section className="section-block animate-card-in" style={{ animationDelay: "85ms" }}>
-                <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Test Speed</p>
-                <label className="variant-option">
-                  <input
-                    type="checkbox"
-                    checked={settings?.fastMode ?? false}
-                    onChange={(e) => settings && saveSettings({ ...settings, fastMode: e.target.checked })}
-                    className="checkbox"
-                    disabled={!settings}
-                  />
-                  Enable fast mode — may result in more errors
-                </label>
-              </section>
-
               <section className="animate-card-in" style={{ animationDelay: "100ms" }}>
                 <button onClick={() => signOut({ callbackUrl: "/sign-in" })} className="btn btn--ghost">
                   Sign out

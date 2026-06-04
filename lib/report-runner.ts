@@ -4,9 +4,9 @@ import { captureScreenshots } from "./screenshot";
 import { generateDiff } from "./diff";
 import { generateSemanticDiff, computeAlignmentAnchors } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
-import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir, userSettingsFile } from "./constants";
+import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import { setCaptureConcurrency } from "./capture-semaphore";
-import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState, UserSettings } from "./types";
+import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
 import { executeTestComposition, executeScriptTest, getCompositionScreenshotSteps, captureLoginState } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
@@ -91,13 +91,8 @@ export async function runReport(
   runningReports.set(reportId, controller);
   reportMeta.set(reportId, { projectId: project.id, siteTestId: siteTest?.id });
 
-  // Capture concurrency follows the user's "fast mode" preference (8 vs 16).
-  try {
-    const settings = await readJsonFile<UserSettings>(userSettingsFile(userId), {} as UserSettings);
-    setCaptureConcurrency(!!settings.fastMode);
-  } catch {
-    setCaptureConcurrency(false);
-  }
+  // Capture concurrency follows this test's "fast mode" flag (8 vs 16).
+  setCaptureConcurrency(!!siteTest?.fastMode);
 
   const scriptCredentials = options?.scriptCredentials;
   const authCredentials = options?.authCredentials;

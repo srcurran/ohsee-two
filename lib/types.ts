@@ -42,6 +42,9 @@ export interface SiteTest {
   breakpoints?: number[];
   /** Optional theme/variant captures (e.g., light + dark) */
   variants?: TestVariant[];
+  /** Fast mode: capture more pages in parallel for this test (higher backend
+   *  load, more likely to trip rate-limit / "offline" errors). */
+  fastMode?: boolean;
   /** Soft-deleted / hidden from sidebar; restorable from project Danger Zone. */
   archived?: boolean;
   /** Per-test credentials: names a vault entry whose email/password/OTP are
@@ -177,9 +180,6 @@ export interface UserSettings {
   defaultVariants?: string[];
   /** Whether to show a native notification when a report run completes. */
   alertNotifications?: boolean;
-  /** Fast mode: capture more pages in parallel (higher backend load, more
-   *  likely to trip rate-limit / "offline" errors). */
-  fastMode?: boolean;
 }
 
 export interface PageEntry {

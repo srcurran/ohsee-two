@@ -45,6 +45,9 @@ export interface UseTestSettingsDataResult {
   /** Advanced: selected site-level sign-in profile id. */
   authProfileId: string | undefined;
   setAuthProfileId: React.Dispatch<React.SetStateAction<string | undefined>>;
+  /** Fast mode: higher capture concurrency for this test. */
+  fastMode: boolean;
+  setFastMode: React.Dispatch<React.SetStateAction<boolean>>;
   /** Immediate write of a partial test patch (used by archive). */
   persist: (testPatch: Partial<SiteTest>) => Promise<void>;
   /** Force a save of all current local state right now. */
@@ -75,9 +78,10 @@ export function useTestSettingsData({
     undefined,
   );
   const [authProfileId, setAuthProfileId] = useState<string | undefined>(undefined);
+  const [fastMode, setFastMode] = useState(false);
 
-  const stateRef = useRef({ name, steps, script, breakpoints, variantIds, credentials, authProfileId });
-  stateRef.current = { name, steps, script, breakpoints, variantIds, credentials, authProfileId };
+  const stateRef = useRef({ name, steps, script, breakpoints, variantIds, credentials, authProfileId, fastMode });
+  stateRef.current = { name, steps, script, breakpoints, variantIds, credentials, authProfileId, fastMode };
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load project + this test's state
@@ -98,6 +102,7 @@ export function useTestSettingsData({
         setVariantIds((test.variants || []).map((v) => v.id));
         setCredentials(test.credentials);
         setAuthProfileId(test.authProfileId);
+        setFastMode(test.fastMode ?? false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, testId]);
@@ -132,6 +137,7 @@ export function useTestSettingsData({
       variants: BUILT_IN_VARIANTS.filter((v) => s.variantIds.includes(v.id)),
       credentials: s.credentials,
       authProfileId: s.authProfileId,
+      fastMode: s.fastMode,
     });
   }, [persist]);
 
@@ -170,6 +176,8 @@ export function useTestSettingsData({
     setCredentials,
     authProfileId,
     setAuthProfileId,
+    fastMode,
+    setFastMode,
     persist,
     flushSave,
     scheduleSave,

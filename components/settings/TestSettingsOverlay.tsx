@@ -9,7 +9,6 @@ import AuthProfileSelect from "@/components/settings/shared/AuthProfileSelect";
 import AuthProfilesPanel from "@/components/settings/shared/AuthProfilesPanel";
 import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
-import FastModeToggle from "@/components/settings/shared/FastModeToggle";
 import { EmptySteps } from "@/components/settings/TestSettingsEmpty";
 import { PendingDeleteRow, StepRow } from "@/components/settings/TestSettingsStepRow";
 import { AddEditStepView } from "@/components/settings/TestSettingsStepEditor";
@@ -240,7 +239,21 @@ export default function TestSettingsOverlay({ projectId, testId, onClose }: Prop
             })}
           </div>
         </div>
-        <FastModeToggle />
+        <div className="fast-mode stack stack--sm">
+          <h3>Test Speed</h3>
+          <label className="variant-option">
+            <input
+              type="checkbox"
+              checked={data.fastMode}
+              onChange={(e) => { data.setFastMode(e.target.checked); data.scheduleSave(); }}
+              className="checkbox"
+            />
+            Enable fast mode
+          </label>
+          <p className="fast-mode__note">
+            Faster runs, but more likely to hit errors.
+          </p>
+        </div>
       </div>
     );
 
