@@ -252,6 +252,22 @@ function anchorKey(
   return null;
 }
 
+/** Overlap of two sets, 0–1 (intersection / union). */
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 1;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
+// Fuzzy container matching (Pass 3): a leftover text-less container is paired
+// with the opposite side's container of the same tag whose descendant content
+// overlaps it most, when that overlap clears FUZZY_OVERLAP and beats the
+// runner-up by FUZZY_MARGIN (so the winner is unambiguous).
+const FUZZY_OVERLAP = 0.6;
+const FUZZY_MARGIN = 0.15;
+
 /**
  * Match prod ↔ dev elements.
  *
@@ -345,6 +361,52 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
       pairs.push({ prod: prodEls[0], dev: devEls[0] });
       claimedProd.add(prodEls[0]);
       claimedDev.add(devEls[0]);
+    }
+  }
+
+  // Pass 3 — fuzzy container anchor. A text-less wrapper is keyed by the exact
+  // ordered list of its descendants' content (anchorKey's `d:` form), so a
+  // single reordered/added/removed/volatile child gives it a different key on
+  // each side; it then fails Passes 1–2 and would be reported as a phantom
+  // "Added"/"Removed" element even though it exists in both. Pair the leftover
+  // containers by descendant-content *overlap* instead, so a small subtree
+  // change no longer reads as a structural add. Same-tag, visible, and only
+  // when the best overlap is an unambiguous winner.
+  const buildContainerSets = (
+    elements: CapturedElement[],
+    descendants: Map<string, string[]>,
+    claimed: Set<CapturedElement>,
+  ): Map<CapturedElement, Set<string>> => {
+    const sets = new Map<CapturedElement, Set<string>>();
+    for (const el of elements) {
+      if (claimed.has(el) || !el.isVisible) continue;
+      if (contentIdentity(el)) continue; // text-bearing → not a container
+      const desc = descendants.get(el.selector);
+      if (desc && desc.length > 0) sets.set(el, new Set(desc));
+    }
+    return sets;
+  };
+  const prodSets = buildContainerSets(prod.elements, prodDescendants, claimedProd);
+  const devSets = buildContainerSets(dev.elements, devDescendants, claimedDev);
+  for (const [pEl, pSet] of prodSets) {
+    let best: CapturedElement | null = null;
+    let bestOverlap = 0;
+    let runnerUp = 0;
+    for (const [dEl, dSet] of devSets) {
+      if (claimedDev.has(dEl) || dEl.tag !== pEl.tag) continue;
+      const overlap = jaccard(pSet, dSet);
+      if (overlap > bestOverlap) {
+        runnerUp = bestOverlap;
+        bestOverlap = overlap;
+        best = dEl;
+      } else if (overlap > runnerUp) {
+        runnerUp = overlap;
+      }
+    }
+    if (best && bestOverlap >= FUZZY_OVERLAP && bestOverlap - runnerUp >= FUZZY_MARGIN) {
+      pairs.push({ prod: pEl, dev: best });
+      claimedProd.add(pEl);
+      claimedDev.add(best);
     }
   }
 
