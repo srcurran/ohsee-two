@@ -12,7 +12,7 @@
  * the whole process (every run shares this one instance), smoothing the burst.
  * Tune MAX_CONCURRENT_CAPTURES if the target backend is more/less tolerant.
  */
-const MAX_CONCURRENT_CAPTURES = 16;
+const MAX_CONCURRENT_CAPTURES = 8;
 
 let active = 0;
 const waiters: Array<() => void> = [];
