@@ -4,6 +4,7 @@
 
 import type { Report, ReportPage, BreakpointResult } from "@/lib/types";
 import { classifyChanges } from "@/components/detail/utils/changeScope";
+import { changeGroupKey } from "@/lib/change-identity";
 
 /** Host name (sans `www.`) from a URL, with raw fallback for bad inputs. */
 export function getDomain(url: string): string {
@@ -81,16 +82,33 @@ export interface BpChangeStats {
 export function computeBpChangeCounts(
   reportOrBpData: Report | Record<string, BreakpointResult>,
   activeVariant?: string | null,
+  /** When given, accepted changes are dropped before counting so the
+   *  breakpoint dots clear as the user accepts (matching the badges/filter). */
+  accepted?: Set<string>,
 ): Record<string, BpChangeStats> {
   const stats: Record<string, BpChangeStats> = {};
 
   if ("pages" in reportOrBpData && Array.isArray((reportOrBpData as Report).pages)) {
     const report = reportOrBpData as Report;
+    const drop = accepted && accepted.size > 0 ? accepted : null;
     for (const page of report.pages) {
-      const bpData =
+      const rawBpData =
         activeVariant && page.variants?.[activeVariant]
           ? page.variants[activeVariant]
           : page.breakpoints;
+      const bpData = drop
+        ? Object.fromEntries(
+            Object.entries(rawBpData).map(([bp, r]) => [
+              bp,
+              {
+                ...r,
+                semanticChanges: (r.semanticChanges ?? []).filter(
+                  (c) => !drop.has(`${report.id}::${changeGroupKey(c)}`),
+                ),
+              },
+            ]),
+          )
+        : rawBpData;
       const scope = classifyChanges(bpData);
       for (const [bp, result] of Object.entries(bpData)) {
         if (!stats[bp])

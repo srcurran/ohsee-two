@@ -122,7 +122,7 @@ function ReportPageInner() {
 
     const reportBreakpoints = computeReportBreakpoints(report);
     const activeBp = pickActiveBp(bpParam, reportBreakpoints);
-    const bpChangeCounts = computeBpChangeCounts(report, activeVariant);
+    const bpChangeCounts = computeBpChangeCounts(report, activeVariant, accepted);
 
     // Counts for the filter tabs: every page, vs pages with at least one
     // unaccepted change (the same rule ReportPageGrid uses to filter).
