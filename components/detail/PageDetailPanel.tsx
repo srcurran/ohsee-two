@@ -107,6 +107,10 @@ export default function PageDetailPanel({
   const currentIndex = report.pages.findIndex((p) => p.pageId === pageId);
   const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
 
+  // Filter-tab counts: every page vs pages with unaccepted changes.
+  const allPagesCount = report.pages.length;
+  const changedPagesCount = report.pages.filter(pageHasChanges).length;
+
   // Prev/next walk outward from the current page, skipping non-matching pages
   // when the Changes-only filter is on, so sequential navigation (arrows +
   // keyboard) mirrors the filtered grid. Works even when the current page
@@ -320,8 +324,8 @@ export default function PageDetailPanel({
               {report.pages.length > 1 && (
                 <TabBar<ReportFilterMode>
                   items={[
-                    { id: "all", label: "All pages" },
-                    { id: "changes", label: "Changes only" },
+                    { id: "all", label: `All pages (${allPagesCount})` },
+                    { id: "changes", label: `Changes only (${changedPagesCount})` },
                   ]}
                   active={filterMode}
                   onSelect={onFilterChange}

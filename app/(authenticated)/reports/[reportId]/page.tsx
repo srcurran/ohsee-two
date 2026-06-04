@@ -15,6 +15,7 @@ import { ReportPageGrid } from "@/components/index/ReportPageGrid";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
 import { markReportViewed } from "@/lib/viewed-reports";
+import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 import {
   computeBpChangeCounts,
   computeReportBreakpoints,
@@ -55,6 +56,8 @@ function ReportPageInner() {
     openPage,
     closePage,
   } = useReportUrlState();
+
+  const { accepted } = useAcceptedChanges();
 
   const reportVariants = useMemo(() => computeReportVariants(report), [report]);
 
@@ -121,6 +124,19 @@ function ReportPageInner() {
     const activeBp = pickActiveBp(bpParam, reportBreakpoints);
     const bpChangeCounts = computeBpChangeCounts(report, activeVariant);
 
+    // Counts for the filter tabs: every page, vs pages with at least one
+    // unaccepted change (the same rule ReportPageGrid uses to filter).
+    const allPagesCount = report.pages.length;
+    const changedPagesCount = report.pages.filter((page) => {
+      const bpData =
+        activeVariant && page.variants?.[activeVariant]
+          ? page.variants[activeVariant]
+          : page.breakpoints;
+      return Object.values(bpData).some(
+        (r) => activeChanges(r.semanticChanges ?? [], report.id, accepted).length > 0,
+      );
+    }).length;
+
     content = (
       <div className="report">
         <ErrorModal error={runError} onClose={() => setRunError(null)} />
@@ -182,8 +198,8 @@ function ReportPageInner() {
               <div className="report__filter">
                 <TabBar<typeof filterMode>
                   items={[
-                    { id: "all", label: "All pages" },
-                    { id: "changes", label: "Changes only" },
+                    { id: "all", label: `All pages (${allPagesCount})` },
+                    { id: "changes", label: `Changes only (${changedPagesCount})` },
                   ]}
                   active={filterMode}
                   onSelect={handleFilterChange}
