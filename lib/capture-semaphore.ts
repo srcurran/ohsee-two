@@ -10,15 +10,28 @@
  *
  * This counting semaphore bounds how many capture blocks run at once across
  * the whole process (every run shares this one instance), smoothing the burst.
- * Tune MAX_CONCURRENT_CAPTURES if the target backend is more/less tolerant.
+ * The ceiling is driven by the user's "fast mode" setting (see runReport):
+ * NORMAL is the safe default, FAST trades reliability for speed.
  */
-const MAX_CONCURRENT_CAPTURES = 8;
+const NORMAL_CONCURRENCY = 8;
+const FAST_CONCURRENCY = 16;
 
+let maxConcurrent = NORMAL_CONCURRENCY;
 let active = 0;
 const waiters: Array<() => void> = [];
 
+/** Set the cap from the fast-mode preference. Read once per run at its start. */
+export function setCaptureConcurrency(fast: boolean): void {
+  maxConcurrent = fast ? FAST_CONCURRENCY : NORMAL_CONCURRENCY;
+  // Raising the cap mid-flight: let any waiters that now fit start immediately.
+  while (active < maxConcurrent && waiters.length > 0) {
+    active++;
+    waiters.shift()!();
+  }
+}
+
 function acquire(): Promise<void> {
-  if (active < MAX_CONCURRENT_CAPTURES) {
+  if (active < maxConcurrent) {
     active++;
     return Promise.resolve();
   }

@@ -177,6 +177,9 @@ export interface UserSettings {
   defaultVariants?: string[];
   /** Whether to show a native notification when a report run completes. */
   alertNotifications?: boolean;
+  /** Fast mode: capture more pages in parallel (higher backend load, more
+   *  likely to trip rate-limit / "offline" errors). */
+  fastMode?: boolean;
 }
 
 export interface PageEntry {

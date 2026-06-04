@@ -144,6 +144,24 @@ export default function SettingsOverlay() {
           <hr className="settings-overlay__divider" />
 
           <section className="settings-section stack stack--lg">
+            <h3 className="settings-section__title">Test Speed</h3>
+            <div className="settings-section__row">
+              <div>
+                <p className="settings-section__label">Enable fast mode</p>
+                <p className="settings-section__hint">Fast mode may result in more errors.</p>
+              </div>
+              <Toggle
+                checked={settings?.fastMode ?? false}
+                disabled={!settings}
+                onChange={(v) => settings && saveSettings({ ...settings, fastMode: v })}
+                label="Fast mode"
+              />
+            </div>
+          </section>
+
+          <hr className="settings-overlay__divider" />
+
+          <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">Defaults</h3>
             <p className="settings-section__hint">Applied to new projects.</p>
 
