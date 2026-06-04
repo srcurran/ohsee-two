@@ -4,7 +4,7 @@ import { useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
-import Segmented from "@/components/utility/Segmented";
+import TabBar from "@/components/utility/TabBar";
 import ErrorModal from "@/components/utility/ErrorModal";
 import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
@@ -178,13 +178,13 @@ function ReportPageInner() {
 
             {report.status !== "running" && (
               <div className="report__filter">
-                <Segmented<typeof filterMode>
-                  options={[
-                    { value: "all", label: "Show all" },
-                    { value: "changes", label: "Changes only" },
+                <TabBar<typeof filterMode>
+                  items={[
+                    { id: "all", label: "Show all" },
+                    { id: "changes", label: "Changes only" },
                   ]}
-                  value={filterMode}
-                  onChange={handleFilterChange}
+                  active={filterMode}
+                  onSelect={handleFilterChange}
                 />
               </div>
             )}
