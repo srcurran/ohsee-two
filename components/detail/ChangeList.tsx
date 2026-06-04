@@ -6,6 +6,7 @@ import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 import { changeGroupKey } from "@/lib/change-identity";
 import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
+import { Icon } from "@/components/utility/Icon";
 
 interface ChangeListProps {
   changes: SemanticChange[];
@@ -237,7 +238,6 @@ function ChangeEntry({
   onToggleAccepted?: () => void;
   onClick?: () => void;
 }) {
-  const cfg = CATEGORY_CONFIG[change.category];
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
   const dimmedCls = dimmed ? "change-entry--dimmed" : "";
@@ -257,44 +257,52 @@ function ChangeEntry({
     }
   }
 
+  const toggleAccepted = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleAccepted?.();
+  };
+
   return (
     <div
       onClick={onClick}
       className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls} ${acceptedCls}`}
     >
-      <div className="change-entry__body stack stack--xs">
-        <div className="stack stack--2xs">
+      <div className="change-entry__top">
         <span
           className="change-entry__description"
           title={change.descriptionFull ?? change.description}
         >
           {change.description}
-
         </span>
-        </div>
-        {!accepted && scopeLabel && (
-            <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
-        )}
-
+        {/* Accept toggle — a checkbox pinned to the top-right corner so the
+            hit target is consistent across every entry. */}
         <button
           type="button"
-          className="btn--text self-start change-entry__accept"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleAccepted?.();
-          }}
+          className={`change-entry__check${accepted ? " change-entry__check--checked" : ""}`}
+          aria-pressed={accepted}
+          aria-label={accepted ? "Accepted — click to undo" : "Accept change"}
+          title={accepted ? "Accepted — click to undo" : "Accept"}
+          onClick={toggleAccepted}
         >
-          {accepted ? "✓ Accepted — undo" : "Accept"}
+          {accepted && <Icon name="check" size={14} />}
         </button>
       </div>
-      {!accepted && (
-        <span
-            className="change-entry__icon"
-            style={{ color: cfg.color }}
-            title={cfg.label}
-        >
-          {cfg.icon}
-        </span>
+
+      {!accepted && scopeLabel && (
+        <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
+      )}
+
+      {accepted && (
+        <div className="change-entry__accepted">
+          <span className="change-entry__accepted-label">Accepted</span>
+          <button
+            type="button"
+            className="btn--text change-entry__undo"
+            onClick={toggleAccepted}
+          >
+            undo
+          </button>
+        </div>
       )}
     </div>
   );

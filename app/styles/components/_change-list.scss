@@ -9,11 +9,14 @@
  *     <div .change-list__items>
  *       (.change-entry per detected change)
  *
- *   <div .change-entry [--error|--info|--ok] [--interactive]>
- *     <span .change-entry__icon>
- *     <div .change-entry__body>
+ *   <div .change-entry [--error|--info|--ok] [--interactive] [--accepted]>
+ *     <div .change-entry__top>
  *       <span .change-entry__description>
- *       <span .change-entry__selector>
+ *       <button .change-entry__check [--checked]>   ← accept toggle, top-right
+ *     <span .change-entry__scope>                     ← only when not accepted
+ *     <div .change-entry__accepted>                   ← only when accepted
+ *       <span .change-entry__accepted-label>          ← lower-left
+ *       <button .change-entry__undo>                  ← lower-right
  *
  *   <div .change-notice>                       ← empty-state callout
  *     <span .change-notice__icon>
@@ -70,8 +73,8 @@
 
 .change-entry {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
   border-left: 3px solid var(--change-entry-border-info);
   background: var(--change-entry-background);
   padding: var(--space-2-5) var(--space-4) var(--space-2-5) var(--space-3);
@@ -116,49 +119,70 @@
     }
   }
 
-  /* The Accept / Undo toggle — a quiet text link under the description. */
-  &__accept {
-    font-size: var(--font-size-sm);
-  }
-
-  .change-entry__icon {
-    margin-top: var(--space-0-5);
+  /* Top row: description fills the width so the checkbox is pushed to the
+     top-right corner (a consistent accept hit target across every entry). */
+  .change-entry__top {
     display: flex;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--font-size-md);
-  }
-
-  /* Layout: .stack .stack--sm (JSX). Owns only the min-width reset so long
-     descriptions can truncate inside the flex row. */
-  .change-entry__body {
-    min-width: 0;
+    align-items: flex-start;
+    gap: var(--space-3);
 
     .change-entry__description {
+      flex: 1;
+      min-width: 0;
       font-size: var(--font-size-base);
       color: var(--change-entry-description-color);
     }
+  }
 
-    .change-entry__scope {
-      border-radius: var(--radius-xs);
-      background: color-mix(in srgb, var(--neutral-dark-400) 20%, transparent);
-      color: var(--neutral-dark-500);
-      font-size: var(--font-size-sm);
-      line-height: var(--line-none);
-      white-space: nowrap;
-      vertical-align: middle;
+  /* The accept checkbox — an empty box that fills with a check once accepted. */
+  .change-entry__check {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1.5px solid var(--change-entry-checkbox-border);
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--change-entry-checkbox-check);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      border-color: var(--change-entry-checkbox-border-hover);
     }
 
-    .change-entry__selector {
-      font-size: var(--font-size-sm);
-      color: var(--change-entry-selector-color);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    &--checked {
+      border-color: var(--change-entry-checkbox-check);
     }
+  }
+
+  .change-entry__scope {
+    border-radius: var(--radius-xs);
+    background: color-mix(in srgb, var(--neutral-dark-400) 20%, transparent);
+    color: var(--neutral-dark-500);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-none);
+    white-space: nowrap;
+  }
+
+  /* Accepted footer: the "Accepted" label sits lower-left, the undo action
+     lower-right. */
+  .change-entry__accepted {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .change-entry__accepted-label {
+      font-size: var(--font-size-sm);
+      color: var(--change-entry-description-color);
+    }
+  }
+
+  .change-entry__undo {
+    font-size: var(--font-size-sm);
   }
 }
 
