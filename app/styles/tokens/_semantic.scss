@@ -400,6 +400,16 @@
   --neutral-light-100: #1e1e1e;
   --neutral-light-200: #2a2a2a;
 
+  /* Tint ramp → subtle dark surfaces, progressively lighter than the #1e1e1e
+     background (mirrors the near-white ramp used in light mode). Without these
+     the sidebar, page tiles, active highlights and hovers — all keyed on tints
+     — stayed light in dark mode. */
+  --tint-1: #232323;
+  --tint-2: #262626;
+  --tint-3: #2a2a2a;
+  --tint-4: #2f2f2f;
+  --tint-5: #353535;
+
   /* Status — accents tuned to contrast against #1e1e1e */
   --status-success-500: #2dd97d;   /* lighter take on #09c667 for dark bg */
   --status-error-500:   #e06060;
