@@ -243,6 +243,8 @@ export interface Report {
   /** Which site test produced this report (absent for legacy reports) */
   siteTestId?: string;
   createdAt: string;
+  /** When the run reached a terminal state — used to show run duration. */
+  completedAt?: string;
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
   progress?: { completed: number; total: number };

@@ -1,4 +1,20 @@
 /**
+ * Human-readable duration between two ISO timestamps, e.g. "45s", "1m 23s",
+ * "1h 4m". Empty string if the range is invalid/negative.
+ */
+export function formatDuration(startIso: string, endIso: string): string {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "";
+  const totalSec = Math.round(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+/**
  * Formats an ISO date string as relative time (e.g. "2 hours ago").
  */
 export function formatRelativeTime(iso: string): string {

@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
+import { formatRelativeTime, formatFullDateTime, formatDuration } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
 import { useAcceptedChanges } from "@/lib/accepted-changes";
 import type { Report } from "@/lib/types";
@@ -38,6 +38,9 @@ export function ReportHeader({
   const { accepted } = useAcceptedChanges();
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
+  const duration = report.completedAt
+    ? formatDuration(report.createdAt, report.completedAt)
+    : null;
 
   return (
     <div className="report__title-row">
@@ -79,6 +82,7 @@ export function ReportHeader({
               title={formatFullDateTime(report.createdAt)}
             >
               {formatRelativeTime(report.createdAt)}
+              {duration ? ` · ran ${duration}` : ""}
             </span>
             <span
               className={`status-dot status-dot--${reportDotModifier(report, accepted)}`}
@@ -119,6 +123,7 @@ export function ReportHeader({
                     >
                       <span className="dropdown-item__label">
                         {formatRelativeTime(r.createdAt)}
+                        {r.completedAt ? ` · ran ${formatDuration(r.createdAt, r.completedAt)}` : ""}
                       </span>
                       <span
                         className={`status-dot status-dot--${reportDotModifier(r, accepted)}`}

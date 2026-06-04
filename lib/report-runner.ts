@@ -562,6 +562,7 @@ export async function runReport(
 
     report.pages = reportPages;
     report.status = "completed";
+    report.completedAt = new Date().toISOString();
     report.progress = { completed: totalOps, total: totalOps };
     await writeJsonFile(reportPath, report);
 
@@ -580,6 +581,7 @@ export async function runReport(
       await writeJsonFile(projectsFile, projects);
     }
   } catch (err) {
+    report.completedAt = new Date().toISOString();
     if (err instanceof ReportCancelledError) {
       report.status = "cancelled";
       await writeJsonFile(reportPath, report);
