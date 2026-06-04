@@ -7,7 +7,7 @@ import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
-import { executeTestComposition, executeScriptTest, getCompositionScreenshotSteps } from "./micro-test-runner";
+import { executeTestComposition, executeScriptTest, getCompositionScreenshotSteps, captureLoginState } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
 
@@ -62,6 +62,11 @@ export type RunReportOptions = {
   /** Vault credentials resolved by the client for $EMAIL$ / $PASSWORD$ / $OTP$
    *  interpolation inside Playwright script steps. */
   scriptCredentials?: ScriptCredentials;
+  /** Vault credentials resolved by the client for the test's sign-in profile
+   *  (`siteTest.authProfileId`). When present, the runner logs in fresh at the
+   *  start of the run instead of reusing the profile's cached session snapshot,
+   *  so the session can't expire mid-run. */
+  authCredentials?: ScriptCredentials;
 };
 
 /**
@@ -80,6 +85,7 @@ export async function runReport(
   reportProjectMap.set(reportId, project.id);
 
   const scriptCredentials = options?.scriptCredentials;
+  const authCredentials = options?.authCredentials;
   const signal = controller.signal;
 
   const checkCancelled = () => {
@@ -196,13 +202,40 @@ export async function runReport(
 
     const reportPages: ReportPage[] = [];
 
-    // The test's sign-in profile (if any) — its cached per-environment
-    // storageState seeds every capture (script tests AND simple URL tests) so
-    // the pages render already signed in.
+    // The test's sign-in profile (if any) — its session seeds every capture
+    // (script tests AND simple URL tests) so the pages render already signed in.
     const authProfile = siteTest?.authProfileId
       ? project.authProfiles?.find((p) => p.id === siteTest.authProfileId)
       : undefined;
-    const storageState = authProfile?.storageState;
+
+    // Prefer a FRESH login at run start over the profile's cached snapshot.
+    // The cached `storageState` is captured once (the "Test sign in" step) and
+    // freezes a session that expires after hours — reusing it means a run can
+    // start signed in and silently log out partway through (one env keeps the
+    // session, the other drops it → every later page diffs as signed-in vs
+    // signed-out). When the client passes the profile's vault credentials and
+    // the profile has a login script, re-run the login per environment so both
+    // sessions are minutes old. Fall back to the cached snapshot if fresh
+    // sign-in isn't possible (no credentials) or fails.
+    let storageState = authProfile?.storageState;
+    if (authProfile?.loginScript?.trim() && authCredentials) {
+      checkCancelled();
+      const loginProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
+      const loginDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
+      try {
+        const [prod, dev] = await Promise.all([
+          captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginProd, credentials: authCredentials }),
+          captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginDev, credentials: authCredentials }),
+        ]);
+        storageState = { prod, dev };
+      } catch (err) {
+        console.warn(
+          `[report ${reportId}] fresh sign-in failed for profile "${authProfile.name}", ` +
+          `falling back to cached session${storageState ? "" : " (none cached)"}: ` +
+          (err instanceof Error ? err.message : String(err)),
+        );
+      }
+    }
 
     // --- Advanced single-script execution ---
     // testPages/testFlows/testCompositions are all empty for a script test,

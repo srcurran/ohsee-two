@@ -8,6 +8,7 @@ import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorMo
 import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { Icon } from "@/components/utility/Icon";
+import { resolveScriptCredentials, resolveVaultCredentials } from "@/lib/vault-resolve";
 
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();
@@ -34,9 +35,23 @@ export default function TestPage() {
   const handleRun = async () => {
     setRunError(null);
     setRunning(true);
+    // Resolve vault credentials client-side (only the Electron renderer can
+    // read the vault). `scriptCredentials` → $EMAIL$/$PASSWORD$/$OTP$ in the
+    // test's own script; `authCredentials` → the test's sign-in profile, so the
+    // runner logs in fresh at run start instead of reusing a stale session.
+    const scriptCredentials = await resolveScriptCredentials(test);
+    const authProfile = test?.authProfileId
+      ? project?.authProfiles?.find((p) => p.id === test.authProfileId)
+      : undefined;
+    const authCredentials = await resolveVaultCredentials(authProfile?.vaultEntryId);
+    const runOpts: RequestInit = { method: "POST" };
+    if (scriptCredentials || authCredentials) {
+      runOpts.headers = { "Content-Type": "application/json" };
+      runOpts.body = JSON.stringify({ scriptCredentials, authCredentials });
+    }
     const res = await fetch(
       `/api/projects/${params.id}/tests/${params.testId}/reports`,
-      { method: "POST" }
+      runOpts
     );
     if (res.ok) {
       const { reportId } = await res.json();

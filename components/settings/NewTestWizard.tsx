@@ -12,7 +12,7 @@ import { Icon } from "@/components/utility/Icon";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { resolveProjectPath } from "@/lib/url-utils";
 import { trackReportCompletion } from "@/lib/electron";
-import { resolveScriptCredentials } from "@/lib/vault-resolve";
+import { resolveScriptCredentials, resolveVaultCredentials } from "@/lib/vault-resolve";
 import { BREAKPOINTS, BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { Project, SiteTest, TestStep, UserSettings } from "@/lib/types";
 
@@ -236,10 +236,16 @@ export default function NewTestWizard({ projectId, initialName, testId, onClose 
       const latest: Project = await fetch(`/api/projects/${projectId}`).then((r) => r.json());
       const savedTest = latest.tests?.find((t) => t.id === savedTestId);
       const scriptCreds = savedTest ? await resolveScriptCredentials(savedTest) : null;
+      // Sign-in profile credentials, so the runner logs in fresh at run start
+      // instead of reusing a session snapshot that expires mid-run.
+      const authProfile = savedTest?.authProfileId
+        ? latest.authProfiles?.find((p) => p.id === savedTest.authProfileId)
+        : undefined;
+      const authCreds = await resolveVaultCredentials(authProfile?.vaultEntryId);
       const runOpts: RequestInit = { method: "POST" };
-      if (scriptCreds) {
+      if (scriptCreds || authCreds) {
         runOpts.headers = { "Content-Type": "application/json" };
-        runOpts.body = JSON.stringify({ scriptCredentials: scriptCreds });
+        runOpts.body = JSON.stringify({ scriptCredentials: scriptCreds, authCredentials: authCreds });
       }
       const runRes = await fetch(
         `/api/projects/${projectId}/tests/${savedTestId}/reports`,
