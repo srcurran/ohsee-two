@@ -3,7 +3,6 @@ import type {
   DomSnapshot,
   SemanticChange,
   ChangeCategory,
-  ChangeSeverity,
 } from "./types";
 import { suppressNestedStructural, aggregateChanges } from "./change-aggregation";
 
@@ -418,6 +417,68 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
     prodOnly: prod.elements.filter((el) => !claimedProd.has(el) && el.isVisible),
     devOnly: dev.elements.filter((el) => !claimedDev.has(el) && el.isVisible),
   };
+}
+
+// --- Alignment anchors (drives the image diff's DOM-anchored bands) ---
+
+export interface AlignmentAnchor {
+  prodY: number;
+  devY: number;
+}
+
+/**
+ * Vertical alignment anchors for the image diff: the top-Y of every
+ * confidently-matched, visible element on each side, reduced to a strictly
+ * increasing monotonic backbone. The Longest-Increasing-Subsequence by devY
+ * drops reordered/moved elements — those are real changes and must NOT anchor
+ * the alignment. The image diff interpolates between these anchors so the same
+ * content is compared even when it sits at a different Y on each side (a header
+ * added above it no longer makes everything below read as changed).
+ */
+export function computeAlignmentAnchors(
+  prod: DomSnapshot,
+  dev: DomSnapshot,
+): AlignmentAnchor[] {
+  const { pairs } = matchElements(prod, dev);
+  const raw: AlignmentAnchor[] = [];
+  for (const { prod: p, dev: d } of pairs) {
+    if (!p.isVisible || !d.isVisible) continue;
+    const prodY = Math.round(p.bounds.y);
+    const devY = Math.round(d.bounds.y);
+    if (prodY < 0 || devY < 0) continue;
+    raw.push({ prodY, devY });
+  }
+  raw.sort((a, b) => a.prodY - b.prodY || a.devY - b.devY);
+  // Collapse to strictly increasing prodY (one anchor per prod row).
+  const byProd: AlignmentAnchor[] = [];
+  for (const a of raw) {
+    const last = byProd[byProd.length - 1];
+    if (last && a.prodY <= last.prodY) continue;
+    byProd.push(a);
+  }
+  return longestIncreasingByDevY(byProd);
+}
+
+/** Longest strictly-increasing-by-devY subsequence. O(n^2); n = matched
+ *  element count, so fine. Keeps the alignment backbone monotonic. */
+function longestIncreasingByDevY(anchors: AlignmentAnchor[]): AlignmentAnchor[] {
+  const n = anchors.length;
+  if (n === 0) return [];
+  const len = new Array<number>(n).fill(1);
+  const prev = new Array<number>(n).fill(-1);
+  let bestEnd = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < i; j++) {
+      if (anchors[j].devY < anchors[i].devY && len[j] + 1 > len[i]) {
+        len[i] = len[j] + 1;
+        prev[i] = j;
+      }
+    }
+    if (len[i] > len[bestEnd]) bestEnd = i;
+  }
+  const out: AlignmentAnchor[] = [];
+  for (let i = bestEnd; i !== -1; i = prev[i]) out.push(anchors[i]);
+  return out.reverse();
 }
 
 // --- Element comparison ---

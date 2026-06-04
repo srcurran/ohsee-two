@@ -2,7 +2,7 @@ import path from "path";
 import { chromium, type Browser } from "playwright";
 import { captureScreenshots } from "./screenshot";
 import { generateDiff } from "./diff";
-import { generateSemanticDiff } from "./semantic-diff";
+import { generateSemanticDiff, computeAlignmentAnchors } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
 import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState } from "./types";
@@ -685,6 +685,9 @@ async function captureAndDiff(options: {
         undefined,
         highlightPath,
         highlightDevPath,
+        prodShot.domSnapshot && devShot.domSnapshot
+          ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+          : undefined,
       );
 
       const bpResult: BreakpointResult = {
@@ -813,6 +816,9 @@ async function captureAndDiffFlow(options: {
           undefined,
           highlightPath,
           highlightDevPath,
+          prodShot.domSnapshot && devShot.domSnapshot
+            ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+            : undefined,
         );
 
         const bpResult: BreakpointResult = {
@@ -931,6 +937,9 @@ async function captureAndDiffComposition(options: {
           undefined,
           highlightPath,
           highlightDevPath,
+          prodShot.domSnapshot && devShot.domSnapshot
+            ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+            : undefined,
         );
 
         const bpResult: BreakpointResult = {
@@ -1119,6 +1128,9 @@ async function captureAndDiffScript(options: {
           undefined,
           highlightPath,
           highlightDevPath,
+          prodShot.domSnapshot && devShot.domSnapshot
+            ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+            : undefined,
         );
 
         const bpResult: BreakpointResult = {

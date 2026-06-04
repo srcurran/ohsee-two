@@ -158,6 +158,11 @@ export async function generateDiff(
   stripHeight?: number,
   highlightPath?: string,
   highlightDevPath?: string,
+  /** DOM-anchored alignment: (prodY, devY) of matched elements. When present
+   *  the diff aligns bands to real content boundaries instead of fixed 100px
+   *  perceptual-hash strips, so content that only shifted vertically isn't
+   *  flagged. Falls back to the strip path on too-few anchors or any error. */
+  anchors?: { prodY: number; devY: number }[],
 ): Promise<DiffResult> {
   const sh = stripHeight ?? 100;
   const prodMeta = await sharp(prodImagePath).metadata();
@@ -168,6 +173,20 @@ export async function generateDiff(
   // If images are very small, just do direct pixelmatch
   if (prodMeta.height! < sh * 3 && devMeta.height! < sh * 3) {
     return directDiff(prodImagePath, devImagePath, alignedProdPath, alignedDevPath, width, highlightPath, highlightDevPath);
+  }
+
+  // Preferred path: align to DOM-anchored content bands. Guarded by a fallback
+  // to the strip algorithm below so a bad band run can never break a report.
+  if (anchors && anchors.length >= 3) {
+    try {
+      return await bandDiff(
+        prodImagePath, devImagePath, alignedProdPath, alignedDevPath, width,
+        prodMeta.width!, devMeta.width!, prodMeta.height!, devMeta.height!,
+        anchors, highlightPath, highlightDevPath,
+      );
+    } catch (err) {
+      console.warn("[diff] DOM-anchored band diff failed; falling back to strips:", err);
+    }
   }
 
   // Slice into strips
@@ -320,6 +339,148 @@ export async function generateDiff(
 
   const changePercentage = totalPixels > 0 ? (changeCount / totalPixels) * 100 : 0;
 
+  return {
+    alignedProdImagePath: alignedProdPath,
+    alignedDevImagePath: alignedDevPath,
+    highlightImagePath: wroteHighlight ? highlightPath! : "",
+    highlightDevImagePath: wroteHighlightDev ? highlightDevPath! : "",
+    changeCount,
+    totalPixels,
+    changePercentage,
+  };
+}
+
+/**
+ * DOM-anchored band diff. Matched-element (prodY, devY) anchors partition both
+ * images into corresponding bands; within a band, content is aligned at the
+ * top (the band's top anchor) so unchanged-but-shifted content compares clean,
+ * and any height difference (content added/removed inside the band) is tinted
+ * as insert/delete. Crucially the alignment RESETS at every anchor, so a change
+ * can't propagate its offset down the whole page the way fixed strips do.
+ * Aligned images stay undistorted (bands are placed, never vertically scaled).
+ */
+async function bandDiff(
+  prodImagePath: string,
+  devImagePath: string,
+  alignedProdPath: string,
+  alignedDevPath: string,
+  width: number,
+  prodWidth: number,
+  devWidth: number,
+  prodH: number,
+  devH: number,
+  anchors: { prodY: number; devY: number }[],
+  highlightPath?: string,
+  highlightDevPath?: string,
+): Promise<DiffResult> {
+  // Monotonic anchor points bounded by the image corners (0,0)..(prodH,devH).
+  // Coalesce anchors closer than MIN_BAND on the prod axis so a page with
+  // hundreds of elements doesn't spawn thousands of tiny sharp extracts; the
+  // kept anchors still re-align the content at ~24px granularity.
+  const MIN_BAND = 24;
+  const pts: { prodY: number; devY: number }[] = [{ prodY: 0, devY: 0 }];
+  for (const a of anchors) {
+    const py = Math.min(Math.max(Math.round(a.prodY), 0), prodH);
+    const dy = Math.min(Math.max(Math.round(a.devY), 0), devH);
+    const last = pts[pts.length - 1];
+    if (py - last.prodY >= MIN_BAND && dy > last.devY) pts.push({ prodY: py, devY: dy });
+  }
+  pts.push({ prodY: prodH, devY: devH });
+
+  const alignedProdStrips: Buffer[] = [];
+  const alignedDevStrips: Buffer[] = [];
+  const alignedStripHeights: number[] = [];
+  const highlightStrips: Buffer[] = [];
+  const highlightDevStrips: Buffer[] = [];
+  const highlightStripHeights: number[] = [];
+  let changeCount = 0;
+  let totalPixels = 0;
+  const wantHL = !!highlightPath || !!highlightDevPath;
+  const MAX_BAND = 2000; // cap a single pixelmatch / extract op's height
+
+  // Aligned common region: both sides tinted by the same pixelmatch diff.
+  const pushCommon = (prodBuf: Buffer, devBuf: Buffer, diffBuf: Uint8Array, h: number) => {
+    alignedProdStrips.push(prodBuf);
+    alignedDevStrips.push(devBuf);
+    alignedStripHeights.push(h);
+    if (wantHL) {
+      if (highlightPath) highlightStrips.push(blendHighlight(prodBuf, diffBuf, width * h * 4, width));
+      if (highlightDevPath) highlightDevStrips.push(blendHighlight(devBuf, diffBuf, width * h * 4, width));
+      highlightStripHeights.push(h);
+    }
+  };
+
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const pTop = pts[i].prodY, dTop = pts[i].devY;
+    const ph = pts[i + 1].prodY - pTop;
+    const dh = pts[i + 1].devY - dTop;
+    if (ph <= 0 && dh <= 0) continue;
+    const commonH = Math.min(ph, dh);
+
+    // Aligned common region — compare prod vs dev at the same band offset.
+    for (let off = 0; off < commonH; off += MAX_BAND) {
+      const h = Math.min(MAX_BAND, commonH - off);
+      const prodPng = await extractStrip(prodImagePath, pTop + off, prodWidth, h, width, h);
+      const devPng = await extractStrip(devImagePath, dTop + off, devWidth, h, width, h);
+      const diffBuf = new Uint8Array(width * h * 4);
+      changeCount += pixelmatch(new Uint8Array(prodPng), new Uint8Array(devPng), diffBuf, width, h, { threshold: 0.1 });
+      pushCommon(prodPng, devPng, diffBuf, h);
+      totalPixels += width * h;
+    }
+
+    // Remainder — content present on only one side of this band.
+    if (ph > dh) {
+      // Prod-only (removed in dev): tint prod, leave the aligned dev blank.
+      for (let r = commonH; r < ph; r += MAX_BAND) {
+        const h = Math.min(MAX_BAND, ph - r);
+        const prodStrip = await extractStrip(prodImagePath, pTop + r, prodWidth, h, width, h);
+        const blank = Buffer.alloc(width * h * 4, 0);
+        alignedProdStrips.push(prodStrip);
+        alignedDevStrips.push(blank);
+        alignedStripHeights.push(h);
+        if (wantHL) {
+          const allChanged = new Uint8Array(width * h * 4).fill(255);
+          if (highlightPath) highlightStrips.push(blendHighlight(prodStrip, allChanged, width * h * 4, width));
+          if (highlightDevPath) highlightDevStrips.push(blank);
+          highlightStripHeights.push(h);
+        }
+        totalPixels += width * h;
+      }
+    } else if (dh > ph) {
+      for (let r = commonH; r < dh; r += MAX_BAND) {
+        const h = Math.min(MAX_BAND, dh - r);
+        const devStrip = await extractStrip(devImagePath, dTop + r, devWidth, h, width, h);
+        // Added content: tint it on BOTH highlight images (prod has nothing here).
+        const blank = Buffer.alloc(width * h * 4, 0);
+        const allChanged = new Uint8Array(width * h * 4).fill(255);
+        alignedProdStrips.push(blank);
+        alignedDevStrips.push(devStrip);
+        alignedStripHeights.push(h);
+        if (wantHL) {
+          const tinted = blendHighlight(devStrip, allChanged, width * h * 4, width);
+          if (highlightPath) highlightStrips.push(tinted);
+          if (highlightDevPath) highlightDevStrips.push(tinted);
+          highlightStripHeights.push(h);
+        }
+        changeCount += width * h;
+        totalPixels += width * h;
+      }
+    }
+  }
+
+  if (alignedProdStrips.length === 0) throw new Error("band diff produced no strips");
+
+  const stitchJobs: Promise<void>[] = [
+    stitchStrips(alignedProdStrips, alignedStripHeights, width, alignedProdPath),
+    stitchStrips(alignedDevStrips, alignedStripHeights, width, alignedDevPath),
+  ];
+  const wroteHighlight = !!highlightPath && highlightStrips.length > 0 && changeCount > 0;
+  const wroteHighlightDev = !!highlightDevPath && highlightDevStrips.length > 0 && changeCount > 0;
+  if (wroteHighlight) stitchJobs.push(stitchStrips(highlightStrips, highlightStripHeights, width, highlightPath!));
+  if (wroteHighlightDev) stitchJobs.push(stitchStrips(highlightDevStrips, highlightStripHeights, width, highlightDevPath!));
+  await Promise.all(stitchJobs);
+
+  const changePercentage = totalPixels > 0 ? (changeCount / totalPixels) * 100 : 0;
   return {
     alignedProdImagePath: alignedProdPath,
     alignedDevImagePath: alignedDevPath,
