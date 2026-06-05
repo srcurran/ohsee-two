@@ -7,6 +7,7 @@ import { SidebarGroup } from "@/components/utility/SidebarGroup";
 import { Icon } from "@/components/utility/Icon";
 import { useSidebarData } from "@/components/utility/use/sidebarData";
 import { useProjectDrag } from "@/components/utility/use/projectDrag";
+import { useGlobalShortcuts } from "@/components/utility/use/globalShortcuts";
 import type { Project, Report, SiteTest } from "@/lib/types";
 
 /** Top-level sidebar shell. Composes data + drag hooks with the project-
@@ -68,6 +69,16 @@ export default function Sidebar() {
   useEffect(() => {
     if (!loading) setHasProjects(visibleData.length > 0);
   }, [loading, visibleData.length, setHasProjects]);
+
+  // Global shortcuts (test nav + new test/site). Registered here because the
+  // Sidebar is always mounted; kept above the empty-state early return so
+  // Cmd+Shift+N still works before any site exists.
+  useGlobalShortcuts({
+    data: visibleData,
+    onNavigateTest: handleTestClick,
+    openNewTestWizard,
+    openNewProjectWizard,
+  });
 
   if (!loading && visibleData.length === 0) return null;
 
