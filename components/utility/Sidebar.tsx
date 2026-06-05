@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { SidebarGroup } from "@/components/utility/SidebarGroup";
-import { Icon } from "@/components/utility/Icon";
+import AppSettingsFlyout from "@/components/utility/AppSettingsFlyout";
 import { useSidebarData } from "@/components/utility/use/sidebarData";
 import { useProjectDrag } from "@/components/utility/use/projectDrag";
 import { useGlobalShortcuts } from "@/components/utility/use/globalShortcuts";
@@ -19,7 +19,6 @@ export default function Sidebar() {
     refreshProjects,
     collapsed,
     ready,
-    openSettings,
     openProjectSettings,
     openTestSettings,
     openNewProjectWizard,
@@ -129,14 +128,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar__footer-row">
-        <button
-          onClick={openSettings}
-          aria-label="Settings"
-          title="Settings"
-          className="icon-btn"
-        >
-          <Icon name="settings" size={16} />
-        </button>
+        <AppSettingsFlyout />
       </div>
     </aside>
   );
