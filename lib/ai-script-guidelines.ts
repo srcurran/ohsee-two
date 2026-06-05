@@ -83,8 +83,15 @@ NEVER put a real email, password, or secret in the script — only these placeho
 ## Conventions
 - Deterministic & idempotent: identical screens on every run; never depend on data
   a previous run created.
-- Resilient selectors: prefer getByRole / getByLabel / getByText / getByTestId over
-  CSS or nth-child.
+- Resilient, **unique** selectors: prefer getByRole / getByLabel / getByTestId over
+  CSS or nth-child. Any locator you \`waitFor()\` / \`click()\` / \`fill()\` must match
+  **exactly one** element, or Playwright throws a "strict mode violation".
+  \`getByText\` is the usual offender (it substring-matches and hits multiple nodes) —
+  narrow it with \`{ exact: true }\`, scope to a container
+  (\`page.getByRole('dialog').getByText('…')\`), use a role, or \`.first()\` as a last resort.
+- Don't add redundant pre-waits: \`click()\`/\`fill()\` already auto-wait for their
+  target, so reserve explicit \`waitFor()\` for things that appear asynchronously
+  (a toast, a route change), not for an element you're about to act on anyway.
 - One concern per snapshot; wait for its content first, then capture.
 - Live timestamps, random/personalized, and A/B content will diff — avoid
   snapshotting volatile regions in isolation; target stable fixture data.
@@ -105,6 +112,8 @@ NEVER put a real email, password, or secret in the script — only these placeho
   snapshot regardless — so one timeout doesn't lose every later screenshot.
 - Same snapshot() sequence in every environment and at every breakpoint.
 - No real secrets — only $EMAIL$ / $PASSWORD$ / $OTP$.
-- Role/label/text selectors, not brittle CSS.
+- Every locator used with waitFor/click/fill matches exactly ONE element — no
+  strict-mode violations (narrow getByText with { exact: true } / scoping / a role).
+- No redundant pre-waits before an action that already auto-waits.
 - No manual animation-freezing, scrolling, or waitForTimeout padding.
 `;
