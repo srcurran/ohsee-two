@@ -86,9 +86,11 @@ NEVER put a real email, password, or secret in the script — only these placeho
 - Resilient, **unique** selectors: prefer getByRole / getByLabel / getByTestId over
   CSS or nth-child. Any locator you \`waitFor()\` / \`click()\` / \`fill()\` must match
   **exactly one** element, or Playwright throws a "strict mode violation".
-  \`getByText\` is the usual offender (it substring-matches and hits multiple nodes) —
-  narrow it with \`{ exact: true }\`, scope to a container
-  (\`page.getByRole('dialog').getByText('…')\`), use a role, or \`.first()\` as a last resort.
+  \`getByText\`, \`getByLabel\`, and \`getByRole\`'s \`name\` all match by **substring /
+  accessible-name**, so a value contained in another on the page collides — e.g.
+  \`getByLabel('New Password')\` also matches "Repeat New Password" (2 elements). Fix
+  with \`{ exact: true }\`, scope to a container (\`page.getByRole('dialog').getByText('…')\`),
+  use an id/testid, or \`.first()\` as a last resort.
 - Don't add redundant pre-waits: \`click()\`/\`fill()\` already auto-wait for their
   target, so reserve explicit \`waitFor()\` for things that appear asynchronously
   (a toast, a route change), not for an element you're about to act on anyway.
@@ -113,7 +115,8 @@ NEVER put a real email, password, or secret in the script — only these placeho
 - Same snapshot() sequence in every environment and at every breakpoint.
 - No real secrets — only $EMAIL$ / $PASSWORD$ / $OTP$.
 - Every locator used with waitFor/click/fill matches exactly ONE element — no
-  strict-mode violations (narrow getByText with { exact: true } / scoping / a role).
+  strict-mode violations. Watch overlapping text/labels ("New Password" also matches
+  "Repeat New Password"); use { exact: true } / scoping / id / a role.
 - No redundant pre-waits before an action that already auto-waits.
 - No manual animation-freezing, scrolling, or waitForTimeout padding.
 `;

@@ -191,10 +191,11 @@ dashboard URL or a user-menu element) so the captured `storageState` is valid.
   variant.
 - **Resilient, unique selectors.** Prefer `getByRole`, `getByLabel`, `getByTestId`
   over CSS/`nth-child`. Any locator you `waitFor()`/`click()`/`fill()` must match
-  **exactly one** element or Playwright throws a *strict-mode violation*. `getByText`
-  is the usual offender (substring match → multiple nodes) — narrow with
-  `{ exact: true }`, scope to a container (`page.getByRole('dialog').getByText('…')`),
-  use a role, or `.first()` as a last resort.
+  **exactly one** element or Playwright throws a *strict-mode violation*. `getByText`,
+  `getByLabel`, and `getByRole`'s `name` all match by substring/accessible-name, so a
+  value contained in another collides — e.g. `getByLabel('New Password')` also matches
+  "Repeat New Password". Narrow with `{ exact: true }`, scope to a container
+  (`page.getByRole('dialog').getByText('…')`), use an id/testid, or `.first()` as a last resort.
 - **No redundant pre-waits.** `click()`/`fill()` auto-wait for their target, so don't
   add a `waitFor()` for an element you're about to act on — reserve explicit waits
   for things that appear asynchronously (a toast, a route change).
@@ -239,7 +240,8 @@ Before finalizing a test, verify:
 - [ ] No real secrets in any script — only `$EMAIL$ / $PASSWORD$ / $OTP$`.
 - [ ] Auth handled once (profile **or** per-test creds), not duplicated.
 - [ ] Every locator used with waitFor/click/fill matches exactly ONE element — no
-      strict-mode violations (narrow `getByText` with `{ exact: true }` / scoping / a role).
+      strict-mode violations. Watch overlapping text/labels ("New Password" also matches
+      "Repeat New Password"); use `{ exact: true }` / scoping / id / a role.
 - [ ] No redundant pre-waits before an action that already auto-waits.
 - [ ] No manual animation-freezing, scrolling, or `waitForTimeout` padding.
 - [ ] Snapshot names are short, unique, and descriptive.
