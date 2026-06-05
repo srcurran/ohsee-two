@@ -11,6 +11,10 @@ export function buildContextOptions(
     viewport: { width: bp, height: 900 },
     deviceScaleFactor: 1,
     reducedMotion: "reduce",
+    // Grant clipboard access so copy-to-clipboard flows (and the success
+    // toasts / UI they trigger) actually fire under headless capture instead
+    // of silently rejecting.
+    permissions: ["clipboard-read", "clipboard-write"],
     ...extra,
   };
 }

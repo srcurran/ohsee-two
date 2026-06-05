@@ -40,6 +40,19 @@ snapshot behind a wait that might fail** — see below.
   landed (e.g. a login redirect if auth isn't set).
 - Total budget is 120s per run; keep the flow tight.
 
+## Make each flow independent
+A wait (or any auto-waiting action) that times out THROWS — and that aborts the
+WHOLE run, keeping only the snapshots already taken. So one flaky step loses every
+later screenshot. In a multi-flow test, don't let one failure cascade:
+- Reset between flows with a fresh \`page.goto(...)\`.
+- Wrap a risky wait in try/catch and snapshot **regardless**, so you capture
+  whatever actually happened (an error toast, or nothing) and the later flows
+  still run:
+
+      await page.getByRole('button', { name: 'Save' }).click();
+      try { await page.getByText('Saved').waitFor({ timeout: 5000 }); } catch {}
+      await ohsee.snapshot('after-save');   // captured even if 'Saved' never showed
+
 ## Navigation
 - \`await page.goto('/path')\` — use a path; ohsee rewrites the origin to the
   current environment (prod or dev) automatically. Prefer paths over absolute URLs.
@@ -88,6 +101,8 @@ NEVER put a real email, password, or secret in the script — only these placeho
 - Body only — no require/launch/context/IIFE/close.
 - No \`expect(...)\` — wait with page/locator \`.waitFor()\` / \`waitForSelector\`.
 - First snapshot is right after goto, not gated behind a wait that can fail.
+- Multi-flow: reset each flow with goto, wrap risky waits in try/catch, and
+  snapshot regardless — so one timeout doesn't lose every later screenshot.
 - Same snapshot() sequence in every environment and at every breakpoint.
 - No real secrets — only $EMAIL$ / $PASSWORD$ / $OTP$.
 - Role/label/text selectors, not brittle CSS.

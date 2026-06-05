@@ -110,6 +110,17 @@ the landing page right after `goto`, before any wait** — a wait that times out
 aborts the run, and you want at least that first screen (and a wait can't fail
 before you've seen where you landed).
 
+**Isolate flows so one failure doesn't lose the rest.** A timed-out wait throws,
+which aborts the *whole* run — you keep only the snapshots already taken. In a
+multi-flow test, reset between flows with a fresh `goto`, wrap the risky wait in
+try/catch, and snapshot regardless:
+
+```js
+await page.getByRole('button', { name: 'Save' }).click();
+try { await page.getByText('Saved').waitFor({ timeout: 5000 }); } catch {}
+await ohsee.snapshot('after-save'); // captured even if 'Saved' never showed
+```
+
 ---
 
 ## 5. Authentication
