@@ -12,6 +12,12 @@ export type OhseeNative = {
   vault: OhseeVault;
   updater: OhseeUpdater;
   dialog: OhseeDialog;
+  /**
+   * Subscribe to global Cmd/Ctrl + 0–9 presses, intercepted in the main process
+   * (so Cmd+0 works despite colliding with the Reset Zoom menu accelerator).
+   * The callback receives the pressed digit (0–9). Returns an unsubscribe fn.
+   */
+  onModeShortcut(callback: (digit: number) => void): () => void;
 };
 
 export type OhseeMeta = {

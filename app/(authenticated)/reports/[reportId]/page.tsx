@@ -14,6 +14,7 @@ import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
 import { ReportPageGrid } from "@/components/index/ReportPageGrid";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
+import { useReportModeShortcuts } from "@/components/index/use/reportModeShortcuts";
 import { markReportViewed } from "@/lib/viewed-reports";
 import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 import {
@@ -60,6 +61,21 @@ function ReportPageInner() {
   const { accepted } = useAcceptedChanges();
 
   const reportVariants = useMemo(() => computeReportVariants(report), [report]);
+  const reportBreakpoints = useMemo(
+    () => (report ? computeReportBreakpoints(report) : []),
+    [report],
+  );
+
+  // Cmd/Ctrl + 1…8 select a breakpoint / variant (in report-bar order);
+  // Cmd/Ctrl + 9 / 0 toggle All pages / Changes only. Routed through the URL
+  // handlers so they drive both the grid and an open page-detail panel.
+  useReportModeShortcuts({
+    breakpoints: reportBreakpoints,
+    variants: reportVariants,
+    onBpChange: handleBpChange,
+    onVariantChange: handleVariantChange,
+    onFilterChange: handleFilterChange,
+  });
 
   useEffect(() => {
     if (notFound) {
@@ -120,7 +136,6 @@ function ReportPageInner() {
       }
     };
 
-    const reportBreakpoints = computeReportBreakpoints(report);
     const activeBp = pickActiveBp(bpParam, reportBreakpoints);
     const bpChangeCounts = computeBpChangeCounts(report, activeVariant, accepted);
 

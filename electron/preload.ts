@@ -58,6 +58,12 @@ const ohsee = {
   codegen,
   vault,
   dialog,
+  // Global Cmd/Ctrl + 0–9 presses, intercepted + forwarded by the main process.
+  onModeShortcut: (cb: (digit: number) => void) => {
+    const listener = (_: unknown, digit: number) => cb(digit);
+    ipcRenderer.on("window:modeShortcut", listener);
+    return () => ipcRenderer.off("window:modeShortcut", listener);
+  },
   // meta, updater — land in later phases
 } as const;
 
