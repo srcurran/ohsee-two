@@ -247,6 +247,10 @@ export interface Report {
   completedAt?: string;
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
+  /** Non-fatal: an advanced-test script threw before capturing all of its
+   *  snapshots. The run still "completed" with whatever it got; this names the
+   *  failing step so a partial result isn't a silent mystery. */
+  scriptError?: string;
   progress?: { completed: number; total: number };
   pages: ReportPage[];
 }

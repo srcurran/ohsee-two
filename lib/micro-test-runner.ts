@@ -167,10 +167,15 @@ export async function executeScriptTest(options: {
   browser?: Browser;
   onProgress?: (index: number, breakpoint: number) => void | Promise<void>;
   onSnapshotCaptured?: (result: ScriptSnapshotResult) => void;
+  /** Called when the script throws before finishing — reports the failing step
+   *  (error + how many snapshots were taken) so the run can surface it instead
+   *  of silently dropping the rest. */
+  onScriptError?: (info: { breakpoint: number; message: string; snapshotsTaken: number }) => void;
 }): Promise<ScriptSnapshotResult[]> {
   const {
     script, baseUrl, breakpoints, outputDir, prefix, contextOptions, initScript,
     credentials, storageState, browser: externalBrowser, onProgress, onSnapshotCaptured,
+    onScriptError,
   } = options;
   await ensureDir(outputDir);
 
@@ -251,8 +256,14 @@ export async function executeScriptTest(options: {
         );
         await Promise.race([fn(page, expectFn, ohsee), timeoutPromise]);
       } catch (err) {
-        // Keep whatever snapshots were captured before the failure.
+        // Keep whatever snapshots were captured before the failure, but report
+        // the failing step so the run can surface it.
         console.error(`Script test failed at ${bp}px:`, err);
+        onScriptError?.({
+          breakpoint: bp,
+          message: err instanceof Error ? err.message : String(err),
+          snapshotsTaken: bpResults.length,
+        });
       } finally {
         await context?.close().catch(() => {});
       }

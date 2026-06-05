@@ -256,6 +256,9 @@ export async function runReport(
       // snapshot index → position in reportPages, so variant passes update
       // the page the default pass already flushed.
       const snapPageIndex = new Map<number, number>();
+      // First failing step seen across passes — surfaced on the report when the
+      // script stops before capturing all of its snapshots.
+      let scriptError: { breakpoint: number; message: string; snapshotsTaken: number } | null = null;
 
       await captureAndDiffScript({
         script: scriptBody,
@@ -280,6 +283,7 @@ export async function runReport(
           report.pages = reportPages;
           await writeJsonFile(reportPath, report);
         },
+        onScriptError: (info) => { if (!scriptError) scriptError = info; },
         prodBrowser,
         devBrowser,
       });
@@ -311,9 +315,21 @@ export async function runReport(
               await writeJsonFile(reportPath, report);
             }
           },
+          onScriptError: (info) => { if (!scriptError) scriptError = info; },
           prodBrowser,
           devBrowser,
         });
+      }
+
+      // Surface the failing step when the script stopped before capturing all
+      // the snapshots it set out to (so a partial run isn't a silent mystery).
+      if (scriptError && reportPages.length < scriptSnapshotCount) {
+        const { message, snapshotsTaken } = scriptError;
+        report.scriptError =
+          `Stopped after ${snapshotsTaken} of ${scriptSnapshotCount} snapshot(s): ` +
+          summarizeScriptError(message);
+        report.pages = reportPages;
+        await writeJsonFile(reportPath, report);
       }
     }
 
@@ -1067,6 +1083,16 @@ async function captureAndDiffComposition(options: {
   return results;
 }
 
+/** Condense a Playwright error into a one-line summary for the report: the
+ *  headline plus the most informative "waiting for …" detail line, capped. */
+function summarizeScriptError(message: string): string {
+  const lines = message.split("\n").map((l) => l.trim()).filter(Boolean);
+  const headline = lines[0] ?? "Script error";
+  const detail = lines.find((l) => l !== headline && /waiting for|locator|getBy|toBe/i.test(l));
+  const summary = detail ? `${headline} — ${detail.replace(/^-\s*/, "")}` : headline;
+  return summary.length > 280 ? `${summary.slice(0, 279)}…` : summary;
+}
+
 /**
  * Run an advanced single-script test against prod + dev and diff each
  * `ohsee.snapshot()` capture. Mirrors captureAndDiffComposition but keys by
@@ -1093,13 +1119,14 @@ async function captureAndDiffScript(options: {
     name: string,
     results: Record<string, BreakpointResult>,
   ) => Promise<void>;
+  onScriptError?: (info: { breakpoint: number; message: string; snapshotsTaken: number }) => void;
   prodBrowser?: Browser;
   devBrowser?: Browser;
 }): Promise<void> {
   const {
     script, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
     breakpointList = [...BREAKPOINTS], credentials, storageState, contextOptions,
-    initScript, checkCancelled, onProgress, onSnapshotDiffed, prodBrowser, devBrowser,
+    initScript, checkCancelled, onProgress, onSnapshotDiffed, onScriptError, prodBrowser, devBrowser,
   } = options;
 
   type Shot = import("./micro-test-runner").ScriptSnapshotResult;
@@ -1212,6 +1239,7 @@ async function captureAndDiffScript(options: {
       browser: prodBrowser,
       onProgress: async () => { checkCancelled(); await onProgress(); },
       onSnapshotCaptured: (r) => record(prodMap, r),
+      onScriptError,
     }),
     executeScriptTest({
       script,
@@ -1226,6 +1254,7 @@ async function captureAndDiffScript(options: {
       browser: devBrowser,
       onProgress: async () => { checkCancelled(); await onProgress(); },
       onSnapshotCaptured: (r) => record(devMap, r),
+      onScriptError,
     }),
   ]);
 
