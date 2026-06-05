@@ -46,8 +46,13 @@ runner injects three arguments:
 | Arg      | What it is |
 |----------|------------|
 | `page`   | a Playwright `Page`, already created (fresh context per breakpoint) |
-| `expect` | Playwright's `expect` from `@playwright/test` |
 | `ohsee`  | `{ snapshot(name?: string): Promise<void> }` — the capture hook |
+
+> ⚠️ **Do not use `expect(...)`.** ohsee bundles `playwright` but **not**
+> `@playwright/test`, so `expect` is `undefined` at run time and the first
+> `expect(...)` call throws — taking down the whole run before any snapshot. Wait
+> for content with methods on `page`/locators instead: `locator.waitFor()`,
+> `page.waitForSelector(...)`, `page.waitForLoadState(...)`, `page.waitForURL(...)`.
 
 **Do NOT include** any of this (the runner provides it and codegen output is
 auto-stripped of it, but author clean):
@@ -64,7 +69,7 @@ await page.goto('/pricing');
 await ohsee.snapshot('pricing');
 
 await page.getByRole('button', { name: 'Compare plans' }).click();
-await expect(page.getByRole('dialog')).toBeVisible();
+await page.getByRole('dialog').waitFor();
 await ohsee.snapshot('compare-modal');
 ```
 
@@ -91,16 +96,19 @@ Immediately before every capture, ohsee already:
 - waits for `document.fonts.ready`, then settles briefly.
 
 So **do not** add animation-freezing CSS, manual scrolling, or arbitrary sleeps
-to "let things load". Instead, assert the meaningful state:
+to "let things load". Instead, wait for the meaningful state:
 
 ```js
 await page.goto('/dashboard');
-await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+await page.getByRole('heading', { name: 'Overview' }).waitFor();
 await ohsee.snapshot('dashboard');
 ```
 
-Prefer `expect(...).toBeVisible()`, `page.waitForSelector(...)`, or
-`page.waitForLoadState('networkidle')` over `page.waitForTimeout(...)`.
+Prefer `locator.waitFor()`, `page.waitForSelector(...)`, or
+`page.waitForLoadState('networkidle')` over `page.waitForTimeout(...)`. **Capture
+the landing page right after `goto`, before any wait** — a wait that times out
+aborts the run, and you want at least that first screen (and a wait can't fail
+before you've seen where you landed).
 
 ---
 
@@ -135,18 +143,18 @@ await page.getByRole('button', { name: 'Sign in' }).click();
 // If the account uses 2FA:
 await page.getByLabel('One-time code').fill('$OTP$');
 await page.getByRole('button', { name: 'Verify' }).click();
-await expect(page).toHaveURL(/\/app/);
+await page.waitForURL(/\/app/);
 ```
 
 **Never** put a real email, password, or secret in a script — only the `$…$`
 variables. Secrets live exclusively in the vault.
 
 ### Login-script contract (AuthProfile.loginScript)
-Same shape as an advanced script **except it receives only `page` and `expect`
-(no `ohsee`)** — it captures a session, not screenshots. Drive the sign-in using
+Same shape as an advanced script **except it gets only `page` (no `ohsee`)** — it
+captures a session, not screenshots. Drive the sign-in using
 `$EMAIL$/$PASSWORD$/$OTP$`, and **end once authenticated** (wait for a reliable
-signed-in signal, e.g. the dashboard URL or a user-menu element) so the captured
-`storageState` is valid.
+signed-in signal via `page.waitForURL(...)` or `locator.waitFor()`, e.g. the
+dashboard URL or a user-menu element) so the captured `storageState` is valid.
 
 ---
 
@@ -174,7 +182,7 @@ signed-in signal, e.g. the dashboard URL or a user-menu element) so the captured
   `getByTestId` over CSS/`nth-child`/deep structural selectors that break on
   redesign.
 - **Snapshot stable state.** Capture only after the content you care about is
-  present and settled (assert it). One concern per snapshot; clear unique names.
+  present and settled (`waitFor` it). One concern per snapshot; clear unique names.
 - **Expect noisy content.** Live timestamps, "X minutes ago", random/personalized
   or A/B content, and animated counters will diff. ohsee has a semantic-diff
   layer and an accept-changes flow, but prefer stable inputs: target fixture
@@ -207,10 +215,10 @@ those. Don't author `steps`, `flows`, `compositions`, or `microTests` — legacy
 
 Before finalizing a test, verify:
 
-- [ ] Exactly one type: simple **or** advanced (no mixing).
-- [ ] Advanced script is a **body only** — no require/launch/context/IIFE/close.
+- [ ] Script is a **body only** — no require/launch/context/IIFE/close.
+- [ ] **No `expect(...)`** — wait with `locator.waitFor()` / `page.waitForSelector`.
+- [ ] First snapshot is right after `goto`, not gated behind a wait that can fail.
 - [ ] Same `ohsee.snapshot()` sequence runs in every environment/breakpoint/variant.
-- [ ] Every snapshot is preceded by an assertion that its content is present.
 - [ ] No real secrets in any script — only `$EMAIL$ / $PASSWORD$ / $OTP$`.
 - [ ] Auth handled once (profile **or** per-test creds), not duplicated.
 - [ ] Selectors are role/label/text-based, not brittle CSS.

@@ -28,7 +28,7 @@ const SNIPPETS: { label: string; code: string }[] = [
   { label: "Fill field", code: "await page.getByLabel('${Email}').fill('$EMAIL$');" },
   { label: "Fill password", code: "await page.getByLabel('${Password}').fill('$PASSWORD$');" },
   { label: "Press", code: "await page.keyboard.press('${Enter}');" },
-  { label: "Wait for text", code: "await expect(page.getByText('${Welcome}')).toBeVisible();" },
+  { label: "Wait for text", code: "await page.getByText('${Welcome}').waitFor();" },
 ];
 
 /**
@@ -80,7 +80,7 @@ export default function ScriptEditor({
           if (v.docChanged) onChangeRef.current(v.state.doc.toString());
         }),
         cmPlaceholder(
-          "// Drive the flow with `page`, assert with `expect`,\n" +
+          "// Drive the flow with `page`, wait with `.waitFor()`,\n" +
           "// and capture with `await ohsee.snapshot('name')`.\n" +
           "await page.goto('/');\nawait ohsee.snapshot('home');",
         ),
