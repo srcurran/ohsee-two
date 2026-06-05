@@ -1,0 +1,88 @@
+/* Keyboard-shortcut cheat sheet (ShortcutsOverlay). Sits on the shared
+   .modal backdrop; this is the panel + its section grid. */
+.shortcuts {
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--modal-panel-background);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
+}
+
+.shortcuts__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+}
+
+.shortcuts__title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--modal-title-color);
+}
+
+.shortcuts__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-8);
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shortcuts__section-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--neutral-dark-500);
+}
+
+.shortcuts__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcuts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.shortcuts__label {
+  font-size: var(--font-size-sm);
+  color: var(--neutral-dark-700);
+}
+
+.shortcuts__keys {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.shortcuts__key {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  color: var(--neutral-dark-700);
+  background: var(--neutral-light-200);
+  border: 1px solid var(--surface-hover);
+  border-radius: var(--radius-xs);
+}

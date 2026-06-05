@@ -46,6 +46,7 @@
 
 /* ── Overlays + modals + dropdowns ───────────────────────────── */
 @use "styles/components/modal";
+@use "styles/components/shortcuts";
 @use "styles/components/error-modal";
 @use "styles/components/settings-overlay";
 @use "styles/components/test-settings";

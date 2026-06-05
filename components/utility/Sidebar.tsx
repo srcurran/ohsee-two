@@ -24,6 +24,8 @@ export default function Sidebar() {
     openTestSettings,
     openNewProjectWizard,
     openNewTestWizard,
+    toggleCollapsed,
+    toggleShortcuts,
     setHasProjects,
   } = useSidebar();
   const router = useRouter();
@@ -78,6 +80,10 @@ export default function Sidebar() {
     onNavigateTest: handleTestClick,
     openNewTestWizard,
     openNewProjectWizard,
+    openTestSettings,
+    openProjectSettings,
+    toggleSidebar: toggleCollapsed,
+    toggleShortcuts,
   });
 
   if (!loading && visibleData.length === 0) return null;

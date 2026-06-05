@@ -49,6 +49,11 @@ interface SidebarContextValue {
   /** null = still loading, false = zero projects, true = has projects. */
   hasProjects: boolean | null;
   setHasProjects: (v: boolean | null) => void;
+  /** Whether the keyboard-shortcuts cheat sheet overlay is open. */
+  shortcutsOpen: boolean;
+  openShortcuts: () => void;
+  closeShortcuts: () => void;
+  toggleShortcuts: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -79,6 +84,10 @@ const SidebarContext = createContext<SidebarContextValue>({
   closeNewTestWizard: () => {},
   hasProjects: null,
   setHasProjects: () => {},
+  shortcutsOpen: false,
+  openShortcuts: () => {},
+  closeShortcuts: () => {},
+  toggleShortcuts: () => {},
 });
 
 export function useSidebar() {
@@ -124,6 +133,7 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [newProjectWizardOpen, setNewProjectWizardOpen] = useState(false);
   const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string; testId?: string } | null>(null);
   const [hasProjects, setHasProjects] = useState<boolean | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const pathname = usePathname();
 
   // Coalesce rapid refreshProjects() calls into one refetch. Multiple
@@ -163,6 +173,9 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
     [],
   );
   const closeNewTestWizard = useCallback(() => setNewTestWizardState(null), []);
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
+  const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), []);
 
   // Hydrate collapsed state from localStorage, then enable transitions.
   // Narrow viewports always start collapsed regardless of stored prefs —
@@ -263,6 +276,10 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       closeNewTestWizard,
       hasProjects,
       setHasProjects,
+      shortcutsOpen,
+      openShortcuts,
+      closeShortcuts,
+      toggleShortcuts,
     }),
     [
       refreshKey,
@@ -292,6 +309,10 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       closeNewTestWizard,
       hasProjects,
       setHasProjects,
+      shortcutsOpen,
+      openShortcuts,
+      closeShortcuts,
+      toggleShortcuts,
     ],
   );
 

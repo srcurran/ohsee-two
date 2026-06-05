@@ -77,6 +77,29 @@ function ReportPageInner() {
     onFilterChange: handleFilterChange,
   });
 
+  // Cmd/Ctrl + Enter — run the current test now (ignored mid-run or while a
+  // field is focused).
+  const runningStatus = report?.status;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.key !== "Enter") return;
+      const el = e.target as HTMLElement | null;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable ||
+          el.closest?.(".cm-editor"))
+      )
+        return;
+      if (runningStatus === "running") return;
+      e.preventDefault();
+      runNow();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [runningStatus, runNow]);
+
   useEffect(() => {
     if (notFound) {
       localStorage.removeItem("ohsee-last-path");
