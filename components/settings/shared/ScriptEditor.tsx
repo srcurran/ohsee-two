@@ -33,10 +33,10 @@ const SNIPPETS: { label: string; code: string }[] = [
 
 /**
  * Always-visible script editor for advanced tests. The script is the source
- * of truth; Record and Upload are bootstraps that write into it. Emits
- * onChange on every edit (parent debounces persistence). Captured recordings
- * and uploads are cleaned (codegen scaffolding stripped) and get an
- * ohsee.snapshot() inserted after each navigation.
+ * of truth; Record is a bootstrap that writes into it. Emits onChange on every
+ * edit (parent debounces persistence). Captured recordings are cleaned (codegen
+ * scaffolding stripped) and get an ohsee.snapshot() inserted after each
+ * navigation.
  */
 export default function ScriptEditor({
   value,
@@ -114,7 +114,7 @@ export default function ScriptEditor({
     view.focus();
   };
 
-  /** Append a cleaned, snapshot-annotated script body (record / upload). */
+  /** Append a cleaned, snapshot-annotated script body from a recording. */
   const appendBody = (raw: string) => {
     const view = viewRef.current;
     if (!view) return;
@@ -124,15 +124,6 @@ export default function ScriptEditor({
     const next = cur.trim() ? `${cur.trimEnd()}\n\n${body}\n` : `${body}\n`;
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next } });
     onChangeRef.current(next);
-  };
-
-  const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => appendBody(String(reader.result ?? ""));
-    reader.readAsText(file);
-    e.target.value = "";
   };
 
   return (
@@ -146,15 +137,6 @@ export default function ScriptEditor({
             onScriptCaptured={appendBody}
           />
         )}
-        <label className="btn btn--outline btn--sm">
-          Upload script
-          <input
-            type="file"
-            accept=".js,.ts,.txt,text/plain,text/javascript"
-            onChange={onUpload}
-            style={{ display: "none" }}
-          />
-        </label>
         <button
           type="button"
           className="btn btn--text btn--sm script-editor__guidelines"
