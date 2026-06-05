@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { EditorState, Prec } from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
@@ -14,6 +14,7 @@ import {
 import { basicSetup } from "codemirror";
 import CodegenRecorder from "@/components/settings/shared/CodegenRecorder";
 import { extractScriptBody, insertSnapshotsAfterNavigation } from "@/lib/script-utils";
+import { AI_SCRIPT_GUIDELINES } from "@/lib/ai-script-guidelines";
 
 /** Click-to-insert snippets. `${…}` marks an editable field: inserting selects
  *  the first one so you can type immediately, and Tab jumps to the next.
@@ -49,6 +50,18 @@ export default function ScriptEditor({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  /** Copy the paste-ready ohsee script guidelines for handing to an AI agent. */
+  const copyGuidelines = async () => {
+    try {
+      await navigator.clipboard.writeText(AI_SCRIPT_GUIDELINES);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard unavailable — no-op
+    }
+  };
 
   // Stable onChange ref so the editor extension always calls the latest.
   const onChangeRef = useRef(onChange);
@@ -142,6 +155,14 @@ export default function ScriptEditor({
             style={{ display: "none" }}
           />
         </label>
+        <button
+          type="button"
+          className="btn btn--text btn--sm script-editor__guidelines"
+          onClick={copyGuidelines}
+          title="Copy guidelines for writing this script with an AI agent"
+        >
+          {copied ? "Copied!" : "Copy AI agent script guidelines"}
+        </button>
       </div>
 
       <div ref={editorRef} className="code-editor script-editor__code" />

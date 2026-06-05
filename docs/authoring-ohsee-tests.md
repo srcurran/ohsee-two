@@ -25,41 +25,16 @@ Playwright advice — they are the actual contract ohsee's runner enforces.
 
 ---
 
-## 2. Pick a test type
+## 2. You're writing an advanced (script) test
 
-A test is **one** of two types. Do not mix them.
+An AI-authored ohsee test is an **advanced** test: a single Playwright **script**
+that drives the flow and calls `await ohsee.snapshot('name')` to capture each
+screen. Set `testType: "advanced"` and put your code in the `script` field; the
+rest of this guide is about that script.
 
-### Simple (path) test — `testType: "simple"`
-A flat list of URL paths. Each path is loaded and screenshotted. Best for
-marketing/content sites with no required interaction or auth.
-
-```jsonc
-{
-  "name": "Marketing pages",
-  "testType": "simple",
-  "steps": [
-    { "id": "s1", "type": "url", "url": "/",         "captureScreenshot": true },
-    { "id": "s2", "type": "url", "url": "/pricing",  "captureScreenshot": true },
-    { "id": "s3", "type": "url", "url": "/about",    "captureScreenshot": true }
-  ]
-}
-```
-
-- `url` may be a **path** (`/pricing`) — resolved against the project's prod/dev
-  base at run time — or an absolute URL (the origin is rewritten to the current
-  environment automatically). **Prefer paths.**
-- `captureScreenshot` defaults to `true`. Set it `false` only for a step used
-  purely to navigate/set up with no screenshot.
-
-### Advanced (Playwright) test — `testType: "advanced"`
-A single Playwright **script** that drives a flow and calls
-`await ohsee.snapshot('name')` wherever a screen should be captured. Use this
-when reaching the screen needs interaction, multiple steps, or authentication.
-
-There is a one-way **"Convert to Playwright"** upgrade (simple → advanced, never
-back). A test is path-based **or** script-based — not both. (`steps[]` entries of
-`type: "microtest"`, plus `compositions`/`flows`/`microTests`, are **legacy**
-shapes kept for migration — do not author new tests with them.)
+(ohsee also has a `"simple"` type — a hand-entered list of URL paths with no
+code — but producing a script *is* the advanced type, so you never need to choose.
+Ignore the legacy `flows` / `compositions` / `type: "microtest"` shapes entirely.)
 
 ---
 
@@ -215,18 +190,16 @@ signed-in signal, e.g. the dashboard URL or a user-menu element) so the captured
 | Field            | Type                         | Notes |
 |------------------|------------------------------|-------|
 | `name`           | string                       | Human label, shown in the sidebar. |
-| `testType`       | `"simple"` \| `"advanced"`   | Picks the shape below. |
-| `steps`          | `TestStep[]`                 | **Simple:** `{ type: "url", url, captureScreenshot? }` entries. |
-| `script`         | string                       | **Advanced:** the function body (§3). |
-| `authProfileId`  | string                       | Advanced: start signed-in via a profile (§5A). |
+| `testType`       | `"advanced"`                 | Always `"advanced"` for a script. |
+| `script`         | string                       | The function body (§3) — your test. |
+| `authProfileId`  | string                       | Start signed-in via a profile (§5A). |
 | `credentials`    | `{ vaultEntryId }`           | Per-test vault identity for `$…$` vars (§5B). |
 | `breakpoints`    | `number[]`                   | Optional; defaults if omitted (§6). |
 | `variants`       | `TestVariant[]`              | Optional theme captures (§6). |
 | `fastMode`       | boolean                      | Captures more pages in parallel — faster but heavier; may trip rate limits. Leave off unless asked. |
 
 Don't set: `id`, `createdAt`, `lastRunAt`, `draft`, `archived` — the app manages
-those. Don't author `flows`, `compositions`, `microTests`, or `type: "microtest"`
-steps — legacy.
+those. Don't author `steps`, `flows`, `compositions`, or `microTests` — legacy.
 
 ---
 
