@@ -8,6 +8,8 @@ interface PageRouteIssuesProps {
   changes: SemanticChange[];
   summary?: Record<string, number>;
   onIssueClick: (id: string) => void;
+  /** Report id — namespaces the per-change accepted state in ChangeList. */
+  reportId: string;
 }
 
 /** Collapsible wrapper around `ChangeList` for a single page-detail view.
@@ -18,6 +20,7 @@ export default function PageRouteIssues({
   changes,
   summary,
   onIssueClick,
+  reportId,
 }: PageRouteIssuesProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -49,6 +52,7 @@ export default function PageRouteIssues({
             changes={changes}
             summary={summary}
             onChangeClick={onIssueClick}
+            reportId={reportId}
           />
         </div>
         {collapsed && (

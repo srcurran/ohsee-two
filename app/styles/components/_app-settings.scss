@@ -1,0 +1,48 @@
+/* App-settings flyout anchored to the sidebar-footer gear. Built on the shared
+   .dropdown chrome; this adds positioning, the toggle rows, and the divider. */
+.app-settings {
+  position: relative;
+}
+
+.app-settings__menu {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  /* Gear sits at the sidebar's right edge, which is overflow:hidden and only
+     240px wide — anchor to the gear's right and open up-and-left so the panel
+     stays inside the rail (not clipped). */
+  right: 0;
+  width: 210px;
+  min-width: 0; /* override .dropdown-panel's 280px floor */
+  /* Above the .dropdown-backdrop (--z-overlay). */
+  z-index: var(--z-modal);
+}
+
+.app-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-base);
+  color: var(--dropdown-item-color);
+}
+
+.app-settings__divider {
+  height: 1px;
+  background: var(--surface-hover);
+}
+
+.app-settings__item {
+  justify-content: space-between;
+}
+
+.app-settings__kbd {
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--weight-bold);
+  color: var(--neutral-dark-500);
+}
+
+.app-settings__logout {
+  color: var(--error-text-color);
+}

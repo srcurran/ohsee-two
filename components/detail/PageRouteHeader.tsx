@@ -6,6 +6,7 @@ import type { Report, ReportPage } from "@/lib/types";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
 import { Icon } from "@/components/utility/Icon";
+import ChangeBadge from "@/components/utility/ChangeBadge";
 import { formatPageName } from "@/components/detail/utils/pageRoute";
 
 interface PageRouteHeaderProps {
@@ -40,14 +41,12 @@ export default function PageRouteHeader({
 
   const dateStr = formatRelativeTime(report.createdAt);
   const pageName = formatPageName(currentPage);
-  const badgeMod =
-    totalUniqueChanges > 0 ? "badge--warning-tint" : "badge--success-tint";
 
   return (
-    <div className="report-page__header">
-      <div className="report-page__title-row">
-        <div className="report-page__title-group">
-          <div className="report-page__title-inner">
+    <div className="report-page__header stack stack--lg">
+      <div className="report-page__title-row row row--between row--lg">
+        <div className="report-page__title-group row row--lg">
+          <div className="report-page__title-inner row row--baseline row--xs">
             <Link
               href={`/reports/${report.id}?bp=${activeBp}`}
               className="report-page__domain"
@@ -101,12 +100,10 @@ export default function PageRouteHeader({
             </div>
           </div>
 
-          <span className={`badge badge--xl ${badgeMod}`}>
-            {totalUniqueChanges}
-          </span>
+          <ChangeBadge count={totalUniqueChanges} tone="tint" size="xl" />
         </div>
 
-        <div className="report-page__nav">
+        <div className="report-page__nav row row--xl">
           <div style={{ position: "relative" }}>
             <button
               onClick={() => {

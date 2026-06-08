@@ -1,38 +1,21 @@
-import type { Browser, BrowserContextOptions, Page } from "playwright";
-import type { AuthCookieConfig } from "./auth-token";
+import type { BrowserContextOptions, Page } from "playwright";
 
 /**
- * Build BrowserContext options with optional auth cookie injection.
+ * Build BrowserContext options for a breakpoint.
  */
 export function buildContextOptions(
   bp: number,
-  authConfig?: AuthCookieConfig,
   extra?: Partial<BrowserContextOptions>,
 ): BrowserContextOptions {
   return {
     viewport: { width: bp, height: 900 },
     deviceScaleFactor: 1,
     reducedMotion: "reduce",
+    // Grant clipboard access so copy-to-clipboard flows (and the success
+    // toasts / UI they trigger) actually fire under headless capture instead
+    // of silently rejecting.
+    permissions: ["clipboard-read", "clipboard-write"],
     ...extra,
-    ...(authConfig
-      ? {
-          storageState: {
-            cookies: [
-              {
-                name: authConfig.cookieName,
-                value: authConfig.cookieValue,
-                domain: authConfig.domain,
-                path: "/",
-                httpOnly: true,
-                sameSite: "Lax" as const,
-                secure: authConfig.cookieName.startsWith("__Secure-"),
-                expires: Math.floor(Date.now() / 1000) + 3600,
-              },
-            ],
-            origins: [],
-          },
-        }
-      : {}),
   };
 }
 

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { SessionProvider } from "next-auth/react";
 import SidebarProvider, { useSidebar } from "@/components/utility/SidebarProvider";
 import Sidebar from "@/components/utility/Sidebar";
+import ShortcutsOverlay from "@/components/utility/ShortcutsOverlay";
 import TitlebarCollapseButton from "@/components/utility/TitlebarCollapseButton";
 import PageTitleBar from "@/components/utility/PageTitleBar";
 
@@ -58,6 +59,7 @@ export default function AuthenticatedLayout({
           <TestSettingsHost />
           <NewProjectWizardHost />
           <NewTestWizardHost />
+          <ShortcutsOverlay />
         </SidebarProvider>
       </div>
     </SessionProvider>
@@ -132,6 +134,7 @@ function NewTestWizardHost() {
     <NewTestWizard
       projectId={newTestWizard.projectId}
       initialName={newTestWizard.initialName}
+      testId={newTestWizard.testId}
       onClose={closeNewTestWizard}
     />
   );

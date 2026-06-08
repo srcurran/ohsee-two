@@ -20,11 +20,10 @@ export async function POST(request: Request) {
   try {
     const userId = await requireUserId();
     const body = await request.json();
-    const { name, prodUrl, devUrl, requiresAuth, variants, breakpoints } = body as {
+    const { name, prodUrl, devUrl, variants, breakpoints } = body as {
       name?: string;
       prodUrl: string;
       devUrl: string;
-      requiresAuth?: boolean;
       variants?: { id: string; label: string; colorScheme?: "light" | "dark"; initScript?: string }[];
       breakpoints?: number[];
     };
@@ -39,7 +38,6 @@ export async function POST(request: Request) {
       pages: [],
       createdAt: now,
       lastDiffAt: null,
-      ...(requiresAuth ? { requiresAuth } : {}),
       ...(variants && variants.length > 0 ? { variants } : {}),
       ...(breakpoints ? { breakpoints } : {}),
       tests: [],

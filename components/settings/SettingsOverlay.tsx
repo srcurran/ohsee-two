@@ -4,19 +4,21 @@ import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useSidebar } from "@/components/utility/SidebarProvider";
-import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
 import CredentialsSettings from "@/components/settings/CredentialsSettings";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
 import { Icon } from "@/components/utility/Icon";
+import Segmented from "@/components/utility/Segmented";
+import SettingsOverlayShell from "@/components/settings/shared/SettingsOverlayShell";
 
 const ENTER_MS = 180;
 const EXIT_MS = 140;
 
 /**
  * App-level settings (theme, defaults, optional credentials in Electron).
- * Reuses the .project-settings-overlay panel chrome so this matches the
+ * Reuses the .settings-overlay panel chrome so this matches the
  * project + test settings overlays — single column, ~640px wide, sections
  * stacked with their own headings rather than a side-nav.
  */
@@ -75,52 +77,44 @@ export default function SettingsOverlay() {
   const showCredentials = mounted && isElectronRuntime();
 
   return (
-    <div
-      className={`project-settings-overlay project-settings-overlay--${animState}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
-      style={{ transitionDuration: animState === "exiting" ? `${EXIT_MS}ms` : `${ENTER_MS}ms` }}
-    >
-      <div
-        className="project-settings-overlay__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="app-settings-title"
-      >
-        <header className="project-settings-overlay__header">
-          <span id="app-settings-title" className="project-settings-overlay__title">
+    <SettingsOverlayShell
+      animState={animState}
+      enterMs={ENTER_MS}
+      exitMs={EXIT_MS}
+      onBackdropClose={handleClose}
+      labelledBy="app-settings-title"
+      header={
+        <>
+          <span id="app-settings-title" className="settings-overlay__title">
             Settings
           </span>
           <button
             type="button"
-            className="icon-btn project-settings-overlay__close"
+            className="icon-btn settings-overlay__close"
             onClick={handleClose}
             title="Close"
           >
             <Icon name="close" size={20} />
           </button>
-        </header>
-
-        <div className="project-settings-overlay__body">
-          <section className="settings-section">
+        </>
+      }
+    >
+          <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">General</h3>
 
             {mounted && (
               <div className="settings-section__row">
                 <span className="settings-section__label">Theme</span>
-                <div className="segmented" style={{ width: "fit-content" }}>
-                  {(["light", "dark", "system"] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => setTheme(opt)}
-                      className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
-                      style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
+                <Segmented
+                  options={[
+                    { value: "light", label: "Light" },
+                    { value: "dark", label: "Dark" },
+                    { value: "system", label: "System" },
+                  ]}
+                  value={(theme ?? "system") as "light" | "dark" | "system"}
+                  onChange={setTheme}
+                  className="segmented--fit segmented--lg"
+                />
               </div>
             )}
 
@@ -147,9 +141,9 @@ export default function SettingsOverlay() {
             </div>
           </section>
 
-          <hr className="project-settings-overlay__divider" />
+          <hr className="settings-overlay__divider" />
 
-          <section className="settings-section">
+          <section className="settings-section stack stack--lg">
             <h3 className="settings-section__title">Defaults</h3>
             <p className="settings-section__hint">Applied to new projects.</p>
 
@@ -186,16 +180,14 @@ export default function SettingsOverlay() {
 
           {showCredentials && (
             <>
-              <hr className="project-settings-overlay__divider" />
-              <section className="settings-section">
+              <hr className="settings-overlay__divider" />
+              <section className="settings-section stack stack--lg">
                 <h3 className="settings-section__title">Credentials</h3>
                 <CredentialsSettings />
               </section>
             </>
           )}
-        </div>
-      </div>
-    </div>
+    </SettingsOverlayShell>
   );
 }
 

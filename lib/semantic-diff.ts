@@ -3,7 +3,6 @@ import type {
   DomSnapshot,
   SemanticChange,
   ChangeCategory,
-  ChangeSeverity,
 } from "./types";
 import { suppressNestedStructural, aggregateChanges } from "./change-aggregation";
 
@@ -252,6 +251,22 @@ function anchorKey(
   return null;
 }
 
+/** Overlap of two sets, 0–1 (intersection / union). */
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 1;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
+// Fuzzy container matching (Pass 3): a leftover text-less container is paired
+// with the opposite side's container of the same tag whose descendant content
+// overlaps it most, when that overlap clears FUZZY_OVERLAP and beats the
+// runner-up by FUZZY_MARGIN (so the winner is unambiguous).
+const FUZZY_OVERLAP = 0.6;
+const FUZZY_MARGIN = 0.15;
+
 /**
  * Match prod ↔ dev elements.
  *
@@ -348,6 +363,52 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
     }
   }
 
+  // Pass 3 — fuzzy container anchor. A text-less wrapper is keyed by the exact
+  // ordered list of its descendants' content (anchorKey's `d:` form), so a
+  // single reordered/added/removed/volatile child gives it a different key on
+  // each side; it then fails Passes 1–2 and would be reported as a phantom
+  // "Added"/"Removed" element even though it exists in both. Pair the leftover
+  // containers by descendant-content *overlap* instead, so a small subtree
+  // change no longer reads as a structural add. Same-tag, visible, and only
+  // when the best overlap is an unambiguous winner.
+  const buildContainerSets = (
+    elements: CapturedElement[],
+    descendants: Map<string, string[]>,
+    claimed: Set<CapturedElement>,
+  ): Map<CapturedElement, Set<string>> => {
+    const sets = new Map<CapturedElement, Set<string>>();
+    for (const el of elements) {
+      if (claimed.has(el) || !el.isVisible) continue;
+      if (contentIdentity(el)) continue; // text-bearing → not a container
+      const desc = descendants.get(el.selector);
+      if (desc && desc.length > 0) sets.set(el, new Set(desc));
+    }
+    return sets;
+  };
+  const prodSets = buildContainerSets(prod.elements, prodDescendants, claimedProd);
+  const devSets = buildContainerSets(dev.elements, devDescendants, claimedDev);
+  for (const [pEl, pSet] of prodSets) {
+    let best: CapturedElement | null = null;
+    let bestOverlap = 0;
+    let runnerUp = 0;
+    for (const [dEl, dSet] of devSets) {
+      if (claimedDev.has(dEl) || dEl.tag !== pEl.tag) continue;
+      const overlap = jaccard(pSet, dSet);
+      if (overlap > bestOverlap) {
+        runnerUp = bestOverlap;
+        bestOverlap = overlap;
+        best = dEl;
+      } else if (overlap > runnerUp) {
+        runnerUp = overlap;
+      }
+    }
+    if (best && bestOverlap >= FUZZY_OVERLAP && bestOverlap - runnerUp >= FUZZY_MARGIN) {
+      pairs.push({ prod: pEl, dev: best });
+      claimedProd.add(pEl);
+      claimedDev.add(best);
+    }
+  }
+
   // Whatever stays unclaimed is genuinely added/removed (or moved — the
   // caller's similarity pairing resolves that). Invisible-only elements are
   // dropped so they aren't reported as removed/added.
@@ -356,6 +417,68 @@ function matchElements(prod: DomSnapshot, dev: DomSnapshot): ElementMatch {
     prodOnly: prod.elements.filter((el) => !claimedProd.has(el) && el.isVisible),
     devOnly: dev.elements.filter((el) => !claimedDev.has(el) && el.isVisible),
   };
+}
+
+// --- Alignment anchors (drives the image diff's DOM-anchored bands) ---
+
+export interface AlignmentAnchor {
+  prodY: number;
+  devY: number;
+}
+
+/**
+ * Vertical alignment anchors for the image diff: the top-Y of every
+ * confidently-matched, visible element on each side, reduced to a strictly
+ * increasing monotonic backbone. The Longest-Increasing-Subsequence by devY
+ * drops reordered/moved elements — those are real changes and must NOT anchor
+ * the alignment. The image diff interpolates between these anchors so the same
+ * content is compared even when it sits at a different Y on each side (a header
+ * added above it no longer makes everything below read as changed).
+ */
+export function computeAlignmentAnchors(
+  prod: DomSnapshot,
+  dev: DomSnapshot,
+): AlignmentAnchor[] {
+  const { pairs } = matchElements(prod, dev);
+  const raw: AlignmentAnchor[] = [];
+  for (const { prod: p, dev: d } of pairs) {
+    if (!p.isVisible || !d.isVisible) continue;
+    const prodY = Math.round(p.bounds.y);
+    const devY = Math.round(d.bounds.y);
+    if (prodY < 0 || devY < 0) continue;
+    raw.push({ prodY, devY });
+  }
+  raw.sort((a, b) => a.prodY - b.prodY || a.devY - b.devY);
+  // Collapse to strictly increasing prodY (one anchor per prod row).
+  const byProd: AlignmentAnchor[] = [];
+  for (const a of raw) {
+    const last = byProd[byProd.length - 1];
+    if (last && a.prodY <= last.prodY) continue;
+    byProd.push(a);
+  }
+  return longestIncreasingByDevY(byProd);
+}
+
+/** Longest strictly-increasing-by-devY subsequence. O(n^2); n = matched
+ *  element count, so fine. Keeps the alignment backbone monotonic. */
+function longestIncreasingByDevY(anchors: AlignmentAnchor[]): AlignmentAnchor[] {
+  const n = anchors.length;
+  if (n === 0) return [];
+  const len = new Array<number>(n).fill(1);
+  const prev = new Array<number>(n).fill(-1);
+  let bestEnd = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < i; j++) {
+      if (anchors[j].devY < anchors[i].devY && len[j] + 1 > len[i]) {
+        len[i] = len[j] + 1;
+        prev[i] = j;
+      }
+    }
+    if (len[i] > len[bestEnd]) bestEnd = i;
+  }
+  const out: AlignmentAnchor[] = [];
+  for (let i = bestEnd; i !== -1; i = prev[i]) out.push(anchors[i]);
+  return out.reverse();
 }
 
 // --- Element comparison ---

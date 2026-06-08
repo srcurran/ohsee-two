@@ -17,24 +17,21 @@
 /* ── Form / input primitives ─────────────────────────────────── */
 @use "styles/components/button";
 @use "styles/components/field";
-@use "styles/components/material-field";
 @use "styles/components/toggle";
-@use "styles/components/snippet-btn";
 
 /* ── Badges, pills, dots ─────────────────────────────────────── */
 @use "styles/components/badge";
-@use "styles/components/pill";
+@use "styles/components/filter-pill";
+@use "styles/components/flow-chip";
 @use "styles/components/status-dot";
-@use "styles/components/status-pill";
 
 /* ── Containers + tiles ──────────────────────────────────────── */
-@use "styles/components/card";
 @use "styles/components/page-tile";
 @use "styles/components/page-grid";
 @use "styles/components/info-box";
 
 /* ── Tabs + segmented controls ───────────────────────────────── */
-@use "styles/components/breakpoint-tabs";
+@use "styles/components/tab-bar";
 @use "styles/components/variant-tabs";
 @use "styles/components/segmented";
 
@@ -46,35 +43,35 @@
 @use "styles/components/titlebar";
 @use "styles/components/sidebar";
 @use "styles/components/sidebar-scrim";
-@use "styles/components/sidebar-favicon";
-@use "styles/components/sidenav";
-@use "styles/components/settings-shell";
-@use "styles/components/breadcrumb";
-@use "styles/components/divider";
 
 /* ── Overlays + modals + dropdowns ───────────────────────────── */
 @use "styles/components/modal";
+@use "styles/components/shortcuts";
 @use "styles/components/error-modal";
-@use "styles/components/project-settings-overlay";
+@use "styles/components/settings-overlay";
 @use "styles/components/test-settings";
+@use "styles/components/step-row";
+@use "styles/components/step-editor";
+@use "styles/components/settings-accordion";
+@use "styles/components/settings-section";
+@use "styles/components/settings-nav";
 @use "styles/components/credentials-section";
 @use "styles/components/credential-row";
+@use "styles/components/auth-profiles";
 @use "styles/components/dropdown";
+@use "styles/components/app-settings";
 @use "styles/components/wizard";
-@use "styles/components/accordion";
 
 /* ── Editors + tooling ───────────────────────────────────────── */
 @use "styles/components/breakpoint-editor";
-@use "styles/components/flow-editor";
-@use "styles/components/recorder-instructions";
+@use "styles/components/script-editor";
 @use "styles/components/code";
 
 /* ── Report overview ─────────────────────────────────────────── */
 @use "styles/components/report";
-@use "styles/components/run-pill";
+@use "styles/components/run-button";
 @use "styles/components/progress";
 @use "styles/components/loader";
-@use "styles/components/save-button";
 
 /* ── Page-detail route + panel ───────────────────────────────── */
 @use "styles/components/page-detail-panel";

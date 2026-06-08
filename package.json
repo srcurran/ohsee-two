@@ -17,7 +17,16 @@
     "electron:pack": "npm run electron:build && electron-builder --mac --arm64 --config.mac.identity=null"
   },
   "electronmon": {
-    "patterns": [".electron-out/**/*"],
+    "patterns": [
+      ".electron-out/**/*",
+      "!app/**/*",
+      "!components/**/*",
+      "!lib/**/*",
+      "!public/**/*",
+      "!.next/**/*",
+      "!data/**/*",
+      "!data-electron-dev/**/*"
+    ],
     "logLevel": "quiet"
   },
   "build": {
@@ -76,7 +85,6 @@
     "otpauth": "^9.5.0",
     "pixelmatch": "^7.1.0",
     "playwright": "^1.58.2",
-    "pngjs": "^7.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sharp": "^0.34.5",
@@ -85,7 +93,6 @@
   "devDependencies": {
     "@electron/notarize": "^3.1.1",
     "@types/node": "^20",
-    "@types/pngjs": "^6.0.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",

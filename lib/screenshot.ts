@@ -3,8 +3,8 @@ import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
 import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
-import type { DomSnapshot } from "./types";
-import type { AuthCookieConfig } from "./auth-token";
+import { withCaptureSlot } from "./capture-semaphore";
+import type { DomSnapshot, BrowserStorageState } from "./types";
 
 export interface ScreenshotResult {
   breakpoint: number;
@@ -19,17 +19,17 @@ export async function captureScreenshots(options: {
   breakpoints: number[];
   outputDir: string;
   prefix: string;
-  /** Auth cookie to inject via Playwright storageState */
-  authConfig?: AuthCookieConfig;
   /** Extra context options (e.g., colorScheme for dark mode) */
   contextOptions?: Partial<BrowserContextOptions>;
   /** JS to run before every page load (e.g., localStorage theme injection) */
   initScript?: string;
+  /** Auth storage state to start each context already signed in. */
+  storageState?: BrowserStorageState;
   onProgress?: (breakpoint: number, status: string) => void | Promise<void>;
   /** Reuse an existing browser instance instead of launching a new one. */
   browser?: Browser;
 }): Promise<ScreenshotResult[]> {
-  const { url, breakpoints, outputDir, prefix, authConfig, contextOptions, initScript, onProgress, browser: externalBrowser } = options;
+  const { url, breakpoints, outputDir, prefix, contextOptions, initScript, storageState, onProgress, browser: externalBrowser } = options;
   await ensureDir(outputDir);
 
   const browser = externalBrowser ?? await chromium.launch({
@@ -42,10 +42,18 @@ export async function captureScreenshots(options: {
   });
 
   try {
-    const settled = await Promise.all(breakpoints.map(async (bp) => {
+    // Gate each context behind the process-wide capture semaphore so a
+    // multi-page run (and parallel runs) don't burst the target backend with
+    // simultaneous authenticated loads — see lib/capture-semaphore.ts.
+    const settled = await Promise.all(breakpoints.map((bp) => withCaptureSlot(async () => {
       let context;
       try {
-        context = await browser.newContext(buildContextOptions(bp, authConfig, contextOptions));
+        context = await browser.newContext(
+          buildContextOptions(bp, {
+            ...contextOptions,
+            ...(storageState ? { storageState: storageState as BrowserContextOptions["storageState"] } : {}),
+          }),
+        );
 
         if (initScript) {
           await context.addInitScript(initScript);
@@ -84,7 +92,7 @@ export async function captureScreenshots(options: {
         await context?.close().catch(() => {});
         await onProgress?.(bp, "done");
       }
-    }));
+    })));
 
     return settled.filter((r): r is ScreenshotResult => r !== null);
   } finally {

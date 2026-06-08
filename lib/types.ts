@@ -9,6 +9,26 @@ export interface TestVariant {
 export interface SiteTest {
   id: string;
   name: string;
+  /** How this test sources its screens:
+   *  - "simple": a non-linear list of URL paths compared against the site's
+   *    shared prod/dev base (good for marketing sites).
+   *  - "advanced": Playwright scripts/flows with optional auth.
+   *  A test can be converted simple → advanced (one-way, never back).
+   *  Absent on legacy records; classified on first read by
+   *  readProjectsWithMigration. */
+  testType?: "simple" | "advanced";
+  /** True while the creation wizard hasn't been finished. Drives the
+   *  "Finish creating test" CTA. Cleared when the user completes the wizard
+   *  (Save/Run on the final step). */
+  draft?: boolean;
+  /** Advanced tests: a single Playwright script (function body receiving
+   *  `page`, `expect`, and `ohsee`). The script drives the flow and calls
+   *  `await ohsee.snapshot('name')` wherever a screenshot should be taken.
+   *  Supersedes the legacy steps[]/compositions for advanced tests. */
+  script?: string;
+  /** Advanced tests: optional site-level auth profile whose cached
+   *  storageState seeds the run so the script starts already signed in. */
+  authProfileId?: string;
   pages: PageEntry[];
   flows: FlowEntry[];
   /** Micro-test compositions (new-style flows using reusable script steps) */
@@ -22,10 +42,13 @@ export interface SiteTest {
   breakpoints?: number[];
   /** Optional theme/variant captures (e.g., light + dark) */
   variants?: TestVariant[];
+  /** Fast mode: capture more pages in parallel for this test (higher backend
+   *  load, more likely to trip rate-limit / "offline" errors). */
+  fastMode?: boolean;
   /** Soft-deleted / hidden from sidebar; restorable from project Danger Zone. */
   archived?: boolean;
-  /** Per-test auth/credentials configuration. Replaces the project-level
-   *  requiresAuth flag so different tests can target different identities. */
+  /** Per-test credentials: names a vault entry whose email/password/OTP are
+   *  interpolated into the test's Playwright login script. */
   credentials?: TestCredentials;
   createdAt: string;
   lastRunAt: string | null;
@@ -63,17 +86,13 @@ export interface TestStep {
 }
 
 /**
- * Per-test credentials configuration. Mirrors the project-level requiresAuth
- * model (mints a NextAuth session cookie via mintSessionCookie) but keyed
- * per-test so different tests can run as different identities.
+ * Per-test credentials. Names a vault entry (Electron-only Keychain) whose
+ * email / password / OTP get interpolated into the test's Playwright login
+ * script via $EMAIL$ / $PASSWORD$ / $OTP$. Authentication is done by the
+ * script performing a real login — there is no session-cookie forging.
  */
 export interface TestCredentials {
-  /** When true, the runner mints + injects a session cookie before captures. */
-  enabled?: boolean;
-  /** Reuse another test's credentials (shared identity). When set, the
-   *  runner reads that test's credentials instead. */
-  copyFromTestId?: string;
-  /** Optional vault entry id (Electron only) — names a stored identity. */
+  /** Vault entry id (Electron only) — names a stored identity. */
   vaultEntryId?: string;
 }
 
@@ -92,6 +111,36 @@ export interface ScriptCredentials {
   staticOtp?: string;
 }
 
+/**
+ * Playwright storage state (cookies + per-origin localStorage) as returned by
+ * `context.storageState()` and accepted by `browser.newContext({ storageState })`.
+ * Stored verbatim as JSON — treated as a generated secret artifact (the "tokens").
+ */
+export interface BrowserStorageState {
+  cookies: unknown[];
+  origins: unknown[];
+}
+
+/**
+ * Site-level authentication profile. Bundles the *login script* (how to sign
+ * in) with the *storage tokens* it produces (the cached session), plus the
+ * vault secret that feeds the script. Running the login script once against
+ * prod + dev produces the storageState the runner reuses to start every test
+ * already signed in. The tokens are a generated artifact, like a `.env`.
+ */
+export interface AuthProfile {
+  id: string;
+  name: string;
+  /** Vault entry supplying $EMAIL$/$PASSWORD$/$OTP$ to the login script. */
+  vaultEntryId?: string;
+  /** Playwright login script (function body receiving `page`, `expect`). */
+  loginScript: string;
+  /** Cached session tokens per environment, produced by the login script. */
+  storageState?: { prod?: BrowserStorageState; dev?: BrowserStorageState };
+  /** ISO timestamp the tokens were last generated. */
+  tokensUpdatedAt?: string | null;
+}
+
 export interface Project {
   id: string;
   /** Display name for the project (falls back to domain if omitted) */
@@ -102,8 +151,6 @@ export interface Project {
   pages: PageEntry[];
   createdAt: string;
   lastDiffAt: string | null;
-  /** @deprecated Auth is now handled via micro-test scripts. */
-  requiresAuth?: boolean;
   /** @deprecated Use tests[].variants instead. Kept for backward compat during migration. */
   variants?: TestVariant[];
   /** @deprecated Use tests[].breakpoints instead. Kept for backward compat during migration. */
@@ -114,6 +161,10 @@ export interface Project {
   flows?: FlowEntry[];
   /** Named tests for this site. Each test has its own pages + flows. */
   tests?: SiteTest[];
+  /** Site-level auth profiles (login script + cached storage tokens). Tests
+   *  reference one via SiteTest.authProfileId. Multiple profiles let a site
+   *  be compared as different identities (e.g. new vs existing customer). */
+  authProfiles?: AuthProfile[];
   /** @deprecated Inlined onto step.script by readProjectsWithMigration on
    *  first read; kept on the type for migration compatibility only. New
    *  records do not write this field. */
@@ -192,8 +243,14 @@ export interface Report {
   /** Which site test produced this report (absent for legacy reports) */
   siteTestId?: string;
   createdAt: string;
+  /** When the run reached a terminal state — used to show run duration. */
+  completedAt?: string;
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
+  /** Non-fatal: an advanced-test script threw before capturing all of its
+   *  snapshots. The run still "completed" with whatever it got; this names the
+   *  failing step so a partial result isn't a silent mystery. */
+  scriptError?: string;
   progress?: { completed: number; total: number };
   pages: ReportPage[];
 }

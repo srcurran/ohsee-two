@@ -6,12 +6,6 @@
   padding: var(--space-3);
   font-size: var(--font-size-md);
 
-  &--pass {
-    border-color: color-mix(in srgb, var(--test-result-pass-tint) 30%, transparent);
-    background: color-mix(in srgb, var(--test-result-pass-tint) 5%, transparent);
-    color: var(--test-result-pass-color);
-  }
-
   &--fail {
     border-color: var(--test-result-fail-border);
     background: var(--test-result-fail-background);

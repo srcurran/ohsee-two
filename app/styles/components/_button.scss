@@ -13,14 +13,14 @@
   justify-content: center;
   gap: var(--space-2);
   font-family: inherit;
-  font-size: var(--font-size-base);
   font-weight: var(--weight-bold);
   line-height: var(--line-tight);
   border: none;
-  border-radius: var(--radius-md);
   padding-block: var(--space-2);
-  padding-inline: var(--space-4);
   white-space: nowrap;
+  border-radius: var(--radius-lg);
+  padding-inline: var(--space-8);
+  font-size: var(--font-size-lg);
   @include interactive;
 
   /* ── Variants ────────────────────────────────────────────────── */
@@ -28,9 +28,6 @@
   &--primary {
     background: var(--btn-primary-background);
     color: var(--btn-primary-color);
-    border-radius: var(--radius-lg);
-    padding-inline: var(--space-8);
-    font-size: var(--font-size-lg);
     @include hover-lift;
   }
 
@@ -62,7 +59,6 @@
   &--secondary {
     background: var(--btn-secondary-background);
     color: var(--btn-secondary-color);
-    font-weight: var(--weight-regular);
 
     /* Brightness alone isn't quite enough on a near-white surface;
      * explicit tint reinforces the hover affordance. */
@@ -72,11 +68,9 @@
   }
 
   &--outline {
-    background: var(--surface-body);
+    background: transparent;
     border: 1px solid var(--btn-outline-border);
     color: var(--btn-outline-color);
-    padding-inline: var(--space-6);
-    font-weight: var(--weight-regular);
     @include hover-lift;
   }
 
@@ -130,19 +124,6 @@
 
     &:hover:not(:disabled) {
       color: var(--btn-text-color-hover);
-    }
-  }
-
-  &--link {
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    font-size: var(--font-size-base);
-    color: var(--btn-link-color);
-    font-weight: var(--weight-regular);
-
-    &:hover:not(:disabled) {
-      color: var(--btn-link-color-hover);
     }
   }
 }

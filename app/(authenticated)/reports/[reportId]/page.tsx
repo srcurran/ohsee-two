@@ -4,6 +4,7 @@ import { useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
+import TabBar from "@/components/utility/TabBar";
 import ErrorModal from "@/components/utility/ErrorModal";
 import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
@@ -13,7 +14,9 @@ import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
 import { ReportPageGrid } from "@/components/index/ReportPageGrid";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
+import { useReportModeShortcuts } from "@/components/index/use/reportModeShortcuts";
 import { markReportViewed } from "@/lib/viewed-reports";
+import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 import {
   computeBpChangeCounts,
   computeReportBreakpoints,
@@ -43,17 +46,59 @@ function ReportPageInner() {
     bpParam,
     activeVariant,
     activePageId,
+    filterMode,
     pageOriginRect,
     pageOriginThumb,
     setPageOriginRect,
     setPageOriginThumb,
     handleBpChange,
     handleVariantChange,
+    handleFilterChange,
     openPage,
     closePage,
   } = useReportUrlState();
 
+  const { accepted } = useAcceptedChanges();
+
   const reportVariants = useMemo(() => computeReportVariants(report), [report]);
+  const reportBreakpoints = useMemo(
+    () => (report ? computeReportBreakpoints(report) : []),
+    [report],
+  );
+
+  // Cmd/Ctrl + 1…8 select a breakpoint / variant (in report-bar order);
+  // Cmd/Ctrl + 9 / 0 toggle All pages / Changes only. Routed through the URL
+  // handlers so they drive both the grid and an open page-detail panel.
+  useReportModeShortcuts({
+    breakpoints: reportBreakpoints,
+    variants: reportVariants,
+    onBpChange: handleBpChange,
+    onVariantChange: handleVariantChange,
+    onFilterChange: handleFilterChange,
+  });
+
+  // Cmd/Ctrl + Enter — run the current test now (ignored mid-run or while a
+  // field is focused).
+  const runningStatus = report?.status;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.key !== "Enter") return;
+      const el = e.target as HTMLElement | null;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable ||
+          el.closest?.(".cm-editor"))
+      )
+        return;
+      if (runningStatus === "running") return;
+      e.preventDefault();
+      runNow();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [runningStatus, runNow]);
 
   useEffect(() => {
     if (notFound) {
@@ -114,9 +159,21 @@ function ReportPageInner() {
       }
     };
 
-    const reportBreakpoints = computeReportBreakpoints(report);
     const activeBp = pickActiveBp(bpParam, reportBreakpoints);
-    const bpChangeCounts = computeBpChangeCounts(report, activeVariant);
+    const bpChangeCounts = computeBpChangeCounts(report, activeVariant, accepted);
+
+    // Counts for the filter tabs: every page, vs pages with at least one
+    // unaccepted change (the same rule ReportPageGrid uses to filter).
+    const allPagesCount = report.pages.length;
+    const changedPagesCount = report.pages.filter((page) => {
+      const bpData =
+        activeVariant && page.variants?.[activeVariant]
+          ? page.variants[activeVariant]
+          : page.breakpoints;
+      return Object.values(bpData).some(
+        (r) => activeChanges(r.semanticChanges ?? [], report.id, accepted).length > 0,
+      );
+    }).length;
 
     content = (
       <div className="report">
@@ -134,6 +191,8 @@ function ReportPageInner() {
             onNavigate={(pid) => openPage(pid)}
             onBpChange={handleBpChange}
             onVariantChange={handleVariantChange}
+            filterMode={filterMode}
+            onFilterChange={handleFilterChange}
           />
         )}
 
@@ -151,21 +210,46 @@ function ReportPageInner() {
 
           <ReportStatusBanner report={report} />
 
-          <VariantTabs
-            variants={reportVariants}
-            active={activeVariant}
-            onChange={handleVariantChange}
-          />
+          {/* The bar (and its underline) only appears once a captured page
+              gives us breakpoints — otherwise a fresh run shows a stray line
+              under the title with no tabs beneath it. */}
+          {reportBreakpoints.length > 0 && (
+            <div className="report__bar">
+              <div className="report__variants">
+                <div className="report__breakpoints">
+                  <BreakpointTabs
+                    active={activeBp}
+                    onChange={handleBpChange}
+                    changeCounts={bpChangeCounts}
+                    breakpoints={reportBreakpoints}
+                    align="start"
+                  />
+                </div>
+                {reportVariants.length > 0 && (
+                  <div className="report__modes">
+                    <VariantTabs
+                      variants={reportVariants}
+                      active={activeVariant}
+                      onChange={handleVariantChange}
+                    />
+                  </div>
+                )}
+              </div>
 
-          <div className="report__breakpoints">
-            <BreakpointTabs
-              active={activeBp}
-              onChange={handleBpChange}
-              changeCounts={bpChangeCounts}
-              breakpoints={reportBreakpoints}
-              align="start"
-            />
-          </div>
+              {report.status !== "running" && (
+                <div className="report__filter">
+                  <TabBar<typeof filterMode>
+                    items={[
+                      { id: "all", label: `All pages (${allPagesCount})` },
+                      { id: "changes", label: `Changes only (${changedPagesCount})` },
+                    ]}
+                    active={filterMode}
+                    onSelect={handleFilterChange}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={`report__grid-wrap${report.status === "running" ? " report__grid-wrap--running" : ""}`}>
@@ -173,6 +257,7 @@ function ReportPageInner() {
             report={report}
             activeBp={activeBp}
             activeVariant={activeVariant}
+            filterMode={filterMode}
             onOpenPage={openPage}
           />
         </div>

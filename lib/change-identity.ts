@@ -1,21 +1,6 @@
 import type { SemanticChange } from "./types";
 
 /**
- * Stable identity for a structural change. Two breakpoints reporting the same
- * justify-content change on the same element will produce the same key, so
- * cross-breakpoint aggregations can dedupe.
- *
- * `id` on SemanticChange is per-detection (a fresh UUID each run), so we
- * build the key from the semantic shape instead.
- */
-export function semanticChangeKey(change: SemanticChange): string {
-  const prop = change.details?.property ?? "";
-  const prod = change.details?.prodValue ?? "";
-  const dev = change.details?.devValue ?? "";
-  return `${change.selector}::${change.category}::${prop}::${prod}->${dev}`;
-}
-
-/**
  * Coarser identity that ignores prod/dev values so the same logical change
  * (e.g. "width changed on .hero") matches across breakpoints even when the
  * specific values differ (1360→1240 at 1440px vs 900→800 at 1024px).

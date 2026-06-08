@@ -1,7 +1,7 @@
 @use "elevation" as *;
 
 /* Interactive feedback — applied to every clickable surface (.btn,
- * .icon-btn, .run-pill, and any other class that opts in). Gives a
+ * .icon-btn, .run-button, and any other class that opts in). Gives a
  * consistent feel across the app without each variant having to
  * define hover/active backgrounds:
  *

@@ -6,22 +6,18 @@
  *     <p .field__hint>  or  <p .field__error>
  *
  * .input, .textarea, and .checkbox are independent BEM blocks because
- * they are also used standalone (e.g. inside .flow-step, search bars,
- * checkbox lists) — see grep results in components/. */
+ * they are also used standalone (e.g. in search bars, checkbox lists)
+ * — see grep results in components/. */
 
 .field {
   display: flex;
   flex-direction: column;
-
-  &--inline {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-2);
-  }
+  /* The column owns the spacing between label / input / hint — children
+     don't add their own margins. */
+  gap: var(--space-1);
 
   .field__label {
     display: block;
-    margin-bottom: var(--space-1);
     font-size: var(--font-size-base);
     color: var(--field-label-color);
 
@@ -32,16 +28,47 @@
   }
 
   .field__hint {
-    margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--field-hint-color);
   }
 
   .field__error {
-    margin-top: var(--space-1);
     font-size: var(--font-size-sm);
     color: var(--field-error-color);
   }
+}
+
+/* Input affordances — standalone (like .input) so they compose onto any
+   labeled input, including custom composite controls that aren't a .field.
+   .field__control wraps the input + a trailing slot overlaid at the trailing
+   edge; the input reserves room via .input--with-trailing. */
+.field__control {
+  position: relative;
+  display: flex;
+}
+
+.field__trailing {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  color: var(--field-hint-color);
+}
+
+.field__status-icon {
+  display: block;
+
+  &--success { color: var(--status-success-500); }
+  &--error { color: var(--status-error-500); }
+}
+
+/* The `$VAR$` tag shown after a label (e.g. credential → script variable). */
+.field__var {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--font-size-sm);
+  color: var(--field-hint-color);
 }
 
 .input {
@@ -64,18 +91,8 @@
     border-color: var(--input-border-focus);
   }
 
-  &--sm {
-    padding: var(--space-1) var(--space-2);
-    font-size: var(--font-size-md);
-    border-radius: var(--radius-sm);
-  }
-
   &--compact {
     padding: var(--space-2) var(--space-3);
-  }
-
-  &--auto {
-    width: auto;
   }
 
   &--solid-bg {
@@ -86,27 +103,14 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
-  &--naked {
-    border-color: transparent;
-    padding: 0;
-    &:focus {
-      border-color: transparent;
-    }
-  }
-
-  &--underline {
-    border: none;
-    border-bottom: 1px solid transparent;
-    border-radius: 0;
-    padding-inline: 0;
-    &:focus {
-      border-bottom-color: var(--input-border-focus);
-    }
-  }
-
   &--error {
     border-color: var(--input-border-error);
     &:focus { border-color: var(--input-border-error); }
+  }
+
+  /* Reserves room for a .field__trailing affordance at the trailing edge. */
+  &--with-trailing {
+    padding-right: var(--space-8);
   }
 }
 
@@ -131,18 +135,6 @@
     border-color: var(--textarea-border-focus);
   }
 
-  &--mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: var(--font-size-md);
-  }
-
-  &--no-resize {
-    resize: none;
-  }
-
-  &--tinted {
-    background: var(--textarea-background-tinted);
-  }
 }
 
 .checkbox {

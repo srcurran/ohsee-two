@@ -1,0 +1,61 @@
+/* AuthProfilesPanel — site-level sign-in profiles manager.
+ *
+ * Layout (flex columns/rows + gaps) is handled by the .stack / .row utilities
+ * in JSX — see app/styles/utilities/_layout.scss. This file only carries the
+ * styling that's specific to this component (typography, the credential input
+ * affordances, the destructive action). */
+
+.auth-profiles {
+  &__hint {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--credentials-section-hint-color);
+    line-height: var(--line-base);
+  }
+
+}
+
+/* Layout: .stack .stack--xl (JSX). This block owns only the vertical padding. */
+.auth-profile {
+  padding: var(--space-1) 0;
+
+  &__name {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-md);
+    background: var(--input-background-solid);
+    color: var(--input-color);
+    font-family: inherit;
+    font-size: var(--font-size-lg);
+    font-weight: var(--weight-semibold);
+  }
+
+  /* Two-factor row: the "Two-factor" caption + $OTP$ tag + mode toggle.
+     (Inputs use the shared Field affordances — see _field.scss.) */
+  &__cred-label {
+    font-size: var(--font-size-md);
+    color: var(--credentials-section-label-color);
+  }
+
+  /* Pushes the destructive action to the far end of its .row action bar. */
+  &__delete {
+    margin-left: auto;
+  }
+
+  &__tokens {
+    font-size: var(--font-size-sm);
+    color: var(--credentials-section-hint-color);
+  }
+
+  /* Per-profile failure, shown right under its action row (not buried at the
+     top of the panel). */
+  &__error {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--status-error-500);
+  }
+}
+
+.auth-keyline {
+  border-bottom: 1px solid var(--input-border);
+}

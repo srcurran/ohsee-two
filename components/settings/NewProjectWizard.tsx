@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import MaterialField from "@/components/utility/MaterialField";
-import Wizard from "@/components/settings/Wizard";
+import Field from "@/components/utility/Field";
+import Wizard from "@/components/settings/shared/Wizard";
 import { checkUrl } from "@/lib/url-validation";
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
 /**
  * Two-step new-project flow per Figma 187:1092:
  *   1. Name (single text field)
- *   2. Prod + Dev URL (two MaterialFields, format-validated)
+ *   2. Prod + Dev URL (two Fields, format-validated)
  *
  * On submit, POSTs /api/projects with the collected data and emits the
  * created project id. The host (SidebarProvider) immediately opens the
@@ -65,7 +65,7 @@ export default function NewProjectWizard({ onClose, onCreated }: Props) {
         onNext={() => setStep(2)}
         onClose={onClose}
       >
-        <MaterialField
+        <Field
           label="What is the project's name?"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -88,8 +88,8 @@ export default function NewProjectWizard({ onClose, onCreated }: Props) {
       onNext={handleSubmit}
       onClose={onClose}
     >
-      <div className="wizard__fields">
-        <MaterialField
+      <div className="wizard__fields stack stack--lg">
+        <Field
           label="Prod URL"
           value={prodUrl}
           onChange={(e) => setProdUrl(e.target.value)}
@@ -99,7 +99,7 @@ export default function NewProjectWizard({ onClose, onCreated }: Props) {
           spellCheck={false}
           autoFocus
         />
-        <MaterialField
+        <Field
           label="Dev URL"
           value={devUrl}
           onChange={(e) => setDevUrl(e.target.value)}

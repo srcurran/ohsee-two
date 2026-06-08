@@ -2,13 +2,13 @@ import path from "path";
 import { chromium, type Browser } from "playwright";
 import { captureScreenshots } from "./screenshot";
 import { generateDiff } from "./diff";
-import { generateSemanticDiff } from "./semantic-diff";
+import { generateSemanticDiff, computeAlignmentAnchors } from "./semantic-diff";
 import { readJsonFile, writeJsonFile } from "./data";
 import { BREAKPOINTS, userProjectsFile, userReportsDir, userDir } from "./constants";
-import { mintSessionCookie, type AuthCookieConfig } from "./auth-token";
-import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials } from "./types";
+import { setCaptureConcurrency } from "./capture-semaphore";
+import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
-import { executeTestComposition, getCompositionScreenshotSteps } from "./micro-test-runner";
+import { executeTestComposition, executeScriptTest, getCompositionScreenshotSteps, captureLoginState } from "./micro-test-runner";
 import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
 
@@ -19,13 +19,6 @@ const BROWSER_ARGS = ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"
  * Keyed by reportId.
  */
 const runningReports = new Map<string, AbortController>();
-
-/**
- * Returns whether a given report is currently running in this process.
- */
-export function isReportRunning(reportId: string): boolean {
-  return runningReports.has(reportId);
-}
 
 /**
  * Cancel a running report by ID. Returns true if it was running and signalled.
@@ -40,13 +33,19 @@ export function cancelReport(reportId: string): boolean {
 }
 
 /**
- * Cancel all running reports for a given project. Returns cancelled report IDs.
+ * Cancel running reports for a specific test — used to supersede an in-progress
+ * run of the SAME test when it's re-run. Scoped to the test, not the whole
+ * project, so sibling tests keep running and multiple tests in one project can
+ * run in parallel. Returns cancelled report IDs.
  */
-export function cancelRunningReportsForProject(projectId: string): string[] {
+export function cancelRunningReportsForTest(
+  projectId: string,
+  siteTestId: string,
+): string[] {
   const cancelled: string[] = [];
   for (const [reportId, controller] of runningReports.entries()) {
-    const meta = reportProjectMap.get(reportId);
-    if (meta === projectId) {
+    const meta = reportMeta.get(reportId);
+    if (meta?.projectId === projectId && meta.siteTestId === siteTestId) {
       controller.abort();
       cancelled.push(reportId);
     }
@@ -54,8 +53,8 @@ export function cancelRunningReportsForProject(projectId: string): string[] {
   return cancelled;
 }
 
-/** Maps reportId → projectId for lookup during cancellation */
-const reportProjectMap = new Map<string, string>();
+/** Maps reportId → its project + test, for scoped cancellation. */
+const reportMeta = new Map<string, { projectId: string; siteTestId?: string }>();
 
 class ReportCancelledError extends Error {
   constructor() {
@@ -70,6 +69,11 @@ export type RunReportOptions = {
   /** Vault credentials resolved by the client for $EMAIL$ / $PASSWORD$ / $OTP$
    *  interpolation inside Playwright script steps. */
   scriptCredentials?: ScriptCredentials;
+  /** Vault credentials resolved by the client for the test's sign-in profile
+   *  (`siteTest.authProfileId`). When present, the runner logs in fresh at the
+   *  start of the run instead of reusing the profile's cached session snapshot,
+   *  so the session can't expire mid-run. */
+  authCredentials?: ScriptCredentials;
 };
 
 /**
@@ -85,9 +89,13 @@ export async function runReport(
 ): Promise<void> {
   const controller = new AbortController();
   runningReports.set(reportId, controller);
-  reportProjectMap.set(reportId, project.id);
+  reportMeta.set(reportId, { projectId: project.id, siteTestId: siteTest?.id });
+
+  // Capture concurrency follows this test's "fast mode" flag (8 vs 16).
+  setCaptureConcurrency(!!siteTest?.fastMode);
 
   const scriptCredentials = options?.scriptCredentials;
+  const authCredentials = options?.authCredentials;
   const signal = controller.signal;
 
   const checkCancelled = () => {
@@ -107,17 +115,26 @@ export async function runReport(
     ? siteTest.breakpoints
     : project.breakpoints?.length ? project.breakpoints : [...BREAKPOINTS];
 
+  // Advanced single-script test: one Playwright script that drives the flow
+  // and calls ohsee.snapshot(). When present it supersedes pages/flows/
+  // compositions entirely.
+  const scriptBody = siteTest?.script && siteTest.script.trim() ? siteTest.script : null;
+
   // When the new unified steps[] is present, decompose it into legacy
   // pages + a synthetic composition the existing executors already
   // understand. Falls through to project/legacy fields otherwise.
-  const unified = siteTest?.steps && siteTest.steps.length > 0
+  const unified = !scriptBody && siteTest?.steps && siteTest.steps.length > 0
     ? splitStepsForRunner(siteTest.steps)
     : null;
 
-  const testPages = unified
+  const testPages = scriptBody
+    ? []
+    : unified
     ? unified.pages
     : siteTest?.pages ?? project.pages;
-  const testFlows = unified
+  const testFlows = scriptBody
+    ? []
+    : unified
     ? []  // unified steps supersede legacy flows
     : siteTest?.flows ?? project.flows ?? [];
 
@@ -137,7 +154,9 @@ export async function runReport(
   const variantCount = testVariants.length;
   // Resolve compositions from the unified steps split (preferred) or
   // siteTest.compositions (legacy).
-  const testCompositions: TestComposition[] = unified
+  const testCompositions: TestComposition[] = scriptBody
+    ? []
+    : unified
     ? unified.composition ? [unified.composition] : []
     : siteTest?.compositions ?? [];
 
@@ -151,7 +170,13 @@ export async function runReport(
   // Flow ops: per screenshot step = breakpoints × (prod + dev + diff) × (1 + variants)
   const flowOps = flowScreenshotSteps * projectBreakpoints.length * 3 * (1 + variantCount);
   const compositionOps = compositionScreenshotSteps * projectBreakpoints.length * 3 * (1 + variantCount);
-  const totalOps = pageOps + flowOps + compositionOps;
+  // Script ops: estimate from the number of ohsee.snapshot() calls in the
+  // script (at least 1 so progress isn't zero); same ×3 per breakpoint/variant.
+  const scriptSnapshotCount = scriptBody
+    ? Math.max(scriptBody.match(/ohsee\s*\.\s*snapshot\s*\(/g)?.length ?? 0, 1)
+    : 0;
+  const scriptOps = scriptSnapshotCount * projectBreakpoints.length * 3 * (1 + variantCount);
+  const totalOps = pageOps + flowOps + compositionOps + scriptOps;
   let completedOps = 0;
 
   const report = await readJsonFile<Report>(reportPath, {
@@ -184,21 +209,129 @@ export async function runReport(
       chromium.launch({ headless: true, args: BROWSER_ARGS }),
       chromium.launch({ headless: true, args: BROWSER_ARGS }),
     ]);
-    // Mint auth cookies. Per-test credentials (siteTest.credentials.enabled
-    // — possibly via copyFromTestId) take precedence over the legacy
-    // project.requiresAuth flag so different tests can run as different
-    // identities. The actual identity comes from `userId` in either case;
-    // future work will plumb a vault entry id through to support distinct
-    // accounts per test.
-    const credentialsEnabled = resolveCredentialsEnabled(project, siteTest);
-    let prodAuthConfig: AuthCookieConfig | undefined;
-    let devAuthConfig: AuthCookieConfig | undefined;
-    if (credentialsEnabled) {
-      prodAuthConfig = await mintSessionCookie({ userId, targetUrl: project.prodUrl });
-      devAuthConfig = await mintSessionCookie({ userId, targetUrl: project.devUrl });
-    }
 
     const reportPages: ReportPage[] = [];
+
+    // The test's sign-in profile (if any) — its session seeds every capture
+    // (script tests AND simple URL tests) so the pages render already signed in.
+    const authProfile = siteTest?.authProfileId
+      ? project.authProfiles?.find((p) => p.id === siteTest.authProfileId)
+      : undefined;
+
+    // Prefer a FRESH login at run start over the profile's cached snapshot.
+    // The cached `storageState` is captured once (the "Test sign in" step) and
+    // freezes a session that expires after hours — reusing it means a run can
+    // start signed in and silently log out partway through (one env keeps the
+    // session, the other drops it → every later page diffs as signed-in vs
+    // signed-out). When the client passes the profile's vault credentials and
+    // the profile has a login script, re-run the login per environment so both
+    // sessions are minutes old. Fall back to the cached snapshot if fresh
+    // sign-in isn't possible (no credentials) or fails.
+    let storageState = authProfile?.storageState;
+    if (authProfile?.loginScript?.trim() && authCredentials) {
+      checkCancelled();
+      const loginProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
+      const loginDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
+      try {
+        const [prod, dev] = await Promise.all([
+          captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginProd, credentials: authCredentials }),
+          captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginDev, credentials: authCredentials }),
+        ]);
+        storageState = { prod, dev };
+      } catch (err) {
+        console.warn(
+          `[report ${reportId}] fresh sign-in failed for profile "${authProfile.name}", ` +
+          `falling back to cached session${storageState ? "" : " (none cached)"}: ` +
+          (err instanceof Error ? err.message : String(err)),
+        );
+      }
+    }
+
+    // --- Advanced single-script execution ---
+    // testPages/testFlows/testCompositions are all empty for a script test,
+    // so the loops below are no-ops; this branch produces the report pages.
+    if (scriptBody) {
+      const normProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
+      const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
+      // snapshot index → position in reportPages, so variant passes update
+      // the page the default pass already flushed.
+      const snapPageIndex = new Map<number, number>();
+      // First failing step seen across passes — surfaced on the report when the
+      // script stops before capturing all of its snapshots.
+      let scriptError: { breakpoint: number; message: string; snapshotsTaken: number } | null = null;
+
+      await captureAndDiffScript({
+        script: scriptBody,
+        prodBaseUrl: normProd,
+        devBaseUrl: normDev,
+        prefix: "",
+        screenshotDir,
+        dataBase,
+        breakpointList: projectBreakpoints,
+        credentials: scriptCredentials,
+        storageState,
+        checkCancelled,
+        onProgress: async () => { completedOps++; await saveProgress(); },
+        onSnapshotDiffed: async (index, name, results) => {
+          snapPageIndex.set(index, reportPages.length);
+          reportPages.push({
+            id: uuidv4(),
+            pageId: `snapshot-${index}`,
+            path: name,
+            breakpoints: results,
+          });
+          report.pages = reportPages;
+          await writeJsonFile(reportPath, report);
+        },
+        onScriptError: (info) => { if (!scriptError) scriptError = info; },
+        prodBrowser,
+        devBrowser,
+      });
+
+      // --- Variant captures ---
+      for (const variant of testVariants) {
+        checkCancelled();
+        await captureAndDiffScript({
+          script: scriptBody,
+          prodBaseUrl: normProd,
+          devBaseUrl: normDev,
+          prefix: `-${variant.id}`,
+          screenshotDir,
+          dataBase,
+          breakpointList: projectBreakpoints,
+          credentials: scriptCredentials,
+          storageState,
+          contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
+          initScript: variant.initScript,
+          checkCancelled,
+          onProgress: async () => { completedOps++; await saveProgress(); },
+          onSnapshotDiffed: async (index, _name, results) => {
+            const idx = snapPageIndex.get(index);
+            if (idx !== undefined) {
+              const page = reportPages[idx];
+              if (!page.variants) page.variants = {};
+              page.variants[variant.id] = results;
+              report.pages = reportPages;
+              await writeJsonFile(reportPath, report);
+            }
+          },
+          onScriptError: (info) => { if (!scriptError) scriptError = info; },
+          prodBrowser,
+          devBrowser,
+        });
+      }
+
+      // Surface the failing step when the script stopped before capturing all
+      // the snapshots it set out to (so a partial run isn't a silent mystery).
+      if (scriptError && reportPages.length < scriptSnapshotCount) {
+        const { message, snapshotsTaken } = scriptError;
+        report.scriptError =
+          `Stopped after ${snapshotsTaken} of ${scriptSnapshotCount} snapshot(s): ` +
+          summarizeScriptError(message);
+        report.pages = reportPages;
+        await writeJsonFile(reportPath, report);
+      }
+    }
 
     for (const page of testPages) {
       checkCancelled();
@@ -216,8 +349,8 @@ export async function runReport(
         prefix: "",
         screenshotDir,
         dataBase,
-        authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
         breakpointList: projectBreakpoints,
+        storageState,
         checkCancelled,
         onProgress: async () => { completedOps++; await saveProgress(); },
         prodBrowser,
@@ -240,8 +373,8 @@ export async function runReport(
             prefix: `-${variant.id}`,
             screenshotDir,
             dataBase,
-            authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
             breakpointList: projectBreakpoints,
+            storageState,
             contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
             initScript: variant.initScript,
             checkCancelled,
@@ -280,7 +413,6 @@ export async function runReport(
           prefix: "",
           screenshotDir,
           dataBase,
-          authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
           breakpointList: projectBreakpoints,
           checkCancelled,
           onProgress: async () => { completedOps++; await saveProgress(); },
@@ -301,7 +433,6 @@ export async function runReport(
               prefix: `-${variant.id}`,
               screenshotDir,
               dataBase,
-              authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
               breakpointList: projectBreakpoints,
               contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
               initScript: variant.initScript,
@@ -376,7 +507,6 @@ export async function runReport(
           prefix: "",
           screenshotDir,
           dataBase,
-          authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
           breakpointList: projectBreakpoints,
           credentials: scriptCredentials,
           checkCancelled,
@@ -412,7 +542,6 @@ export async function runReport(
               prefix: `-${variant.id}`,
               screenshotDir,
               dataBase,
-              authConfig: { prod: prodAuthConfig, dev: devAuthConfig },
               breakpointList: projectBreakpoints,
               credentials: scriptCredentials,
               contextOptions: variant.colorScheme ? { colorScheme: variant.colorScheme } : undefined,
@@ -449,6 +578,7 @@ export async function runReport(
 
     report.pages = reportPages;
     report.status = "completed";
+    report.completedAt = new Date().toISOString();
     report.progress = { completed: totalOps, total: totalOps };
     await writeJsonFile(reportPath, report);
 
@@ -467,6 +597,7 @@ export async function runReport(
       await writeJsonFile(projectsFile, projects);
     }
   } catch (err) {
+    report.completedAt = new Date().toISOString();
     if (err instanceof ReportCancelledError) {
       report.status = "cancelled";
       await writeJsonFile(reportPath, report);
@@ -481,7 +612,7 @@ export async function runReport(
     await prodBrowser?.close().catch(() => {});
     await devBrowser?.close().catch(() => {});
     runningReports.delete(reportId);
-    reportProjectMap.delete(reportId);
+    reportMeta.delete(reportId);
     if (options?.onComplete) {
       try {
         options.onComplete(report);
@@ -504,9 +635,10 @@ async function captureAndDiff(options: {
   prefix: string;
   screenshotDir: string;
   dataBase: string;
-  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   /** Breakpoints to capture (defaults to global BREAKPOINTS) */
   breakpointList?: number[];
+  /** Per-environment auth session to start each context already signed in. */
+  storageState?: { prod?: BrowserStorageState; dev?: BrowserStorageState };
   contextOptions?: { colorScheme?: "light" | "dark" };
   initScript?: string;
   checkCancelled: () => void;
@@ -516,7 +648,7 @@ async function captureAndDiff(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     prodUrl, devUrl, pageId, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], storageState, contextOptions, initScript,
     checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
@@ -530,9 +662,9 @@ async function captureAndDiff(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `prod-${pageId}${prefix}`,
-      authConfig: authConfig.prod,
       contextOptions,
       initScript,
+      storageState: storageState?.prod,
       browser: prodBrowser,
       onProgress: async () => {
         checkCancelled();
@@ -544,9 +676,9 @@ async function captureAndDiff(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `dev-${pageId}${prefix}`,
-      authConfig: authConfig.dev,
       contextOptions,
       initScript,
+      storageState: storageState?.dev,
       browser: devBrowser,
       onProgress: async () => {
         checkCancelled();
@@ -575,6 +707,9 @@ async function captureAndDiff(options: {
         undefined,
         highlightPath,
         highlightDevPath,
+        prodShot.domSnapshot && devShot.domSnapshot
+          ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+          : undefined,
       );
 
       const bpResult: BreakpointResult = {
@@ -631,7 +766,6 @@ async function captureAndDiffFlow(options: {
   prefix: string;
   screenshotDir: string;
   dataBase: string;
-  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   breakpointList?: number[];
   contextOptions?: { colorScheme?: "light" | "dark" };
   initScript?: string;
@@ -642,7 +776,7 @@ async function captureAndDiffFlow(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     flow, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], contextOptions, initScript,
     checkCancelled, onProgress, prodBrowser, devBrowser,
   } = options;
 
@@ -657,7 +791,6 @@ async function captureAndDiffFlow(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `prod-flow-${flow.id}${prefix}`,
-      authConfig: authConfig.prod,
       contextOptions,
       initScript,
       browser: prodBrowser,
@@ -672,7 +805,6 @@ async function captureAndDiffFlow(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `dev-flow-${flow.id}${prefix}`,
-      authConfig: authConfig.dev,
       contextOptions,
       initScript,
       browser: devBrowser,
@@ -706,6 +838,9 @@ async function captureAndDiffFlow(options: {
           undefined,
           highlightPath,
           highlightDevPath,
+          prodShot.domSnapshot && devShot.domSnapshot
+            ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+            : undefined,
         );
 
         const bpResult: BreakpointResult = {
@@ -750,25 +885,6 @@ async function captureAndDiffFlow(options: {
 }
 
 /**
- * Resolve whether a run should mint + inject auth cookies. Per-test
- * credentials (with optional copy-from indirection) override the legacy
- * project-level `requiresAuth` flag so different tests can target
- * different identities — though distinct account values still need a
- * vault entry id once that path is wired up.
- */
-function resolveCredentialsEnabled(project: Project, siteTest?: SiteTest): boolean {
-  const creds = siteTest?.credentials;
-  if (creds) {
-    if (creds.copyFromTestId) {
-      const referenced = project.tests?.find((t) => t.id === creds.copyFromTestId);
-      if (referenced?.credentials?.enabled) return true;
-    }
-    if (creds.enabled) return true;
-  }
-  return Boolean(project.requiresAuth);
-}
-
-/**
  * Capture prod + dev screenshots for a TestComposition, then generate diffs.
  * Mirrors captureAndDiffFlow but uses the micro-test runner.
  *
@@ -786,7 +902,6 @@ async function captureAndDiffComposition(options: {
   prefix: string;
   screenshotDir: string;
   dataBase: string;
-  authConfig: { prod?: AuthCookieConfig; dev?: AuthCookieConfig };
   breakpointList?: number[];
   credentials?: ScriptCredentials;
   contextOptions?: { colorScheme?: "light" | "dark" };
@@ -799,7 +914,7 @@ async function captureAndDiffComposition(options: {
 }): Promise<Record<string, BreakpointResult>> {
   const {
     project, composition, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
-    authConfig, breakpointList = [...BREAKPOINTS], credentials, contextOptions, initScript,
+    breakpointList = [...BREAKPOINTS], credentials, contextOptions, initScript,
     checkCancelled, onProgress, onStepDiffed, prodBrowser, devBrowser,
   } = options;
 
@@ -844,6 +959,9 @@ async function captureAndDiffComposition(options: {
           undefined,
           highlightPath,
           highlightDevPath,
+          prodShot.domSnapshot && devShot.domSnapshot
+            ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+            : undefined,
         );
 
         const bpResult: BreakpointResult = {
@@ -919,7 +1037,6 @@ async function captureAndDiffComposition(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `prod-comp-${composition.id}${prefix}`,
-      authConfig: authConfig.prod,
       contextOptions,
       initScript,
       credentials,
@@ -937,7 +1054,6 @@ async function captureAndDiffComposition(options: {
       breakpoints: breakpointList,
       outputDir: screenshotDir,
       prefix: `dev-comp-${composition.id}${prefix}`,
-      authConfig: authConfig.dev,
       contextOptions,
       initScript,
       credentials,
@@ -965,4 +1081,190 @@ async function captureAndDiffComposition(options: {
   await diffChain;
 
   return results;
+}
+
+/** Condense a Playwright error into a one-line summary for the report: the
+ *  headline plus the most informative "waiting for …" detail line, capped. */
+function summarizeScriptError(message: string): string {
+  const lines = message.split("\n").map((l) => l.trim()).filter(Boolean);
+  const headline = lines[0] ?? "Script error";
+  const detail = lines.find((l) => l !== headline && /waiting for|locator|getBy|toBe/i.test(l));
+  const summary = detail ? `${headline} — ${detail.replace(/^-\s*/, "")}` : headline;
+  return summary.length > 280 ? `${summary.slice(0, 279)}…` : summary;
+}
+
+/**
+ * Run an advanced single-script test against prod + dev and diff each
+ * `ohsee.snapshot()` capture. Mirrors captureAndDiffComposition but keys by
+ * the snapshot's index (its order in the script) — the stable pairing key
+ * since prod and dev run the identical script. Streams: a snapshot diffs as
+ * soon as all breakpoints are ready on both sides.
+ */
+async function captureAndDiffScript(options: {
+  script: string;
+  prodBaseUrl: string;
+  devBaseUrl: string;
+  prefix: string;
+  screenshotDir: string;
+  dataBase: string;
+  breakpointList?: number[];
+  credentials?: ScriptCredentials;
+  storageState?: { prod?: BrowserStorageState; dev?: BrowserStorageState };
+  contextOptions?: { colorScheme?: "light" | "dark" };
+  initScript?: string;
+  checkCancelled: () => void;
+  onProgress: () => Promise<void>;
+  onSnapshotDiffed?: (
+    index: number,
+    name: string,
+    results: Record<string, BreakpointResult>,
+  ) => Promise<void>;
+  onScriptError?: (info: { breakpoint: number; message: string; snapshotsTaken: number }) => void;
+  prodBrowser?: Browser;
+  devBrowser?: Browser;
+}): Promise<void> {
+  const {
+    script, prodBaseUrl, devBaseUrl, prefix, screenshotDir, dataBase,
+    breakpointList = [...BREAKPOINTS], credentials, storageState, contextOptions,
+    initScript, checkCancelled, onProgress, onSnapshotDiffed, onScriptError, prodBrowser, devBrowser,
+  } = options;
+
+  type Shot = import("./micro-test-runner").ScriptSnapshotResult;
+  type ShotMap = Map<number, Map<number, Shot>>;
+  const prodMap: ShotMap = new Map();
+  const devMap: ShotMap = new Map();
+  const names = new Map<number, string>();
+  const seen = new Set<number>();
+  const diffed = new Set<number>();
+  let diffChain = Promise.resolve();
+  const bpCount = breakpointList.length;
+
+  const diffSnapshot = async (index: number) => {
+    const stepResults: Record<string, BreakpointResult> = {};
+
+    await Promise.all(breakpointList.map(async (bp) => {
+      checkCancelled();
+      const prodShot = prodMap.get(index)?.get(bp);
+      const devShot = devMap.get(index)?.get(bp);
+
+      if (prodShot && devShot) {
+        const alignedProdPath = path.join(screenshotDir, `aligned-prod-script-${index}${prefix}-${bp}.png`);
+        const alignedDevPath = path.join(screenshotDir, `aligned-dev-script-${index}${prefix}-${bp}.png`);
+        const highlightPath = path.join(screenshotDir, `highlight-script-${index}${prefix}-${bp}.png`);
+        const highlightDevPath = path.join(screenshotDir, `highlight-dev-script-${index}${prefix}-${bp}.png`);
+
+        const diffResult = await generateDiff(
+          prodShot.filePath,
+          devShot.filePath,
+          alignedProdPath,
+          alignedDevPath,
+          undefined,
+          highlightPath,
+          highlightDevPath,
+          prodShot.domSnapshot && devShot.domSnapshot
+            ? computeAlignmentAnchors(prodShot.domSnapshot, devShot.domSnapshot)
+            : undefined,
+        );
+
+        const bpResult: BreakpointResult = {
+          prodScreenshot: path.relative(dataBase, prodShot.filePath),
+          devScreenshot: path.relative(dataBase, devShot.filePath),
+          alignedProdScreenshot: path.relative(dataBase, alignedProdPath),
+          alignedDevScreenshot: path.relative(dataBase, alignedDevPath),
+          highlightScreenshot: diffResult.highlightImagePath
+            ? path.relative(dataBase, diffResult.highlightImagePath) : undefined,
+          highlightDevScreenshot: diffResult.highlightDevImagePath
+            ? path.relative(dataBase, diffResult.highlightDevImagePath) : undefined,
+          prodUrl: prodShot.url,
+          devUrl: devShot.url,
+          changeCount: diffResult.changeCount > 0 ? 1 : 0,
+          totalPixels: diffResult.totalPixels,
+          changePercentage: diffResult.changePercentage,
+          pixelChangeCount: diffResult.changeCount,
+        };
+
+        if (prodShot.domSnapshot && devShot.domSnapshot) {
+          try {
+            const semanticResult = generateSemanticDiff(prodShot.domSnapshot, devShot.domSnapshot);
+            bpResult.semanticChanges = semanticResult.changes;
+            bpResult.changeSummary = semanticResult.summary;
+            bpResult.changeCount = semanticResult.issueCount;
+          } catch (err) {
+            console.error(`Semantic diff failed for script snapshot ${index} at ${bp}px:`, err);
+          }
+        }
+
+        stepResults[String(bp)] = bpResult;
+      }
+
+      await onProgress();
+    }));
+
+    if (onSnapshotDiffed) {
+      await onSnapshotDiffed(index, names.get(index) ?? `snapshot-${index + 1}`, stepResults);
+    }
+  };
+
+  const tryDiff = (index: number) => {
+    if (diffed.has(index)) return;
+    const p = prodMap.get(index);
+    const d = devMap.get(index);
+    if (!p || !d || p.size < bpCount || d.size < bpCount) return;
+    diffed.add(index);
+    const pr = diffChain.then(() => diffSnapshot(index));
+    diffChain = pr.catch(() => {});
+  };
+
+  const record = (map: ShotMap, r: Shot) => {
+    names.set(r.index, r.name);
+    seen.add(r.index);
+    let bpMap = map.get(r.index);
+    if (!bpMap) { bpMap = new Map(); map.set(r.index, bpMap); }
+    bpMap.set(r.breakpoint, r);
+    tryDiff(r.index);
+  };
+
+  checkCancelled();
+  await Promise.all([
+    executeScriptTest({
+      script,
+      baseUrl: prodBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `prod-script${prefix}`,
+      contextOptions,
+      initScript,
+      credentials,
+      storageState: storageState?.prod,
+      browser: prodBrowser,
+      onProgress: async () => { checkCancelled(); await onProgress(); },
+      onSnapshotCaptured: (r) => record(prodMap, r),
+      onScriptError,
+    }),
+    executeScriptTest({
+      script,
+      baseUrl: devBaseUrl,
+      breakpoints: breakpointList,
+      outputDir: screenshotDir,
+      prefix: `dev-script${prefix}`,
+      contextOptions,
+      initScript,
+      credentials,
+      storageState: storageState?.dev,
+      browser: devBrowser,
+      onProgress: async () => { checkCancelled(); await onProgress(); },
+      onSnapshotCaptured: (r) => record(devMap, r),
+      onScriptError,
+    }),
+  ]);
+
+  // Diff any snapshots not caught by streaming (e.g. one side missing a bp).
+  for (const index of seen) {
+    if (!diffed.has(index)) {
+      diffed.add(index);
+      const pr = diffChain.then(() => diffSnapshot(index));
+      diffChain = pr.catch(() => {});
+    }
+  }
+  await diffChain;
 }

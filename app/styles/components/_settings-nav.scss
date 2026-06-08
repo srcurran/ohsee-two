@@ -1,0 +1,86 @@
+/* Settings overlay section nav — a left rail + content pane on tablet+,
+ * driven by the same section list that renders as stacked accordions on
+ * narrow widths (the component swaps layouts via a media-query hook). */
+
+.settings-nav {
+  display: flex;
+  gap: var(--space-6);
+  align-items: stretch;
+  /* Fill the overlay body so the content pane can run full height. */
+  flex: 1;
+  min-height: 0;
+
+  &__rail {
+    flex-shrink: 0;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  &__item {
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--sidebar-item-color);
+    font-family: inherit;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      background: var(--surface-hover-soft);
+    }
+
+    /* Persistent highlight for the active section. The sidebar's active token
+       is near-white (reads only against the tinted sidebar bg), so on the
+       white panel use a computed tint that stays visible — and keep it on
+       hover so the active item doesn't lighten. */
+    &--active {
+      background: var(--surface-hover);
+      font-weight: var(--weight-semibold);
+
+      &:hover {
+        background: var(--surface-hover);
+      }
+    }
+  }
+
+  &__pane {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: var(--space-2);
+
+    /* The Script/Steps section and its editor fill the pane height. Scoped
+       to the direct section so the multi-editor sign-in panel and other
+       sections aren't forced to stretch. The high specificity also beats
+       .code-editor's max-height cap. */
+    > .test-steps {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+
+      > .script-editor {
+        flex: 1;
+        min-height: 0;
+
+        .script-editor__code {
+          flex: 1;
+          min-height: 0;
+          max-height: none;
+          overflow: hidden;
+
+          .cm-editor { height: 100%; }
+          .cm-scroller { overflow: auto; }
+        }
+      }
+    }
+  }
+}

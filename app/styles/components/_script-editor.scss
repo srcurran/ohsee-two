@@ -1,0 +1,50 @@
+/* ScriptEditor — always-visible CodeMirror with a Record/Upload toolbar and
+ * an optional click-to-insert quick reference. Used by the advanced test flow
+ * (wizard + test settings). */
+
+.script-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  &__code {
+    min-width: 0;
+    border-radius: var(--radius-md);
+  }
+
+  /* Quick reference — always-visible single row of insert chips below the
+     editor (layout via .row .row--sm in JSX); scrolls horizontally if it
+     can't fit. */
+  &__reference {
+    overflow-x: auto;
+  }
+
+  &__reference-title {
+    flex-shrink: 0;
+    font-size: var(--font-size-sm);
+    color: var(--wizard-hint-color, var(--neutral-dark-500));
+  }
+
+  &__snippet {
+    flex-shrink: 0;
+    padding: var(--space-1-5) var(--space-2);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--input-color);
+    font-family: inherit;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: var(--transition-colors);
+
+    &:hover {
+      background: var(--surface-hover-soft);
+    }
+  }
+
+  /* Push the AI-guidelines copy button to the far end of the toolbar,
+     away from the Record/Upload bootstraps. */
+  &__guidelines {
+    margin-left: auto;
+  }
+}

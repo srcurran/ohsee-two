@@ -21,6 +21,8 @@ interface PageDetailChangesProps {
   hasPixelDiff: boolean;
   changeScope?: ChangeScope;
   onChangeClick: (id: string) => void;
+  /** Report id — namespaces the per-change accepted state in ChangeList. */
+  reportId: string;
 }
 
 export function PageDetailChanges({
@@ -29,6 +31,7 @@ export function PageDetailChanges({
   hasPixelDiff,
   changeScope,
   onChangeClick,
+  reportId,
 }: PageDetailChangesProps) {
   return (
     <div className="page-detail-panel__changes">
@@ -38,11 +41,12 @@ export function PageDetailChanges({
           activeBp={activeBp}
           changeScope={changeScope}
           onChangeClick={onChangeClick}
+          reportId={reportId}
         />
       ) : hasPixelDiff ? (
         <div className="change-entry change-entry--ok">
           <span className="change-entry__icon">✓</span>
-          <div className="change-entry__body">
+          <div className="change-entry__body stack stack--sm">
             <span className="change-entry__description">
               No structural changes
             </span>
@@ -54,7 +58,7 @@ export function PageDetailChanges({
       ) : (
         <div className="change-entry change-entry--ok">
           <span className="change-entry__icon">✓</span>
-          <div className="change-entry__body">
+          <div className="change-entry__body stack stack--sm">
             <span className="change-entry__description">
               No differences between versions
             </span>

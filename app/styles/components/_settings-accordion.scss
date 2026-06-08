@@ -1,0 +1,96 @@
+/* SettingsAccordion (.settings-accordion) — disclosure block shared by
+ * ProjectSettingsOverlay + TestSettingsOverlay. (Split out of _test-settings.scss.) */
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Accordion group wrapper (TestSettingsOverlay.tsx):
+ *   <div .settings-accordion-group>
+ *     <div .settings-accordion> … ← one per disclosure block
+ *
+ * Wraps the stack of .settings-accordion blocks so the :first-of-type /
+ * :last-of-type border rules below resolve within the group, and gives
+ * the group its own layout slot in the overlay body.
+ * ────────────────────────────────────────────────────────────────────── */
+.settings-accordion-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Disclosure block (TestSettingsAccordion.tsx):
+ *   <div .settings-accordion [--open]>
+ *     <button .settings-overlay__danger-toggle>
+ *       <span .settings-overlay__section-title>
+ *       <span .settings-accordion__glyph [--open]>   ← +/- morph glyph
+ *     <div .settings-accordion__collapse>
+ *       <div .settings-accordion__collapse-inner>
+ *         <div .settings-accordion__body>            ← children slot
+ * ────────────────────────────────────────────────────────────────────── */
+.settings-accordion {
+  /* Border on the wrapper instead of <hr> siblings — adjacent accordions
+     share a single rule via :first-of-type / :last-of-type below. */
+  border-top: 1px solid var(--settings-accordion-border);
+
+  &:last-of-type {
+    border-bottom: 1px solid var(--settings-accordion-border);
+  }
+
+  /* Animated +/− glyph — two 1px lines forming a plus; the vertical line
+     scales to 0 when open so it morphs into a minus. */
+  .settings-accordion__glyph {
+    position: relative;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--settings-accordion-glyph-color);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: currentColor;
+      transition: transform var(--duration-base) var(--ease-standard);
+    }
+    /* Horizontal bar — always visible. */
+    &::before {
+      width: 100%;
+      height: 2px;
+      transform: translate(-50%, -50%);
+    }
+    /* Vertical bar — collapses to 0 when open. */
+    &::after {
+      width: 2px;
+      height: 100%;
+      transform: translate(-50%, -50%) scaleY(1);
+    }
+
+    &--open::after {
+      transform: translate(-50%, -50%) scaleY(0);
+    }
+  }
+
+  /* CSS-grid height animation: the collapse wrapper goes from 0fr → 1fr
+     and the inner element has min-height: 0 with overflow hidden. This
+     animates the natural height of arbitrary content without measuring. */
+  .settings-accordion__collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--duration-base) var(--ease-standard);
+
+    .settings-accordion__collapse-inner {
+      min-height: 0;
+      overflow: hidden;
+
+      .settings-accordion__body {
+        padding-top: var(--space-2);
+        padding-bottom: var(--space-5);
+      }
+    }
+  }
+
+  &--open .settings-accordion__collapse {
+    grid-template-rows: 1fr;
+  }
+}

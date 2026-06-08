@@ -1,29 +1,29 @@
-/* ChangeList — filter pills + a flat list of change entries, each with a
+/* ChangeList — filter filter-pills + a flat list of change entries, each with a
  * left severity border. Structure mirrors the JSX tree:
  *
  *   <div .change-list>
  *     <div .change-list__header>
  *       <h3 .change-list__title>
  *     <div .change-list__filters [--scroll]>
- *       <div .change-list__filters-track>     ← pill buttons (uses .pill)
+ *       <div .change-list__filters-track>     ← filter-pill buttons (uses .filter-pill)
  *     <div .change-list__items>
  *       (.change-entry per detected change)
  *
- *   <div .change-entry [--error|--info|--ok] [--interactive]>
- *     <span .change-entry__icon>
- *     <div .change-entry__body>
+ *   <div .change-entry [--error|--info|--ok] [--interactive] [--accepted]>
+ *     <div .change-entry__top>
  *       <span .change-entry__description>
- *       <span .change-entry__selector>
+ *       <button .change-entry__check [--checked]>   ← accept toggle, top-right
+ *     <div .change-entry__meta>                       ← fixed-height; shown when accepted or scoped
+ *       (not accepted) <span .change-entry__scope>            ← breakpoints label
+ *       (accepted)     <span .change-entry__accepted-label>   ← lower-left
+ *                      <button .change-entry__undo>           ← lower-right
  *
  *   <div .change-notice>                       ← empty-state callout
  *     <span .change-notice__icon>
  */
 
+/* Layout: .stack .stack--lg (JSX). */
 .change-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-
   .change-list__header {
     display: flex;
     align-items: center;
@@ -50,7 +50,7 @@
       scrollbar-width: thin;
       /* Drag-to-scroll affordance — see handlePointerDown in ChangeList.tsx.
          touch-action: pan-x lets vertical page scrolls pass through while we
-         claim horizontal gestures. user-select: none keeps the dragged pills
+         claim horizontal gestures. user-select: none keeps the dragged filter-pills
          from selecting their text. */
       cursor: grab;
       touch-action: pan-x;
@@ -62,25 +62,19 @@
       }
     }
 
+    /* Layout: .row .row--sm (JSX). Owns only its intrinsic width. */
     .change-list__filters-track {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
       width: max-content;
     }
   }
 
-  .change-list__items {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
+  /* Layout: .stack .stack--xs (JSX). */
 }
 
 .change-entry {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
   border-left: 3px solid var(--change-entry-border-info);
   background: var(--change-entry-background);
   padding: var(--space-2-5) var(--space-4) var(--space-2-5) var(--space-3);
@@ -89,9 +83,7 @@
     border-left-color: var(--change-entry-border-error);
   }
 
-  &--info {
-    border-left-color: var(--change-entry-border-info);
-  }
+  /* --info is the base default border, so no modifier rule is needed. */
 
   &--ok {
     border-left-color: var(--change-entry-border-ok);
@@ -108,52 +100,106 @@
 
   /* Cross-breakpoint entries that don't apply to the active viewport —
      still visible (the user wanted them shown) but visually receded so
-     the in-viewport ones stand out. Same affordance as a filter pill
+     the in-viewport ones stand out. Same affordance as a filter filter-pill
      with a zero count, applied per entry. */
   &--dimmed {
     opacity: 0.4;
     cursor: default;
   }
 
-  .change-entry__icon {
-    margin-top: var(--space-0-5);
-    display: flex;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--font-size-md);
-  }
-
-  .change-entry__body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    min-width: 0;
+  /* Accepted: an expected diff the user has signed off on — receded with a
+     green edge. Stays in the list but no longer counts toward the badges. */
+  &--accepted {
+    border-left-color: var(--change-entry-border-ok);
+    opacity: 0.6;
 
     .change-entry__description {
+      text-decoration: line-through;
+      text-decoration-color: color-mix(in srgb, currentColor 50%, transparent);
+    }
+  }
+
+  /* Top row: description fills the width so the checkbox is pushed to the
+     top-right corner (a consistent accept hit target across every entry). */
+  .change-entry__top {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+
+    .change-entry__description {
+      flex: 1;
+      min-width: 0;
       font-size: var(--font-size-base);
       color: var(--change-entry-description-color);
     }
+  }
 
-    .change-entry__scope {
-      border-radius: var(--radius-xs);
-      background: var(--change-entry-scope-background, color-mix(in srgb, var(--neutral-400) 20%, transparent));
-      color: var(--change-entry-scope-color, var(--neutral-500));
-      font-size: var(--font-size-sm);
-      line-height: var(--line-none);
-      white-space: nowrap;
-      vertical-align: middle;
+  /* The accept control — a bare check, faint while open and solid green once
+     accepted. Transitions (not keyframes) so the pop only fires on toggle, not
+     when an already-accepted entry mounts; the back easing overshoots for the
+     pop. */
+  .change-entry__check {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-1);
+    border: none;
+    background: transparent;
+    color: var(--change-entry-check-color);
+    opacity: 0.45;
+    transform: scale(0.9);
+    cursor: pointer;
+    transition:
+      transform var(--duration-base) var(--ease-back),
+      color var(--duration-fast) var(--ease-standard),
+      opacity var(--duration-fast) var(--ease-standard);
+
+    &:hover {
+      color: var(--change-entry-check-color-hover);
+      opacity: 0.8;
     }
 
-    .change-entry__selector {
-      font-size: var(--font-size-sm);
-      color: var(--change-entry-selector-color);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    &--checked {
+      color: var(--change-entry-check-color-active);
+      opacity: 1;
+      transform: scale(1);
+
+      /* Stay solid green on hover — the explicit "undo" carries the reversal. */
+      &:hover {
+        color: var(--change-entry-check-color-active);
+        opacity: 1;
+      }
     }
+  }
+
+  /* Meta slot under the description: toggles between the breakpoints label
+     (not accepted) and the "Accepted" label + undo (accepted). Pinned to one
+     small-text line in both states so accepting an entry never changes its
+     height — which would otherwise break the list's vertical rhythm. UA buttons
+     force line-height: normal, so the line metrics are set here (inherited by
+     the spans) and again on the undo button. */
+  .change-entry__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--font-size-sm);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-none);
+  }
+
+  .change-entry__scope {
+    color: var(--neutral-dark-500);
+    white-space: nowrap;
+  }
+
+  .change-entry__accepted-label {
+    color: var(--change-entry-description-color);
+  }
+
+  .change-entry__undo {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-none);
   }
 }
 

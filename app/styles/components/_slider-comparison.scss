@@ -24,6 +24,25 @@
   &--tap { cursor: pointer; }
   &--slider { cursor: col-resize; }
 
+  /* Blend: prod laid over dev and combined with `difference`, so identical
+     pixels collapse to black and only what actually changed lights up — a
+     plain "show me the difference" view, no colour tinting. The slight
+     transparency leaves a faint ghost of the page behind the differences for
+     context. `isolation` keeps the blend self-contained so it doesn't bleed
+     onto the page. */
+  &--blend {
+    isolation: isolate;
+
+    .comparison__blend {
+      display: block;
+      width: 100%;
+    }
+    .comparison__blend--prod {
+      mix-blend-mode: difference;
+      opacity: 0.8;
+    }
+  }
+
   .comparison__image {
     display: block;
     width: 100%;

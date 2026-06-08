@@ -6,8 +6,9 @@ import { useSidebar, usePageTitle } from "@/components/utility/SidebarProvider";
 import type { Project, Report } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
 import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
-import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import { Icon } from "@/components/utility/Icon";
+import { resolveScriptCredentials, resolveVaultCredentials } from "@/lib/vault-resolve";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -44,9 +45,32 @@ export default function ProjectPage() {
   const handleRun = async () => {
     setRunError(null);
     setRunning(true);
-    const res = await fetch(`/api/projects/${params.id}/reports`, {
-      method: "POST",
-    });
+    // Reports are run through the test-scoped endpoint — this landing page runs
+    // the project's first/default test. (hasTests guards the button, so a test
+    // exists here.)
+    const test = project?.tests?.[0];
+    if (!test) {
+      setRunError(
+        buildRunErrorDetails({ error: "This project has no test to run." }, params.id),
+      );
+      setRunning(false);
+      return;
+    }
+    // Resolve vault credentials client-side: `scriptCredentials` for
+    // $EMAIL$/$PASSWORD$/$OTP$ in the test's script, `authCredentials` for the
+    // test's sign-in profile so the runner logs in fresh at run start instead
+    // of reusing a stale session.
+    const scriptCredentials = await resolveScriptCredentials(test);
+    const authProfile = test.authProfileId
+      ? project?.authProfiles?.find((p) => p.id === test.authProfileId)
+      : undefined;
+    const authCredentials = await resolveVaultCredentials(authProfile?.vaultEntryId);
+    const runOpts: RequestInit = { method: "POST" };
+    if (scriptCredentials || authCredentials) {
+      runOpts.headers = { "Content-Type": "application/json" };
+      runOpts.body = JSON.stringify({ scriptCredentials, authCredentials });
+    }
+    const res = await fetch(`/api/projects/${params.id}/tests/${test.id}/reports`, runOpts);
     if (res.ok) {
       const { reportId } = await res.json();
       trackReportCompletion(reportId, displayName ?? "Audit");
@@ -80,11 +104,11 @@ export default function ProjectPage() {
             <p className="empty-state__body">
               No reports yet. Run your first comparison.
             </p>
-            <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
+            <div className="row row--center" style={{ marginTop: "var(--space-5)" }}>
               <button
                 onClick={handleRun}
                 disabled={running}
-                className="run-pill run-pill--lg"
+                className="run-button run-button--lg"
               >
                 {running ? "Starting..." : "Run"}
                 <Icon name="play" size={24} />
@@ -104,7 +128,7 @@ export default function ProjectPage() {
             <p className="empty-state__body">
               Add a site test to start comparing.
             </p>
-            <div className="empty-state__actions" style={{ marginTop: "var(--space-5)" }}>
+            <div className="row row--center" style={{ marginTop: "var(--space-5)" }}>
               <button
                 onClick={() => openNewTestWizard(params.id)}
                 className="btn btn--primary"

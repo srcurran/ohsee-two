@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
-import BreakpointEditor from "@/components/settings/BreakpointEditor";
+import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
 import CredentialsSettings from "@/components/settings/CredentialsSettings";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
+import Segmented from "@/components/utility/Segmented";
+import TabBar from "@/components/utility/TabBar";
 
 type Tab = "general" | "defaults" | "credentials";
 
@@ -57,23 +59,10 @@ export default function SettingsPage() {
 
   return (
     <div className="page-shell">
-      <div className="page-header animate-card-in">
+      <div className="page-header stack stack--lg animate-card-in">
         <h1 className="page-header__title page-header__title--xl">Settings</h1>
 
-        <div className="tab-bar">
-          <div className="tab-bar__list">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`tab ${activeTab === tab.id ? "tab--active" : ""}`}
-              >
-                {tab.label}
-                {activeTab === tab.id && <span className="tab__indicator" />}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TabBar items={tabs} active={activeTab} onSelect={setActiveTab} />
       </div>
 
       <div className="page-shell__body">
@@ -119,18 +108,16 @@ export default function SettingsPage() {
               {mounted && (
                 <section className="section-block animate-card-in" style={{ animationDelay: "50ms" }}>
                   <p className="section-heading" style={{ fontWeight: "var(--weight-regular)" }}>Theme</p>
-                  <div className="segmented" style={{ width: "fit-content" }}>
-                    {(["light", "dark", "system"] as const).map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => setTheme(opt)}
-                        className={`segmented__item ${theme === opt ? "segmented__item--active" : ""}`}
-                        style={{ padding: "var(--space-1-5) var(--space-4)", textTransform: "capitalize", fontSize: "var(--font-size-base)" }}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
+                  <Segmented
+                    options={[
+                      { value: "light", label: "Light" },
+                      { value: "dark", label: "Dark" },
+                      { value: "system", label: "System" },
+                    ]}
+                    value={(theme ?? "system") as "light" | "dark" | "system"}
+                    onChange={setTheme}
+                    className="segmented--fit segmented--lg"
+                  />
                 </section>
               )}
 

@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { SidebarGroup } from "@/components/utility/SidebarGroup";
-import { Icon } from "@/components/utility/Icon";
+import AppSettingsFlyout from "@/components/utility/AppSettingsFlyout";
 import { useSidebarData } from "@/components/utility/use/sidebarData";
 import { useProjectDrag } from "@/components/utility/use/projectDrag";
+import { useGlobalShortcuts } from "@/components/utility/use/globalShortcuts";
 import type { Project, Report, SiteTest } from "@/lib/types";
 
 /** Top-level sidebar shell. Composes data + drag hooks with the project-
@@ -18,10 +19,12 @@ export default function Sidebar() {
     refreshProjects,
     collapsed,
     ready,
-    openSettings,
+    openProjectSettings,
     openTestSettings,
     openNewProjectWizard,
     openNewTestWizard,
+    toggleCollapsed,
+    toggleShortcuts,
     setHasProjects,
   } = useSidebar();
   const router = useRouter();
@@ -68,6 +71,20 @@ export default function Sidebar() {
     if (!loading) setHasProjects(visibleData.length > 0);
   }, [loading, visibleData.length, setHasProjects]);
 
+  // Global shortcuts (test nav + new test/site). Registered here because the
+  // Sidebar is always mounted; kept above the empty-state early return so
+  // Cmd+Shift+N still works before any site exists.
+  useGlobalShortcuts({
+    data: visibleData,
+    onNavigateTest: handleTestClick,
+    openNewTestWizard,
+    openNewProjectWizard,
+    openTestSettings,
+    openProjectSettings,
+    toggleSidebar: toggleCollapsed,
+    toggleShortcuts,
+  });
+
   if (!loading && visibleData.length === 0) return null;
 
   const stateMod = collapsed ? "sidebar--collapsed" : "sidebar--expanded";
@@ -90,6 +107,7 @@ export default function Sidebar() {
                 onProjectClick={handleProjectClick}
                 onTestClick={handleTestClick}
                 onAddTest={openNewTestWizard}
+                onOpenProjectSettings={openProjectSettings}
                 onOpenTestSettings={openTestSettings}
                 onDragStart={drag.onDragStart}
                 onDragEnter={drag.onDragEnter}
@@ -110,14 +128,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar__footer-row">
-        <button
-          onClick={openSettings}
-          aria-label="Settings"
-          title="Settings"
-          className="icon-btn"
-        >
-          <Icon name="settings" size={16} />
-        </button>
+        <AppSettingsFlyout />
       </div>
     </aside>
   );

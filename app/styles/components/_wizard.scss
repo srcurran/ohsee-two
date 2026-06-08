@@ -5,57 +5,65 @@
  * There is no root `.wizard` element — the parts are siblings inside
  * `.modal__panel`. Structure mirrors that JSX tree (Wizard.tsx):
  *   <div .modal__panel>
- *     <div .wizard__head>
+ *     <div .wizard__head .row .row--between .row--xs>
  *       <h2 .wizard__title>
  *       <button .icon-btn>                  ← close
- *     <div .wizard__body>                   ← step content slot
- *       <div .wizard__fields>               ← from step children
- *         <h3 .wizard__section-title>
+ *     <div .wizard__body .stack .stack--lg> ← step content slot
+ *       <div .wizard__fields .stack .stack--lg> ← from step children
  *         <p .wizard__hint>
  *         <ul .wizard__step-list>
  *           <li .wizard__step-item>
  *             <span .wizard__step-label>
- *         <div .wizard__add-row>
- *     <div .wizard__footer>
+ *         <div .wizard__add-row .row .row--top>
+ *     <div .wizard__footer .row .row--between>
  *       <span .wizard__step-count>
- *       <div .wizard__footer-actions>
+ *       <div .row>                           ← footer actions
  */
-
-.wizard__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-
-  /* Subtle eyebrow rather than a prominent heading — the active step's
-     question prompt (e.g. "What is the project's name?") carries the real
-     visual weight. Matches Figma 187:1092. */
-  .wizard__title {
-    margin: 0;
-    font-size: var(--font-size-md);
-    font-weight: var(--weight-semibold);
-    color: var(--wizard-title-color);
-  }
-}
-
-.wizard__body {
+.modal__panel{
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
+}
 
+/* Cap the wizard panel to the viewport. The .modal scrim centers it and insets
+   it by space-4 all round, so 100% of the flex item resolves to the window
+   minus that padding. Tall steps scroll inside .wizard__body instead of
+   pushing the panel off-screen. */
+.modal__panel--wizard {
+  max-height: 100%;
+}
+/* Layout: .row .row--between .row--xs (JSX). Owns only the full-bleed width. */
+.wizard__head {
+  width: 100%;
+}
+
+/* Layout: .stack .stack--lg (JSX). */
+.wizard__body {
+  /* Fill the capped panel and scroll when a step is taller than the window.
+     min-height gives every step a consistent floor, so the frame stays put
+     between short and tall steps instead of resizing on each transition. */
+  flex: 1 1 auto;
+  min-height: 16rem;
+  overflow-y: auto;
+  /* Inset the scroll-clip box by space-1 and pull it back with a matching
+     negative margin, so an edge element's focus outline isn't clipped by the
+     overflow while the content's width and position stay unchanged. */
+  padding: var(--space-1);
+  margin: calc(-1 * var(--space-1));
+
+  /* Cross-step slide + fade (keyframes in base/_animations.scss). The body is
+     keyed on `step` in Wizard.tsx, so the incoming step remounts and replays
+     the slide in the direction the host moved. */
+  &--forward { animation: wizard-step-in-right var(--duration-fast) var(--ease-decel) both; }
+  &--back    { animation: wizard-step-in-left  var(--duration-fast) var(--ease-decel) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    &--forward,
+    &--back { animation: none; }
+  }
+
+  /* .wizard__fields is also .stack .stack--lg in JSX. */
   .wizard__fields {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-
-    .wizard__section-title {
-      margin: 0;
-      font-size: var(--font-size-md);
-      font-weight: var(--weight-regular);
-      color: var(--wizard-section-title-color);
-    }
-
     .wizard__hint {
       margin: 0;
       font-size: var(--font-size-md);
@@ -94,49 +102,69 @@
       }
     }
 
-    .wizard__add-row {
+    /* Simple/advanced choice cards on the Screens decision step. */
+    .type-fork {
       display: flex;
-      align-items: flex-start;
       gap: var(--space-3);
+
+      .type-fork__card {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+        padding: var(--space-4);
+        text-align: left;
+        border: 1px solid var(--wizard-step-item-border);
+        border-radius: var(--radius-lg);
+        background: transparent;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--wizard-step-label-color);
+        transition: var(--transition-colors);
+
+        &:hover {
+          border-color: var(--action-500);
+          background: var(--tint-4);
+        }
+
+        .type-fork__title {
+          font-size: var(--font-size-lg);
+          font-weight: var(--weight-bold);
+        }
+
+        .type-fork__desc {
+          font-size: var(--font-size-md);
+          color: var(--wizard-hint-color);
+          line-height: var(--line-base);
+        }
+      }
+    }
+
+    /* Layout: .row .row--top (JSX). Owns the top inset + the field/button
+       sizing rules below. */
+    .wizard__add-row {
       padding-top: var(--space-3);
 
-      /* The MaterialField inside should flex to fill the row. */
-      > .material-field {
+      /* The Field inside should flex to fill the row. */
+      > .field {
         flex: 1 1 auto;
         min-width: 0;
       }
 
-      /* Align the button vertically with the field shell (label + input). */
+      /* Drop the button beside the input, clearing the field's label above. */
       > button {
-        margin-top: var(--space-5);
+        margin-top: var(--space-6);
         flex-shrink: 0;
       }
     }
   }
 }
 
+/* Layout: .row .row--between (JSX). */
 .wizard__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-6);
-
   .wizard__step-count {
     font-size: var(--font-size-sm);
     color: var(--wizard-step-count-color);
-  }
-
-  .wizard__footer-actions {
-    display: flex;
-    gap: var(--space-3);
-
-    /* Size the Previous button to match .btn--primary so the two
-       buttons sit as a visually balanced pair. */
-    .wizard__btn-prev {
-      border-radius: var(--radius-lg);
-      padding-inline: var(--space-8);
-      font-size: var(--font-size-lg);
-    }
   }
 }

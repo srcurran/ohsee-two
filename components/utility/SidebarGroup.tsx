@@ -5,12 +5,14 @@ import { usePathname } from "next/navigation";
 import ProjectFavicon from "@/components/utility/ProjectFavicon";
 import { reportDotModifier } from "@/lib/colors";
 import { formatRelativeTimeShort } from "@/lib/relative-time";
+import { useAcceptedChanges } from "@/lib/accepted-changes";
 import { useViewedReports } from "@/lib/viewed-reports";
 import type { Project, Report, SiteTest } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
 import {
   getDomain,
   getTestWithLatestReport,
+  sortTestsForSidebar,
   type TestWithLatestReport,
 } from "@/components/utility/utils/sidebar";
 
@@ -23,6 +25,7 @@ interface SidebarGroupProps {
   onProjectClick: (project: Project, reports: Report[]) => void;
   onTestClick: (test: SiteTest, project: Project, reports: Report[]) => void;
   onAddTest: (projectId: string) => void;
+  onOpenProjectSettings: (projectId: string) => void;
   onOpenTestSettings: (projectId: string, testId: string) => void;
   onDragStart: (index: number, e: React.DragEvent<HTMLDivElement>) => void;
   onDragEnter: (index: number) => void;
@@ -44,6 +47,7 @@ function SidebarGroupComponent({
   onProjectClick,
   onTestClick,
   onAddTest,
+  onOpenProjectSettings,
   onOpenTestSettings,
   onDragStart,
   onDragEnter,
@@ -58,9 +62,11 @@ function SidebarGroupComponent({
   // restored from the project Danger Zone.
   const testsWithReports = useMemo(
     () =>
-      (project.tests || [])
-        .filter((t) => !t.archived)
-        .map((t) => getTestWithLatestReport(t, reports)),
+      sortTestsForSidebar(
+        (project.tests || [])
+          .filter((t) => !t.archived)
+          .map((t) => getTestWithLatestReport(t, reports)),
+      ),
     [project.tests, reports],
   );
   const visibleTests = expanded
@@ -79,13 +85,25 @@ function SidebarGroupComponent({
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        <button
-          onClick={() => onProjectClick(project, reports)}
-          className="sidebar__header"
-        >
-          <ProjectFavicon url={project.prodUrl} fallbackUrl={project.devUrl} />
-          <span className="sidebar__title">{project.name || domain}</span>
-        </button>
+        <div className="sidebar__header-row">
+          <button
+            onClick={() => onProjectClick(project, reports)}
+            className="sidebar__header"
+          >
+            <ProjectFavicon url={project.prodUrl} fallbackUrl={project.devUrl} />
+            <span className="sidebar__title">{project.name || domain}</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenProjectSettings(project.id);
+            }}
+            className="sidebar__group-action"
+            title="Project settings"
+          >
+            <Icon name="project-menu" size={14} />
+          </button>
+        </div>
 
         <div className="sidebar__tests">
           {visibleTests.map((twr) => (
@@ -146,7 +164,8 @@ function SidebarTestRow({
   onClick,
   onOpenSettings,
 }: SidebarTestRowProps) {
-  const dotMod = latestReport ? reportDotModifier(latestReport) : "inactive";
+  const { accepted } = useAcceptedChanges();
+  const dotMod = latestReport ? reportDotModifier(latestReport, accepted) : "inactive";
   const lastRanAt = latestReport?.createdAt ?? test.lastRunAt;
   const timeAgo = latestReport
     ? formatRelativeTimeShort(latestReport.createdAt)
@@ -184,7 +203,7 @@ function SidebarTestRow({
         className="sidebar__test-action"
         title="Test settings"
       >
-        <Icon name="dots" size={12} />
+        <Icon name="project-menu" size={14} />
       </button>
     </div>
   );

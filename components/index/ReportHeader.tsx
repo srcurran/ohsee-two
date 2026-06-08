@@ -1,6 +1,6 @@
 "use client";
 
-/** Sticky header row for the report page: title + run-pill / progress bar /
+/** Sticky header row for the report page: title + run-button / progress bar /
  * cancel button, the date pill (which doubles as a sibling-reports dropdown
  * trigger), and the test/project-settings menu. Pure presentation — every
  * action and the `showReportNav` state is owned by the parent. */
@@ -9,6 +9,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
 import { reportDotModifier } from "@/lib/colors";
+import { useAcceptedChanges } from "@/lib/accepted-changes";
 import type { Report } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
 
@@ -34,6 +35,7 @@ export function ReportHeader({
   settingsTitle,
 }: ReportHeaderProps) {
   const [showReportNav, setShowReportNav] = useState(false);
+  const { accepted } = useAcceptedChanges();
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
 
@@ -45,12 +47,12 @@ export function ReportHeader({
 
       <div className="report__right">
         {report.status !== "running" ? (
-          <button onClick={onRun} className="run-pill">
+          <button onClick={onRun} className="run-button">
             Run now
-            <Icon name="play" size={20} className="run-pill__icon" />
+            <Icon name="play" size={20} className="run-button__icon" />
           </button>
         ) : (
-          <div className="progress">
+          <div className="progress row">
             <div className="progress__bar">
               <div
                 className="progress__fill"
@@ -62,7 +64,7 @@ export function ReportHeader({
             <span className="progress__text">
               {progressCompleted}/{progressTotal}
             </span>
-            <button onClick={onCancel} className="status-pill">
+            <button onClick={onCancel} className="btn btn--text">
               Cancel
             </button>
           </div>
@@ -79,7 +81,7 @@ export function ReportHeader({
               {formatRelativeTime(report.createdAt)}
             </span>
             <span
-              className={`status-dot status-dot--${reportDotModifier(report)}`}
+              className={`status-dot status-dot--${reportDotModifier(report, accepted)}`}
             />
           </button>
           <button
@@ -119,7 +121,7 @@ export function ReportHeader({
                         {formatRelativeTime(r.createdAt)}
                       </span>
                       <span
-                        className={`status-dot status-dot--${reportDotModifier(r)}`}
+                        className={`status-dot status-dot--${reportDotModifier(r, accepted)}`}
                       />
                     </Link>
                   );

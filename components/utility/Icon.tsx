@@ -32,6 +32,7 @@ export type IconName =
   | "globe"
   | "warning"
   | "check"
+  | "copy"
   | "alert-circle"
   | "monitor"
   | "project-menu"
@@ -144,6 +145,15 @@ const ICONS: Record<IconName, VectorDef | RasterDef> = {
     viewBox: "0 0 24 24",
     body: <path d="M5 12l5 5 9-11" stroke="currentColor" />,
   },
+  copy: {
+    viewBox: "0 0 24 24",
+    body: (
+      <>
+        <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" />
+        <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" />
+      </>
+    ),
+  },
   "alert-circle": {
     viewBox: "0 0 24 24",
     body: (
@@ -233,25 +243,25 @@ const ICONS: Record<IconName, VectorDef | RasterDef> = {
     body: (
       <g clipPath="url(#icon-sidebar-expanded)">
         {/* Outer frame */}
-        <rect x="1" width="18" height="1" fill="#333333" />
-        <rect x="1" y="15" width="18" height="1" fill="#333333" />
-        <rect x="20" y="1" width="14" height="1" transform="rotate(90 20 1)" fill="#333333" />
-        <rect x="1" y="1" width="14" height="1" transform="rotate(90 1 1)" fill="#333333" />
+        <rect x="1" width="18" height="1" fill="currentColor" />
+        <rect x="1" y="15" width="18" height="1" fill="currentColor" />
+        <rect x="20" y="1" width="14" height="1" transform="rotate(90 20 1)" fill="currentColor" />
+        <rect x="1" y="1" width="14" height="1" transform="rotate(90 1 1)" fill="currentColor" />
         {/* Vertical divider + sidebar item lines */}
-        <rect x="7" width="16" height="1" transform="rotate(90 7 0)" fill="#333333" />
-        <line x1="2" y1="2.5" x2="5" y2="2.5" stroke="#A8A7A5" strokeWidth="1" />
-        <line x1="2" y1="4.5" x2="5" y2="4.5" stroke="#A8A7A5" strokeWidth="1" />
-        <line x1="2" y1="6.5" x2="5" y2="6.5" stroke="#A8A7A5" strokeWidth="1" />
+        <rect x="7" width="16" height="1" transform="rotate(90 7 0)" fill="currentColor" />
+        <line x1="2" y1="2.5" x2="5" y2="2.5" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1" />
+        <line x1="2" y1="4.5" x2="5" y2="4.5" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1" />
+        <line x1="2" y1="6.5" x2="5" y2="6.5" stroke="currentColor" strokeOpacity="0.5" strokeWidth="1" />
         {/* Outer-corner shading */}
-        <rect width="1" height="1" fill="#A8A7A5" />
-        <rect y="15" width="1" height="1" fill="#A8A7A5" />
-        <rect x="19" y="15" width="1" height="1" fill="#A8A7A5" />
-        <rect x="19" width="1" height="1" fill="#A8A7A5" />
+        <rect width="1" height="1" fill="currentColor" fillOpacity="0.5" />
+        <rect y="15" width="1" height="1" fill="currentColor" fillOpacity="0.5" />
+        <rect x="19" y="15" width="1" height="1" fill="currentColor" fillOpacity="0.5" />
+        <rect x="19" width="1" height="1" fill="currentColor" fillOpacity="0.5" />
         {/* Inner-corner highlights */}
-        <rect x="18" y="1" width="1" height="1" fill="#D9D9D9" />
-        <rect x="1" y="1" width="1" height="1" fill="#D9D9D9" />
-        <rect x="1" y="14" width="1" height="1" fill="#D9D9D9" />
-        <rect x="18" y="14" width="1" height="1" fill="#D9D9D9" />
+        <rect x="18" y="1" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
+        <rect x="1" y="1" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
+        <rect x="1" y="14" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
+        <rect x="18" y="14" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
       </g>
     ),
   },
@@ -261,22 +271,22 @@ const ICONS: Record<IconName, VectorDef | RasterDef> = {
     body: (
       <g clipPath="url(#icon-sidebar-collapsed)">
         {/* Outer frame */}
-        <rect x="1" width="18" height="1" fill="#333333" />
-        <rect x="1" y="15" width="18" height="1" fill="#333333" />
-        <rect x="20" y="1" width="14" height="1" transform="rotate(90 20 1)" fill="#333333" />
-        <rect x="1" y="1" width="14" height="1" transform="rotate(90 1 1)" fill="#333333" />
+        <rect x="1" width="18" height="1" fill="currentColor" />
+        <rect x="1" y="15" width="18" height="1" fill="currentColor" />
+        <rect x="20" y="1" width="14" height="1" transform="rotate(90 20 1)" fill="currentColor" />
+        <rect x="1" y="1" width="14" height="1" transform="rotate(90 1 1)" fill="currentColor" />
         {/* Narrow sidebar strip divider */}
-        <rect x="4" width="16" height="1" transform="rotate(90 4 0)" fill="#333333" />
+        <rect x="4" width="16" height="1" transform="rotate(90 4 0)" fill="currentColor" />
         {/* Outer-corner shading */}
-        <rect width="1" height="1" fill="#A8A7A5" />
-        <rect y="15" width="1" height="1" fill="#A8A7A5" />
-        <rect x="19" y="15" width="1" height="1" fill="#A8A7A5" />
-        <rect x="19" width="1" height="1" fill="#A8A7A5" />
+        <rect width="1" height="1" fill="currentColor" fillOpacity="0.5" />
+        <rect y="15" width="1" height="1" fill="currentColor" fillOpacity="0.5" />
+        <rect x="19" y="15" width="1" height="1" fill="currentColor" fillOpacity="0.5" />
+        <rect x="19" width="1" height="1" fill="currentColor" fillOpacity="0.5" />
         {/* Inner-corner highlights */}
-        <rect x="18" y="1" width="1" height="1" fill="#D9D9D9" />
-        <rect x="18" y="14" width="1" height="1" fill="#D9D9D9" />
-        <rect x="1" y="14" width="1" height="1" fill="#D9D9D9" />
-        <rect x="1" y="1" width="1" height="1" fill="#D9D9D9" />
+        <rect x="18" y="1" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
+        <rect x="18" y="14" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
+        <rect x="1" y="14" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
+        <rect x="1" y="1" width="1" height="1" fill="currentColor" fillOpacity="0.25" />
       </g>
     ),
   },

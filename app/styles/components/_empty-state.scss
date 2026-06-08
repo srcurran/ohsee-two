@@ -7,7 +7,7 @@
  *     <h1  .empty-state__title>
  *     <p   .empty-state__body>
  *     <p   .empty-state__footnote>   ← home only
- *     <div .empty-state__actions>    ← buttons (project/test detail)
+ *     <div .row .row--center>        ← buttons (project detail)
  */
 
 .empty-state {
@@ -57,16 +57,13 @@
     max-width: 400px;
   }
 
-  .empty-state__actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
-  }
+}
 
-  .empty-state__settings {
-    position: fixed;
-    bottom: var(--space-5);
-    left: var(--space-5);
-  }
+/* A single muted line standing in for empty content ("No sign-in profiles
+   yet."). Distinct from .empty-state (a centered, illustrated callout). */
+.empty-note {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-style: italic;
+  color: var(--empty-note-color);
 }

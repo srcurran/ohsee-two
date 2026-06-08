@@ -1,27 +1,35 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SemanticChange, ChangeCategory } from "@/lib/types";
 import { CATEGORY_CONFIG, SEVERITY_CSS_MODIFIERS } from "@/lib/colors";
 import { changeGroupKey } from "@/lib/change-identity";
+import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
 import type { ChangeScope } from "@/components/detail/utils/changeScope";
+import { Icon } from "@/components/utility/Icon";
 
 interface ChangeListProps {
   changes: SemanticChange[];
   summary?: Record<string, number>;
   /** When set, entries whose change doesn't apply to this breakpoint render
-   *  dimmed and non-interactive — same affordance as a filter pill with a
+   *  dimmed and non-interactive — same affordance as a filter filter-pill with a
    *  zero count, applied per entry. */
   activeBp?: number;
   changeScope?: ChangeScope;
   onChangeClick?: (id: string) => void;
+  /** Report this list belongs to — namespaces the per-change "accepted" state. */
+  reportId: string;
 }
 
 // How far the pointer must move before we treat the gesture as a drag and
-// suppress the trailing click on whichever pill was under the cursor.
+// suppress the trailing click on whichever filter-pill was under the cursor.
 const DRAG_THRESHOLD_PX = 4;
 
-export default function ChangeList({ changes, activeBp, changeScope, onChangeClick }: ChangeListProps) {
+// Duration of the FLIP reorder animation when an accepted entry drops down.
+const REORDER_MS = 320;
+
+export default function ChangeList({ changes, activeBp, changeScope, onChangeClick, reportId }: ChangeListProps) {
+  const { accepted, toggle } = useAcceptedChanges();
   const [activeFilter, setActiveFilter] = useState<ChangeCategory | "all">("all");
   const filtersRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -53,6 +61,60 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
     [activeFilter, changes],
   );
 
+  // Accepted changes sink to the bottom of the list so the open items stay up
+  // top. Array.sort is stable, so entries keep their original relative order
+  // within the accepted / not-accepted groups.
+  const displayed = useMemo(() => {
+    const isAccepted = (c: SemanticChange) =>
+      accepted.has(acceptedChangeKey(reportId, c));
+    return [...filtered].sort(
+      (a, b) => Number(isAccepted(a)) - Number(isAccepted(b)),
+    );
+  }, [filtered, accepted, reportId]);
+
+  // FLIP: when accepting reorders the list (an entry drops to the bottom),
+  // slide every entry that moved from its old position to its new one instead
+  // of letting them jump. We record positions each commit, then on the next
+  // one measure the new positions, invert (translate back to the old spot),
+  // and release on the next frame so the browser animates to natural place.
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const prevRects = useRef<Map<string, DOMRect>>(new Map());
+  useLayoutEffect(() => {
+    const next = new Map<string, DOMRect>();
+    itemRefs.current.forEach((el, key) => next.set(key, el.getBoundingClientRect()));
+
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) {
+      next.forEach((newRect, key) => {
+        const old = prevRects.current.get(key);
+        const el = itemRefs.current.get(key);
+        if (!old || !el) return;
+        const dy = old.top - newRect.top;
+        if (Math.abs(dy) < 1) return;
+        el.style.transition = "none";
+        el.style.transform = `translateY(${dy}px)`;
+        requestAnimationFrame(() => {
+          el.style.transition = `transform ${REORDER_MS}ms var(--ease-decel)`;
+          el.style.transform = "";
+          const done = () => {
+            el.style.transition = "";
+            el.style.transform = "";
+            el.removeEventListener("transitionend", done);
+          };
+          el.addEventListener("transitionend", done);
+        });
+      });
+    }
+    prevRects.current = next;
+  }, [displayed]);
+
+  const registerItem = (key: string) => (el: HTMLDivElement | null) => {
+    if (el) itemRefs.current.set(key, el);
+    else itemRefs.current.delete(key);
+  };
+
   // Early return must follow every hook above so hook order stays stable
   // across renders (changes can go empty ⇄ non-empty).
   if (!changes || changes.length === 0) {
@@ -64,10 +126,10 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
     );
   }
 
-  // Drag-to-scroll the pill row horizontally. We use Pointer Events but
+  // Drag-to-scroll the filter-pill row horizontally. We use Pointer Events but
   // intentionally do NOT call setPointerCapture on pointerdown — capturing
   // the pointer to the wrapper would re-target the synthesized click event
-  // away from the inner pill buttons, breaking filter clicks. Capture is
+  // away from the inner filter-pill buttons, breaking filter clicks. Capture is
   // only acquired once the gesture passes DRAG_THRESHOLD_PX (i.e., the
   // user is actually dragging), so simple clicks click as normal.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -116,7 +178,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
   };
 
   // Capture-phase click handler: if the user just finished a drag,
-  // swallow the trailing click before it reaches a pill button.
+  // swallow the trailing click before it reaches a filter-pill button.
   const handleClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = filtersRef.current;
     if (el?.dataset.dragging) {
@@ -126,7 +188,7 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
   };
 
   return (
-    <div className="change-list">
+    <div className="change-list stack stack--lg">
       <div className="change-list__header">
         <h3 className="change-list__title">Detected Changes</h3>
       </div>
@@ -140,10 +202,10 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
         onPointerCancel={endDrag}
         onClickCapture={handleClickCapture}
       >
-        <div className="change-list__filters-track">
+        <div className="change-list__filters-track row row--sm">
           <button
             onClick={() => setActiveFilter("all")}
-            className={`pill ${activeFilter === "all" ? "pill--active" : ""}`}
+            className={`filter-pill ${activeFilter === "all" ? "filter-pill--active" : ""}`}
           >
             All ({totalCount})
           </button>
@@ -153,10 +215,10 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
             const enabled = count > 0;
             const active = activeFilter === cat;
             const cls = active
-              ? "pill pill--active"
+              ? "filter-pill filter-pill--active"
               : enabled
-                ? "pill"
-                : "pill pill--disabled";
+                ? "filter-pill"
+                : "filter-pill filter-pill--disabled";
             return (
               <button
                 key={cat}
@@ -172,12 +234,12 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
         </div>
       </div>
 
-      <div className="change-list__items">
-        {filtered.map((change) => {
+      <div className="change-list__items stack stack--xs">
+        {displayed.map((change) => {
           // A change is "for this viewport" if its scope (the set of
           // breakpoints it appears at) includes the active one. Anything
           // else renders dimmed and non-interactive — same idea as a
-          // filter pill with a zero count, applied per entry.
+          // filter filter-pill with a zero count, applied per entry.
           const dimmed =
             activeBp !== undefined &&
             changeScope?.bpsFor(change).includes(String(activeBp)) === false;
@@ -189,9 +251,12 @@ export default function ChangeList({ changes, activeBp, changeScope, onChangeCli
             // phantom rows that only clear on a full refresh.
             <ChangeEntry
               key={changeGroupKey(change)}
+              rootRef={registerItem(changeGroupKey(change))}
               change={change}
               changeScope={changeScope}
               dimmed={dimmed}
+              accepted={accepted.has(acceptedChangeKey(reportId, change))}
+              onToggleAccepted={() => toggle(acceptedChangeKey(reportId, change))}
               onClick={
                 onChangeClick && !dimmed
                   ? () => onChangeClick(change.id)
@@ -209,20 +274,24 @@ function ChangeEntry({
   change,
   changeScope,
   dimmed,
+  accepted,
+  onToggleAccepted,
   onClick,
+  rootRef,
 }: {
   change: SemanticChange;
   changeScope?: ChangeScope;
   dimmed?: boolean;
+  accepted?: boolean;
+  onToggleAccepted?: () => void;
   onClick?: () => void;
+  /** Registers the entry's root node with the parent FLIP map. */
+  rootRef?: (el: HTMLDivElement | null) => void;
 }) {
-  const cfg = CATEGORY_CONFIG[change.category];
   const severityMod = SEVERITY_CSS_MODIFIERS[change.severity] || SEVERITY_CSS_MODIFIERS.info;
   const interactiveCls = onClick ? "change-entry--interactive" : "";
   const dimmedCls = dimmed ? "change-entry--dimmed" : "";
-
-  // Locate the change by content ("the header", "the “Pricing” section").
-  const locationLine = change.location;
+  const acceptedCls = accepted ? "change-entry--accepted" : "";
 
   // Scope label — every change is tagged as either spanning all
   // breakpoints or being specific to certain ones, so the user can tell
@@ -238,38 +307,60 @@ function ChangeEntry({
     }
   }
 
+  const toggleAccepted = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleAccepted?.();
+  };
+
   return (
     <div
+      ref={rootRef}
       onClick={onClick}
-      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls}`}
+      className={`change-entry change-entry--${severityMod} ${interactiveCls} ${dimmedCls} ${acceptedCls}`}
     >
-      <span
-        className="change-entry__icon"
-        style={{ color: cfg.color }}
-        title={cfg.label}
-      >
-        {cfg.icon}
-      </span>
-      <div className="change-entry__body">
+      <div className="change-entry__top">
         <span
           className="change-entry__description"
           title={change.descriptionFull ?? change.description}
         >
           {change.description}
-
         </span>
-        {locationLine && (
-          <span
-            className="change-entry__selector"
-            title={change.locationFull ?? locationLine}
-          >
-            {locationLine}
-          </span>
-        )}
-        {scopeLabel && (
-            <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
-        )}
+        {/* Accept toggle — a check pinned to the top-right corner so the hit
+            target is consistent across every entry. Faint while open, solid
+            green once accepted. */}
+        <button
+          type="button"
+          className={`change-entry__check${accepted ? " change-entry__check--checked" : ""}`}
+          aria-pressed={accepted}
+          aria-label={accepted ? "Accepted — click to undo" : "Accept change"}
+          title={accepted ? "Accepted — click to undo" : "Accept"}
+          onClick={toggleAccepted}
+        >
+          <Icon name="check" size={20} />
+        </button>
       </div>
+
+      {/* Meta slot under the description — a fixed-height row that toggles
+          between the breakpoints label and the accepted label + undo, so
+          accepting an entry never changes its height. */}
+      {(accepted || scopeLabel) && (
+        <div className="change-entry__meta">
+          {accepted ? (
+            <>
+              <span className="change-entry__accepted-label">Accepted</span>
+              <button
+                type="button"
+                className="btn--text change-entry__undo"
+                onClick={toggleAccepted}
+              >
+                undo
+              </button>
+            </>
+          ) : (
+            <span className="change-entry__scope">Breakpoints: {scopeLabel}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

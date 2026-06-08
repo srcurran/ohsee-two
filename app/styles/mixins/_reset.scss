@@ -1,0 +1,10 @@
+/* Strip the native <button> chrome so a clickable element can be styled from
+   scratch: transparent, borderless, no padding, inherits the page font. Pair
+   with `@include interactive` (or a bespoke hover) for feedback. */
+@mixin button-reset {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}

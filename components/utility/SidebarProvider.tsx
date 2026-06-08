@@ -37,14 +37,23 @@ interface SidebarContextValue {
   newProjectWizardOpen: boolean;
   openNewProjectWizard: () => void;
   closeNewProjectWizard: () => void;
-  /** New-test wizard state — projectId and optional pre-filled name (set
-   *  during the project→test handoff). */
-  newTestWizard: { projectId: string; initialName?: string } | null;
-  openNewTestWizard: (projectId: string, initialName?: string) => void;
+  /** New-test wizard state — projectId, an optional pre-filled name (set
+   *  during the project→test handoff), and an optional testId to resume an
+   *  in-progress draft via "Finish creating test". */
+  newTestWizard: { projectId: string; initialName?: string; testId?: string } | null;
+  openNewTestWizard: (
+    projectId: string,
+    opts?: { initialName?: string; testId?: string },
+  ) => void;
   closeNewTestWizard: () => void;
   /** null = still loading, false = zero projects, true = has projects. */
   hasProjects: boolean | null;
   setHasProjects: (v: boolean | null) => void;
+  /** Whether the keyboard-shortcuts cheat sheet overlay is open. */
+  shortcutsOpen: boolean;
+  openShortcuts: () => void;
+  closeShortcuts: () => void;
+  toggleShortcuts: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -75,6 +84,10 @@ const SidebarContext = createContext<SidebarContextValue>({
   closeNewTestWizard: () => {},
   hasProjects: null,
   setHasProjects: () => {},
+  shortcutsOpen: false,
+  openShortcuts: () => {},
+  closeShortcuts: () => {},
+  toggleShortcuts: () => {},
 });
 
 export function useSidebar() {
@@ -118,8 +131,9 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null);
   const [testSettings, setTestSettingsState] = useState<{ projectId: string; testId: string } | null>(null);
   const [newProjectWizardOpen, setNewProjectWizardOpen] = useState(false);
-  const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string } | null>(null);
+  const [newTestWizard, setNewTestWizardState] = useState<{ projectId: string; initialName?: string; testId?: string } | null>(null);
   const [hasProjects, setHasProjects] = useState<boolean | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const pathname = usePathname();
 
   // Coalesce rapid refreshProjects() calls into one refetch. Multiple
@@ -154,11 +168,14 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
   const openNewProjectWizard = useCallback(() => setNewProjectWizardOpen(true), []);
   const closeNewProjectWizard = useCallback(() => setNewProjectWizardOpen(false), []);
   const openNewTestWizard = useCallback(
-    (projectId: string, initialName?: string) =>
-      setNewTestWizardState({ projectId, initialName }),
+    (projectId: string, opts?: { initialName?: string; testId?: string }) =>
+      setNewTestWizardState({ projectId, ...opts }),
     [],
   );
   const closeNewTestWizard = useCallback(() => setNewTestWizardState(null), []);
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
+  const toggleShortcuts = useCallback(() => setShortcutsOpen((v) => !v), []);
 
   // Hydrate collapsed state from localStorage, then enable transitions.
   // Narrow viewports always start collapsed regardless of stored prefs —
@@ -259,6 +276,10 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       closeNewTestWizard,
       hasProjects,
       setHasProjects,
+      shortcutsOpen,
+      openShortcuts,
+      closeShortcuts,
+      toggleShortcuts,
     }),
     [
       refreshKey,
@@ -288,6 +309,10 @@ export default function SidebarProvider({ children }: { children: ReactNode }) {
       closeNewTestWizard,
       hasProjects,
       setHasProjects,
+      shortcutsOpen,
+      openShortcuts,
+      closeShortcuts,
+      toggleShortcuts,
     ],
   );
 

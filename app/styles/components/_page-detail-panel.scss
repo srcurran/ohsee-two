@@ -9,8 +9,9 @@
  *             <div .page-detail-panel__date-group>
  *               <span .page-detail-panel__date> … </span>
  *           …icon-btns + PageNavDropdown
- *         <div> VariantTabs </div>
- *         <div .page-detail-panel__breakpoints> BreakpointTabs </div>
+ *         <div .page-detail-panel__breakpoints>
+ *           <div .page-detail-panel__bp-group> BreakpointTabs + VariantTabs </div>
+ *           <TabBar />                          ← changes filter (>1 page)
  *         <div .page-detail-panel__divider />
  *         <div .page-detail-panel__main>
  *           <div .page-detail-panel__screenshot-col [--sticky-header]>
@@ -65,10 +66,9 @@
       justify-content: space-between;
       padding: var(--space-5) var(--space-6);
 
+      /* Layout: .row .row--sm (JSX). Owns only the min-width reset so the
+         title can truncate. */
       .page-detail-panel__title-group {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
         min-width: 0;
       }
 
@@ -81,11 +81,8 @@
            right edge of the whole nav row rather than the chevron button. */
         position: relative;
 
+        /* Layout: .row .row--sm (JSX). Structural wrapper for the date label. */
         .page-detail-panel__date-group {
-          display: flex;
-          align-items: center;
-          gap: var(--space-2);
-
           .page-detail-panel__date {
             font-size: var(--font-size-lg);
             color: var(--page-detail-panel-date-color);
@@ -95,7 +92,18 @@
     }
 
     .page-detail-panel__breakpoints {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 0 var(--space-6);
+
+      /* Breakpoint + mode switchers grouped on the left; the changes filter
+         (TabBar) sits opposite on the right — mirrors the report bar. */
+      .page-detail-panel__bp-group {
+        display: flex;
+        align-items: center;
+        gap: var(--space-8);
+      }
     }
 
     .page-detail-panel__divider {

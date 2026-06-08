@@ -1,16 +1,16 @@
 /** Sub-view that replaces the overlay body while a step is being added or
- * edited. Shows a fork ("Path" vs "Playwright") on first open, then the
- * path-or-script form. Path resolution validates that the user-entered URL
- * belongs to one of the project's domains. */
+ * edited. A simple test only adds path steps, so creating one goes straight to
+ * the path form; the script form is still reached when editing a legacy
+ * Playwright step. Path resolution validates that the user-entered URL belongs
+ * to one of the project's domains. */
 
 "use client";
 
 import { useState } from "react";
-import MaterialField from "@/components/utility/MaterialField";
+import Field from "@/components/utility/Field";
 import ScriptStepEditor from "@/components/settings/ScriptStepEditor";
 import { resolveProjectPath } from "@/lib/url-utils";
 import type { TestStep } from "@/lib/types";
-import { Icon } from "@/components/utility/Icon";
 
 interface AddEditStepViewProps {
   editing: TestStep | null;
@@ -36,9 +36,10 @@ export function AddEditStepView({
   onAddScript,
   onCancel,
 }: AddEditStepViewProps) {
-  const [pickedType, setPickedType] = useState<"url" | "microtest" | null>(
-    editing ? editing.type : (initialType ?? null),
-  );
+  // A new step is always a path step (the only kind a simple test takes);
+  // editing keeps the existing step's type so legacy Playwright steps still
+  // open their script form.
+  const pickedType: "url" | "microtest" = editing ? editing.type : (initialType ?? "url");
   const [pathInput, setPathInput] = useState<string>(editing?.url ?? "");
 
   // Resolve the input down to a path. Accepts full URLs (which get stripped
@@ -58,40 +59,10 @@ export function AddEditStepView({
     }
   };
 
-  if (!pickedType) {
-    return (
-      <div className="add-step-fork">
-        <p className="add-step-fork__copy">
-          What kind of step do you want to add?
-        </p>
-        <div className="add-step-fork__cards">
-          <button
-            type="button"
-            className="add-step-fork__card"
-            onClick={() => setPickedType("url")}
-          >
-            <Icon name="globe" size={16} className="add-step-fork__card-icon" />
-            <span className="add-step-fork__card-title">Path</span>
-            <span className="add-step-fork__card-copy">Navigate to a page on this site and capture a screenshot.</span>
-          </button>
-          <button
-            type="button"
-            className="add-step-fork__card"
-            onClick={() => setPickedType("microtest")}
-          >
-            <Icon name="playwright" size={16} className="add-step-fork__card-icon" />
-            <span className="add-step-fork__card-title">Playwright</span>
-            <span className="add-step-fork__card-copy">Run a Playwright script — type it or record one.</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (pickedType === "url") {
     return (
-      <div className="step-editor">
-        <MaterialField
+      <div className="step-editor stack stack--lg">
+        <Field
           label="Path"
           value={pathInput}
           onChange={(e) => setPathInput(e.target.value)}
@@ -104,7 +75,7 @@ export function AddEditStepView({
           autoFocus
           spellCheck={false}
         />
-        <div className="step-editor__actions">
+        <div className="step-editor__actions row row--end">
           <button type="button" className="btn btn--text" onClick={onCancel}>Cancel</button>
           <button
             type="button"

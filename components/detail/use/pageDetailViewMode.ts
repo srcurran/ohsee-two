@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type ViewMode = "tap" | "slider";
+export type ViewMode = "tap" | "blend" | "slider";
 
 interface UsePageDetailViewModeArgs {
   pageId: string;

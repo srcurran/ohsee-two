@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
+import TabBar from "@/components/utility/TabBar";
 import SliderComparison from "@/components/detail/SliderComparison";
-import type { Project, Report, SemanticChange } from "@/lib/types";
+import type { Project, Report, ReportPage, SemanticChange } from "@/lib/types";
+import type { ReportFilterMode } from "@/components/index/use/reportUrlState";
 import { changeGroupKey } from "@/lib/change-identity";
 import { PageDetailHeader } from "@/components/detail/PageDetailHeader";
 import { PageDetailViewToggle } from "@/components/detail/PageDetailViewToggle";
@@ -25,7 +27,7 @@ import {
   resolvePageUrl,
 } from "@/components/detail/utils/pageDetail";
 import { classifyChanges } from "@/components/detail/utils/changeScope";
-import type { ChangeScope } from "@/components/detail/utils/changeScope";
+import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 
 interface Props {
   report: Report;
@@ -39,6 +41,10 @@ interface Props {
   onNavigate: (pageId: string) => void;
   onBpChange: (bp: number) => void;
   onVariantChange: (variant: string | null) => void;
+  /** Shared report-grid filter. "changes" makes prev/next/keyboard navigation
+   *  skip pages with no unaccepted changes. */
+  filterMode: ReportFilterMode;
+  onFilterChange: (mode: ReportFilterMode) => void;
 }
 
 /** Top-level page-detail overlay shell. Composes the animation, view-mode,
@@ -56,6 +62,8 @@ export default function PageDetailPanel({
   onNavigate,
   onBpChange,
   onVariantChange,
+  filterMode,
+  onFilterChange,
 }: Props) {
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(
     null,
@@ -81,13 +89,72 @@ export default function PageDetailPanel({
     screenshotRef,
   } = usePageDetailViewMode({ pageId });
 
+  const { accepted } = useAcceptedChanges();
+
+  // A page is navigable under the Changes-only filter when it still has at
+  // least one unaccepted change (at the active variant) — the same rule the
+  // report grid uses to decide which page cards to show.
+  const pageHasChanges = (page: ReportPage) => {
+    const bpData =
+      activeVariant && page.variants?.[activeVariant]
+        ? page.variants[activeVariant]
+        : page.breakpoints;
+    return Object.values(bpData).some(
+      (r) => activeChanges(r.semanticChanges ?? [], report.id, accepted).length > 0,
+    );
+  };
+
   const currentIndex = report.pages.findIndex((p) => p.pageId === pageId);
   const currentPage = currentIndex >= 0 ? report.pages[currentIndex] : null;
-  const prevPage = currentIndex > 0 ? report.pages[currentIndex - 1] : null;
-  const nextPage =
-    currentIndex < report.pages.length - 1
-      ? report.pages[currentIndex + 1]
-      : null;
+
+  // Filter-tab counts: every page vs pages with unaccepted changes.
+  const allPagesCount = report.pages.length;
+  const changedPagesCount = report.pages.filter(pageHasChanges).length;
+
+  // Prev/next walk outward from the current page, skipping non-matching pages
+  // when the Changes-only filter is on, so sequential navigation (arrows +
+  // keyboard) mirrors the filtered grid. Works even when the current page
+  // itself has no changes (e.g. the filter was toggled on while viewing it).
+  const navigable = (page: ReportPage) =>
+    filterMode !== "changes" || pageHasChanges(page);
+  let prevPage: ReportPage | null = null;
+  let nextPage: ReportPage | null = null;
+  if (currentIndex >= 0) {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (navigable(report.pages[i])) { prevPage = report.pages[i]; break; }
+    }
+    for (let i = currentIndex + 1; i < report.pages.length; i++) {
+      if (navigable(report.pages[i])) { nextPage = report.pages[i]; break; }
+    }
+  }
+
+  // Page-to-page transition: when the user moves to a different page (arrows /
+  // keyboard / picking another tile), slide the main column in from the side
+  // they're heading — from the right for the next page, the left for the
+  // previous — with a quick fade. Driven imperatively via the Web Animations
+  // API rather than a keyed remount: remounting would orphan the scroll
+  // container's listener that preserves scroll position across view-mode
+  // toggles. The initial open is left to the panel's own entrance animation.
+  const mainRef = useRef<HTMLDivElement>(null);
+  const prevPageIdRef = useRef(pageId);
+  useEffect(() => {
+    const prevId = prevPageIdRef.current;
+    prevPageIdRef.current = pageId;
+    if (prevId === pageId) return;
+    const el = mainRef.current;
+    if (!el) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const prevIdx = report.pages.findIndex((p) => p.pageId === prevId);
+    const curIdx = report.pages.findIndex((p) => p.pageId === pageId);
+    const dir = curIdx < prevIdx ? -1 : 1;
+    el.animate(
+      [
+        { opacity: 0, transform: `translateX(${dir * 20}px)` },
+        { opacity: 1, transform: "translateX(0)" },
+      ],
+      { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+  }, [pageId, report.pages]);
 
   usePageDetailKeyboardNav({
     prevPage,
@@ -111,10 +178,25 @@ export default function PageDetailPanel({
 
   // These walk the full report / page tree — memoize so they don't re-run
   // on every peek/hover state change inside the panel.
+  // Accepted (expected) diffs are stripped from the count inputs so the header
+  // badge AND the per-breakpoint deviation dots ignore them. The Detected
+  // Changes list below still receives the full data (accepted entries stay
+  // visible, styled as accepted).
+  const activeBpDataForCounts = useMemo(() => {
+    if (accepted.size === 0) return activeBpData;
+    const out: typeof activeBpData = {};
+    for (const [bp, r] of Object.entries(activeBpData)) {
+      out[bp] = { ...r, semanticChanges: activeChanges(r.semanticChanges, report.id, accepted) };
+    }
+    return out;
+  }, [activeBpData, accepted, report.id]);
   const bpChangeCounts = useMemo(
-    () => computeBpChangeCounts(activeBpData),
-    [activeBpData],
+    () => computeBpChangeCounts(activeBpDataForCounts),
+    [activeBpDataForCounts],
   );
+  // Scope (universal vs specific) for the dots, computed from the same
+  // accepted-filtered data so the dot colour stays consistent with its count.
+  const dotScope = useMemo(() => classifyChanges(activeBpDataForCounts), [activeBpDataForCounts]);
   const reportBreakpoints = useMemo(
     () => collectReportBreakpoints(report),
     [report],
@@ -155,7 +237,8 @@ export default function PageDetailPanel({
   // Total unique change count across every breakpoint — the header badge
   // shows the same number as the Detected Changes list and the page-card
   // badge, regardless of which viewport tab is active.
-  const totalChangeCount = crossBpChanges.length;
+  // Accepted (expected) diffs don't count toward the header badge.
+  const totalChangeCount = activeChanges(crossBpChanges, report.id, accepted).length;
   // Merge scope-aware specific counts into the per-breakpoint stats so the
   // deviation dots in BreakpointTabs can distinguish universal changes from
   // breakpoint-specific ones.
@@ -167,7 +250,7 @@ export default function PageDetailPanel({
   const bpChangeCountsWithScope = useMemo(() => {
     const merged = { ...bpChangeCounts };
     for (const [bp, stats] of Object.entries(merged)) {
-      const specific = changeScope.specificCountPerBp[bp] ?? 0;
+      const specific = dotScope.specificCountPerBp[bp] ?? 0;
       merged[bp] = {
         ...stats,
         universalCount: stats.changeCount - specific,
@@ -175,7 +258,7 @@ export default function PageDetailPanel({
       };
     }
     return merged;
-  }, [bpChangeCounts, changeScope]);
+  }, [bpChangeCounts, dotScope]);
 
   // Early return must follow every hook above so hook order stays stable.
   if (!currentPage) return null;
@@ -248,30 +331,40 @@ export default function PageDetailPanel({
               onClose={handleClose}
             />
 
-            <div>
-              <VariantTabs
-                variants={reportVariants}
-                active={activeVariant}
-                onChange={onVariantChange}
-              />
-            </div>
-
             <div
               className="page-detail-panel__breakpoints animate-card-in"
               style={{ animationDelay: "15ms" }}
             >
-              <BreakpointTabs
-                active={activeBp}
-                onChange={onBpChange}
-                changeCounts={bpChangeCountsWithScope}
-                breakpoints={reportBreakpoints}
-                align="start"
-              />
+              <div className="page-detail-panel__bp-group">
+                <BreakpointTabs
+                  active={activeBp}
+                  onChange={onBpChange}
+                  changeCounts={bpChangeCountsWithScope}
+                  breakpoints={reportBreakpoints}
+                  align="start"
+                />
+                <VariantTabs
+                  variants={reportVariants}
+                  active={activeVariant}
+                  onChange={onVariantChange}
+                />
+              </div>
+              {report.pages.length > 1 && (
+                <TabBar<ReportFilterMode>
+                  items={[
+                    { id: "all", label: `All pages (${allPagesCount})` },
+                    { id: "changes", label: `Changes only (${changedPagesCount})` },
+                  ]}
+                  active={filterMode}
+                  onSelect={onFilterChange}
+                />
+              )}
             </div>
 
             <div className="page-detail-panel__divider" />
 
             <div
+              ref={mainRef}
               className="page-detail-panel__main animate-card-in"
               style={{ animationDelay: "30ms" }}
             >
@@ -299,15 +392,17 @@ export default function PageDetailPanel({
                     {/* Tap/Slider compare prod vs dev. The Diff toggle swaps
                         the plain aligned screenshots for their change-
                         highlighted variants (falling back to plain when a
-                        side has no highlight — e.g. zero-change pages). */}
+                        side has no highlight — e.g. zero-change pages). Blend
+                        derives its own diff from the plain images, so it always
+                        uses the un-highlighted aligned pair. */}
                     <SliderComparison
                       prodSrc={`/api/screenshots/${
-                        diffMode && bpResult.highlightScreenshot
+                        diffMode && viewMode !== "blend" && bpResult.highlightScreenshot
                           ? bpResult.highlightScreenshot
                           : bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot
                       }`}
                       devSrc={`/api/screenshots/${
-                        diffMode && bpResult.highlightDevScreenshot
+                        diffMode && viewMode !== "blend" && bpResult.highlightDevScreenshot
                           ? bpResult.highlightDevScreenshot
                           : bpResult.alignedDevScreenshot ?? bpResult.devScreenshot
                       }`}
@@ -341,6 +436,7 @@ export default function PageDetailPanel({
                   hasPixelDiff={(bpResult.pixelChangeCount ?? 0) > 0}
                   activeBp={activeBp}
                   changeScope={changeScope}
+                  reportId={report.id}
                   onChangeClick={(id) => {
                     // Tapping a change item is a request to inspect it —
                     // turn Diff on so the highlighted regions are visible,

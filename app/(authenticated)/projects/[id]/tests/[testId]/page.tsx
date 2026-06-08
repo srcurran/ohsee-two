@@ -5,14 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import type { Project, SiteTest } from "@/lib/types";
 import { trackReportCompletion } from "@/lib/electron";
 import ErrorModal, { type ErrorModalDetails } from "@/components/utility/ErrorModal";
-import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { Icon } from "@/components/utility/Icon";
+import { resolveScriptCredentials, resolveVaultCredentials } from "@/lib/vault-resolve";
 
 export default function TestPage() {
   const params = useParams<{ id: string; testId: string }>();
   const router = useRouter();
-  const { openTestSettings } = useSidebar();
+  const { openTestSettings, openNewTestWizard } = useSidebar();
   const [project, setProject] = useState<Project | null>(null);
   const [test, setTest] = useState<SiteTest | null>(null);
   const [running, setRunning] = useState(false);
@@ -34,9 +35,23 @@ export default function TestPage() {
   const handleRun = async () => {
     setRunError(null);
     setRunning(true);
+    // Resolve vault credentials client-side (only the Electron renderer can
+    // read the vault). `scriptCredentials` → $EMAIL$/$PASSWORD$/$OTP$ in the
+    // test's own script; `authCredentials` → the test's sign-in profile, so the
+    // runner logs in fresh at run start instead of reusing a stale session.
+    const scriptCredentials = await resolveScriptCredentials(test);
+    const authProfile = test?.authProfileId
+      ? project?.authProfiles?.find((p) => p.id === test.authProfileId)
+      : undefined;
+    const authCredentials = await resolveVaultCredentials(authProfile?.vaultEntryId);
+    const runOpts: RequestInit = { method: "POST" };
+    if (scriptCredentials || authCredentials) {
+      runOpts.headers = { "Content-Type": "application/json" };
+      runOpts.body = JSON.stringify({ scriptCredentials, authCredentials });
+    }
     const res = await fetch(
       `/api/projects/${params.id}/tests/${params.testId}/reports`,
-      { method: "POST" }
+      runOpts
     );
     if (res.ok) {
       const { reportId } = await res.json();
@@ -68,6 +83,25 @@ export default function TestPage() {
   const hasFlows = (test.flows?.length ?? 0) > 0;
   const canRun = hasSteps || hasPages || hasCompositions || hasFlows;
 
+  // A draft test hasn't finished the creation wizard — steer the user back
+  // to finish it rather than offering a run/settings dead-end.
+  if (test.draft) {
+    return (
+      <div className="empty-state">
+        <h1 className="empty-state__title">{test.name}</h1>
+        <p className="empty-state__body">
+          This test isn&apos;t finished yet. Pick up where you left off.
+        </p>
+        <button
+          onClick={() => openNewTestWizard(params.id, { testId: params.testId })}
+          className="btn btn--primary"
+        >
+          Finish creating test
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="empty-state">
       <h1 className="empty-state__title">{test.name}</h1>
@@ -80,10 +114,10 @@ export default function TestPage() {
           <button
             onClick={handleRun}
             disabled={running}
-            className="run-pill"
+            className="run-button"
           >
             {running ? "Starting..." : "Run now"}
-            <Icon name="play" size={16} className="run-pill__icon" />
+            <Icon name="play" size={16} className="run-button__icon" />
           </button>
           <ErrorModal error={runError} onClose={() => setRunError(null)} />
         </>

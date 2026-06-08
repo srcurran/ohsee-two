@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { readJsonFile, writeJsonFile } from "@/lib/data";
 import { userReportsDir, BREAKPOINTS } from "@/lib/constants";
 import { requireUserId, handleApiError } from "@/lib/auth-helpers";
-import { runReport, cancelRunningReportsForProject } from "@/lib/report-runner";
+import { runReport, cancelRunningReportsForTest } from "@/lib/report-runner";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import { checkProjectUrlsReachable } from "@/lib/url-reachability";
 import { getTestSteps } from "@/lib/test-steps";
@@ -72,10 +72,15 @@ export async function POST(
     }
 
     // Parse optional body (may be empty for backwards-compat).
+    // `scriptCredentials` → $EMAIL$/$PASSWORD$/$OTP$ in the test's own script.
+    // `authCredentials` → the test's sign-in profile, so the runner can log in
+    // fresh at run start instead of reusing a stale cached session.
     let scriptCredentials: import("@/lib/types").ScriptCredentials | undefined;
+    let authCredentials: import("@/lib/types").ScriptCredentials | undefined;
     try {
       const body = await request.json();
       if (body?.scriptCredentials) scriptCredentials = body.scriptCredentials;
+      if (body?.authCredentials) authCredentials = body.authCredentials;
     } catch {
       // No body or non-JSON — fine, credentials are optional.
     }
@@ -91,7 +96,9 @@ export async function POST(
       );
     }
 
-    cancelRunningReportsForProject(id);
+    // Supersede only an in-progress run of THIS test (not the whole project),
+    // so other tests in the project can run in parallel.
+    cancelRunningReportsForTest(id, testId);
 
     const reportId = uuidv4();
     const bpCount = project.breakpoints?.length || BREAKPOINTS.length;
@@ -114,7 +121,7 @@ export async function POST(
     const reportDir = path.join(userReportsDir(userId), reportId);
     await writeJsonFile(path.join(reportDir, "report.json"), report);
 
-    runReport(project, reportId, userId, siteTest, { scriptCredentials }).catch(console.error);
+    runReport(project, reportId, userId, siteTest, { scriptCredentials, authCredentials }).catch(console.error);
 
     return NextResponse.json({ reportId }, { status: 202 });
   } catch (err) {

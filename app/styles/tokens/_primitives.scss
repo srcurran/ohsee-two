@@ -121,6 +121,8 @@
   /* ── Easing ────────────────────────────────────────────────────── */
   --ease-standard: ease-out;
   --ease-decel:    cubic-bezier(0.2, 0, 0, 1);
+  /* Overshoots past the end value then settles — for a small "pop". */
+  --ease-back:     cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ── Elevation ─────────────────────────────────────────────────── */
   /* Light-mode values match the Figma spec (node 22:129). Dark-mode

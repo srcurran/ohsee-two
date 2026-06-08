@@ -1,0 +1,255 @@
+/* Shared settings-overlay chrome (.settings-overlay) — NOT owned by any one
+ * component. The centered panel + header + body are reused by all three
+ * settings surfaces: ProjectSettingsOverlay, SettingsOverlay, TestSettingsOverlay.
+ *
+ * Centered modal-style panel anchored to the active window. Width follows
+ * the Figma (640px); the danger zone is rendered inside a .settings-accordion
+ * (defined elsewhere) so the danger body markup lives a few wrappers
+ * below __body in the actual DOM — descendant selectors still resolve
+ * cleanly through that accordion shell.
+ *
+ * Structure mirrors the JSX tree (ProjectSettingsOverlay.tsx, reused by
+ * SettingsOverlay.tsx and TestSettingsOverlay.tsx):
+ *   <div .settings-overlay [--visible|--exiting]>
+ *     <div .settings-overlay__panel>
+ *       <header .settings-overlay__header .row .row--between>
+ *         <button .settings-overlay__back>        ← step-editor back link
+ *         <input  .settings-overlay__title-input> ← rename mode
+ *         <button .settings-overlay__title-button>← view mode
+ *           <span .settings-overlay__title>
+ *           <svg  .settings-overlay__title-icon>
+ *         <button .settings-overlay__close>
+ *       <div .settings-overlay__body>
+ *         <hr     .settings-overlay__divider>     ← SettingsOverlay only
+ *         <button .settings-overlay__danger-toggle>
+ *           <span .settings-overlay__section-title>
+ *         <div    .settings-overlay__danger-body> ← inside settings-accordion
+ *           <section .settings-overlay__danger-section .stack .stack--xs>
+ *             <h3 .settings-overlay__danger-heading>
+ *             <p  .settings-overlay__danger-copy>
+ *             <p  .empty-note>                    ← fallback
+ *             <ul .settings-overlay__archived-list>
+ *               <li .settings-overlay__archived-row>
+ *                 <span .settings-overlay__archived-name>
+ *                 <div  .settings-overlay__archived-actions .row .row--lg>
+ *                   <button .settings-overlay__link-action [--danger]>
+ */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  /* Near-full-screen panel with uniform breathing room on the outside. */
+  padding: var(--space-6);
+  background: var(--settings-overlay-scrim);
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-standard);
+
+  @media (max-width: 640px) {
+    padding: var(--space-3);
+  }
+
+  &--visible { opacity: 1; }
+  &--exiting { opacity: 0; }
+
+  .settings-overlay__panel {
+    width: 1080px;
+    height: 100%;
+    background: var(--settings-overlay-panel-background);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--elevation-lg);
+    /* The panel owns the inset + the header↔body gap. Children (header,
+       body) lay out top-down and carry no padding/margins of their own —
+       so the spacing lives in exactly one place. Header stays pinned; the
+       body scrolls (see __body below). */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-7);
+    overflow: hidden;
+
+    @media (max-width: 640px) {
+      padding: var(--space-5);
+      gap: var(--space-4);
+    }
+
+    /* Layout: .row .row--between (JSX). This block anchors its children. */
+    .settings-overlay__header {
+      /* Step-editor "‹ Back to steps" link. Uses .btn--text so it picks
+         up the standard text-button hover. */
+      .settings-overlay__back {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: 0;
+      }
+
+      .settings-overlay__title-input {
+        flex: 1 1 auto;
+        margin: 0;
+        padding: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--settings-overlay-title-input-color);
+        font-family: inherit;
+        font-size: var(--font-size-3xl);
+        font-weight: var(--weight-bold);
+        line-height: var(--line-tight);
+        border-bottom: 1px solid var(--settings-overlay-title-input-border);
+      }
+
+      .settings-overlay__title-button {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: text;
+        color: var(--settings-overlay-title-color);
+        border-radius: var(--radius-sm);
+
+        &:hover .settings-overlay__title-icon {
+          opacity: 1;
+        }
+
+        .settings-overlay__title {
+          font-size: var(--font-size-3xl);
+          font-weight: var(--weight-bold);
+          line-height: var(--line-tight);
+        }
+
+        .settings-overlay__title-icon {
+          color: var(--settings-overlay-title-icon-color);
+          opacity: 0.5;
+          transition: opacity var(--duration-base) var(--ease-standard);
+        }
+      }
+
+      .settings-overlay__close {
+        flex-shrink: 0;
+      }
+    }
+
+    .settings-overlay__body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      /* Inset + header gap come from the panel; the body only owns the gap
+         between its own content rows. */
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+
+      .settings-overlay__divider {
+        border: none;
+        border-top: 1px solid var(--settings-overlay-divider-color);
+        margin: 0;
+      }
+
+      /* Lives inside .settings-accordion in the DOM — descendant selector still
+         matches through that wrapper. Closed accordion rows want compact
+         padding so adjacent toggles sit close together with the divider
+         between (matches Figma 169:877). */
+      .settings-overlay__danger-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: var(--space-3) 0;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--settings-overlay-danger-toggle-color);
+
+        &:hover {
+          color: var(--settings-overlay-danger-toggle-color-hover);
+        }
+
+        .settings-overlay__section-title {
+          font-size: var(--font-size-2xl);
+          font-weight: var(--weight-regular);
+          color: var(--settings-overlay-section-title-color);
+        }
+      }
+
+      /* Nested inside .settings-accordion__collapse-inner in the DOM. */
+      .settings-overlay__danger-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-7);
+        padding-top: var(--space-5);
+        padding-bottom: var(--space-2);
+
+        /* Layout: .stack .stack--xs (JSX). This block anchors its children. */
+        .settings-overlay__danger-section {
+          .settings-overlay__danger-heading {
+            margin: 0 0 var(--space-1) 0;
+            font-size: var(--font-size-base);
+            font-weight: var(--weight-bold);
+            color: var(--settings-overlay-danger-heading-color);
+          }
+
+          .settings-overlay__danger-copy {
+            margin: 0 0 var(--space-3) 0;
+            font-size: var(--font-size-md);
+            color: var(--settings-overlay-danger-copy-color);
+          }
+
+          .settings-overlay__archived-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+
+            .settings-overlay__archived-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: var(--space-3);
+              padding: var(--space-3) 0;
+              border-top: 1px solid var(--settings-overlay-archived-row-border);
+
+              &:last-child {
+                border-bottom: 1px solid var(--settings-overlay-archived-row-border);
+              }
+
+              .settings-overlay__archived-name {
+                font-size: var(--font-size-md);
+                color: var(--settings-overlay-archived-name-color);
+              }
+
+              /* Layout: .row .row--lg (JSX). This block anchors its links. */
+              .settings-overlay__archived-actions {
+                .settings-overlay__link-action {
+                  background: transparent;
+                  border: none;
+                  padding: 0;
+                  cursor: pointer;
+                  color: var(--settings-overlay-link-action-color);
+                  font-size: var(--font-size-md);
+                  text-decoration: underline;
+                  text-underline-offset: 3px;
+
+                  &:hover {
+                    opacity: 0.7;
+                  }
+
+                  &--danger {
+                    color: var(--settings-overlay-link-action-color-danger);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

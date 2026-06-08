@@ -34,10 +34,12 @@ export async function POST(
     const userId = await requireUserId();
     const { id } = await params;
     const body = await request.json();
-    const { name, pages, flows } = body as {
+    const { name, pages, flows, testType, draft } = body as {
       name: string;
       pages?: { path: string }[];
       flows?: SiteTest["flows"];
+      testType?: SiteTest["testType"];
+      draft?: boolean;
     };
 
     const projects = await readProjectsWithMigration(userId);
@@ -49,6 +51,12 @@ export async function POST(
     const test: SiteTest = {
       id: uuidv4(),
       name: name || "Untitled Test",
+      // New tests default to simple (URL-based); the wizard flips this to
+      // "advanced" if the user picks the Playwright path on the type step.
+      testType: testType ?? "simple",
+      // Marked as an in-progress draft until the wizard is finished, so the
+      // sidebar/project page can surface a "Finish creating test" CTA.
+      ...(draft ? { draft: true } : {}),
       pages: (pages || []).map((p) => ({
         id: uuidv4(),
         path: p.path,

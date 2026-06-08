@@ -31,6 +31,9 @@ export interface UseTestSettingsDataResult {
   setName: React.Dispatch<React.SetStateAction<string>>;
   steps: TestStep[];
   setSteps: React.Dispatch<React.SetStateAction<TestStep[]>>;
+  /** Advanced single script (empty for simple tests). */
+  script: string;
+  setScript: React.Dispatch<React.SetStateAction<string>>;
   breakpoints: number[];
   setBreakpoints: React.Dispatch<React.SetStateAction<number[]>>;
   variantIds: string[];
@@ -39,6 +42,12 @@ export interface UseTestSettingsDataResult {
   setCredentials: React.Dispatch<
     React.SetStateAction<TestCredentials | undefined>
   >;
+  /** Advanced: selected site-level sign-in profile id. */
+  authProfileId: string | undefined;
+  setAuthProfileId: React.Dispatch<React.SetStateAction<string | undefined>>;
+  /** Fast mode: higher capture concurrency for this test. */
+  fastMode: boolean;
+  setFastMode: React.Dispatch<React.SetStateAction<boolean>>;
   /** Immediate write of a partial test patch (used by archive). */
   persist: (testPatch: Partial<SiteTest>) => Promise<void>;
   /** Force a save of all current local state right now. */
@@ -62,14 +71,17 @@ export function useTestSettingsData({
   // the test in-place while keeping siblings intact.
   const [name, setName] = useState("");
   const [steps, setSteps] = useState<TestStep[]>([]);
+  const [script, setScript] = useState("");
   const [breakpoints, setBreakpoints] = useState<number[]>([]);
   const [variantIds, setVariantIds] = useState<string[]>([]);
   const [credentials, setCredentials] = useState<TestCredentials | undefined>(
     undefined,
   );
+  const [authProfileId, setAuthProfileId] = useState<string | undefined>(undefined);
+  const [fastMode, setFastMode] = useState(false);
 
-  const stateRef = useRef({ name, steps, breakpoints, variantIds, credentials });
-  stateRef.current = { name, steps, breakpoints, variantIds, credentials };
+  const stateRef = useRef({ name, steps, script, breakpoints, variantIds, credentials, authProfileId, fastMode });
+  stateRef.current = { name, steps, script, breakpoints, variantIds, credentials, authProfileId, fastMode };
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load project + this test's state
@@ -85,9 +97,12 @@ export function useTestSettingsData({
         setProject(p);
         setName(test.name);
         setSteps(getTestSteps(test));
+        setScript(test.script ?? "");
         setBreakpoints(test.breakpoints?.length ? test.breakpoints : [...BREAKPOINTS]);
         setVariantIds((test.variants || []).map((v) => v.id));
         setCredentials(test.credentials);
+        setAuthProfileId(test.authProfileId);
+        setFastMode(test.fastMode ?? false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, testId]);
@@ -117,9 +132,12 @@ export function useTestSettingsData({
     persist({
       name: s.name.trim() || "Untitled test",
       steps: s.steps,
+      script: s.script,
       breakpoints: s.breakpoints,
       variants: BUILT_IN_VARIANTS.filter((v) => s.variantIds.includes(v.id)),
       credentials: s.credentials,
+      authProfileId: s.authProfileId,
+      fastMode: s.fastMode,
     });
   }, [persist]);
 
@@ -148,12 +166,18 @@ export function useTestSettingsData({
     setName,
     steps,
     setSteps,
+    script,
+    setScript,
     breakpoints,
     setBreakpoints,
     variantIds,
     setVariantIds,
     credentials,
     setCredentials,
+    authProfileId,
+    setAuthProfileId,
+    fastMode,
+    setFastMode,
     persist,
     flushSave,
     scheduleSave,

@@ -88,6 +88,11 @@ Thin wrappers for native pickers (used for importing flow files, exporting repor
 | `dialog.openFile({ filters, multiple? })` | `Promise<string[] \| null>` | `dialog.showOpenDialog` |
 | `dialog.revealInFinder(path)` | `Promise<void>` | `shell.showItemInFolder(path)` |
 
+### `ohsee.onModeShortcut`
+| Method | Returns | Notes |
+|---|---|---|
+| `onModeShortcut(cb)` | `() => void` (unsubscribe) | Fires with the pressed digit (0–9) when `Cmd/Ctrl + 0–9` is hit. Main intercepts these via `before-input-event` and `preventDefault`s them — necessary because `Cmd+0` is the default "Reset Zoom" menu accelerator and would otherwise never reach the page. Channel: `window:modeShortcut`. The report view uses it for breakpoint / variant / filter switching. |
+
 ## Event streams (main → renderer)
 Use `contextBridge.exposeInMainWorld` to expose typed subscription helpers.
 

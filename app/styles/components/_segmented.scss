@@ -12,6 +12,17 @@
     background: var(--segmented-background-content);
   }
 
+  /* Shrink to its content instead of filling the row. */
+  &--fit {
+    width: fit-content;
+  }
+
+  /* Roomier items (e.g. the theme picker). */
+  &--lg .segmented__item {
+    padding: var(--space-1-5) var(--space-4);
+    font-size: var(--font-size-base);
+  }
+
   &__item {
     padding: var(--space-0-75) var(--space-2-5);
     border-radius: var(--radius-sm);

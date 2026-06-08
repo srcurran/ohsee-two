@@ -6,20 +6,20 @@
  *         <div .report__title-group>
  *           <h1 .report__title> … </h1>
  *         <div .report__right>
- *           <button .run-pill> | <div .progress>   ← run/cancel/progress
+ *           <button .run-button> | <div .progress>   ← run/cancel/progress
  *           <div .report__nav-anchor>
  *             <button .report__date-btn>
  *               <span .report__date> … </span>
  *       <div .report__status-banner [--error]>   ← ReportStatusBanner
  *         <p .report__status-banner-title [--error]>
  *         <pre .report__status-banner-detail>
- *       <VariantTabs />
- *       <div .report__breakpoints> BreakpointTabs </div>
+ *       <div .report__bar>                          ← bottom toolbar
+ *         <div .report__variants>                   ← left switcher group
+ *           <div .report__breakpoints> BreakpointTabs </div>
+ *           <div .report__modes> VariantTabs </div>   ← only when modes exist
+ *         <div .report__filter> TabBar </div>          ← show all / changes only
  *     <div .report__grid-wrap>
  *       <ReportPageGrid>
- *         <div .report__flow-section>
- *           <div .report__flow-header>
- *             <h3 .report__flow-title> … </h3>
  *
  *   <button .report__project-label .report__project-label--button> —
  *     injected into the titlebar slot via usePageHeader, so it renders
@@ -28,16 +28,14 @@
  *     settings (no separate icon button beside it).
  */
 
+@use "../mixins/reset" as *;
+
 .report__project-label {
   font-size: var(--font-size-lg);
   color: var(--report-project-label-color);
 
   &--button {
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font-family: inherit;
+    @include button-reset;
     font-size: inherit;
     color: inherit;
     transition: var(--transition-colors);
@@ -51,23 +49,32 @@
 .report {
   position: relative;
   min-height: 100%;
+  /* No top padding: the sticky header owns its own top inset (below). Keeping
+     that inset inside the sticky element — rather than on .report's padding —
+     means the header content sits at the same offset whether the header is at
+     rest or stuck, so it doesn't shift up by the padding amount on scroll. */
+  padding: 0 var(--space-5) var(--space-3);
   display: flex;
   flex-direction: column;
+  gap: var(--space-5);
 
   .report__sticky {
     position: sticky;
     top: 0;
     z-index: var(--z-dropdown);
+    /* The top inset that used to live on .report's padding (see above). */
+    padding-top: var(--space-3);
     border-top-left-radius: var(--radius-lg);
     border-top-right-radius: var(--radius-lg);
     background: var(--report-sticky-background);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
 
     .report__title-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: var(--space-4);
-      padding: var(--space-2) var(--space-6);
 
       .report__title-group {
         display: flex;
@@ -125,8 +132,6 @@
     }
 
     .report__status-banner {
-      margin-inline: var(--space-8);
-      margin-bottom: var(--space-3);
       border-radius: var(--radius-md);
       padding: var(--space-4);
       border: 1px solid var(--report-status-banner-border);
@@ -159,38 +164,45 @@
       }
     }
 
-    .report__breakpoints {
-      padding: 0 var(--space-6);
+    /* Bottom toolbar of the sticky header: breakpoint + mode switchers on the
+       left (grouped as .report__variants), the change filter on the right. */
+    .report__bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--tab-bar-border);
+
+      .report__variants {
+        display: flex;
+        align-items: center;
+        gap: var(--space-8);
+      }
+
+      /* TabBar carries its own underline; the bar already draws one. */
+      .tab-bar {
+        border-bottom: none;
+      }
     }
   }
 
   .report__grid-wrap {
     position: relative;
-    padding: var(--space-6);
     flex: 1;
+    /* Clip the page-tile shadows so they don't bleed up past the grid's top
+       edge and show through behind the sticky header on scroll. */
+    overflow: hidden;
+    /* Contain the running-state scrim + loader overlay in their own stacking
+       context. Otherwise they share z-index 10 with the sticky header and,
+       being later in the DOM, paint over it when scrolled — covering the
+       breakpoint tabs / settings. Isolation keeps the whole grid subtree below
+       the header. */
+    isolation: isolate;
 
     /* While capturing, fill the available column space without growing to
        the (sparse, partial) grid behind the overlay — keeps the centered
        loader inside the viewport instead of riding tall content. */
     &--running {
       min-height: 0;
-      overflow: hidden;
-    }
-
-    .report__flow-section {
-      .report__flow-header {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        margin-bottom: var(--space-3);
-
-        .report__flow-title {
-          margin: 0;
-          font-size: var(--font-size-lg);
-          font-weight: var(--weight-bold);
-          color: var(--report-flow-title-color);
-        }
-      }
     }
   }
 }

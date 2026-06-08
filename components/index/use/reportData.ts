@@ -5,12 +5,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { buildRunErrorDetails } from "@/components/settings/run-error-details";
+import { buildRunErrorDetails } from "@/components/index/runErrorDetails";
 import type { ErrorModalDetails } from "@/components/utility/ErrorModal";
 import { getOhsee, trackReportCompletion } from "@/lib/electron";
 import type { Project, Report, SiteTest } from "@/lib/types";
 import { getDomain } from "@/components/index/utils/report";
-import { resolveScriptCredentials } from "@/lib/vault-resolve";
+import { resolveScriptCredentials, resolveVaultCredentials } from "@/lib/vault-resolve";
 
 interface UseReportDataArgs {
   reportId: string;
@@ -152,6 +152,16 @@ export function useReportData({
     // interpolation in Playwright script steps.
     const scriptCredentials = await resolveScriptCredentials(siteTest);
 
+    // Resolve the test's sign-in profile credentials too, so the runner can log
+    // in fresh at the start of the run rather than reusing the profile's cached
+    // session (which expires after a few hours and silently logs the run out
+    // partway through). Resolved client-side — only the Electron renderer can
+    // read the vault.
+    const authProfile = siteTest?.authProfileId
+      ? project.authProfiles?.find((p) => p.id === siteTest.authProfileId)
+      : undefined;
+    const authCredentials = await resolveVaultCredentials(authProfile?.vaultEntryId);
+
     // Always run through the test-scoped endpoint. Reports created before
     // the test system carry no siteTestId — fall back to the project's
     // first/default test (what such a run would resolve to anyway).
@@ -167,9 +177,9 @@ export function useReportData({
     }
     const url = `/api/projects/${project.id}/tests/${testId}/reports`;
     const fetchOpts: RequestInit = { method: "POST" };
-    if (scriptCredentials) {
+    if (scriptCredentials || authCredentials) {
       fetchOpts.headers = { "Content-Type": "application/json" };
-      fetchOpts.body = JSON.stringify({ scriptCredentials });
+      fetchOpts.body = JSON.stringify({ scriptCredentials, authCredentials });
     }
     const res = await fetch(url, fetchOpts);
     if (res.ok) {

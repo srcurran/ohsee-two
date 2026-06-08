@@ -147,6 +147,77 @@ backgrounds — brightness scales proportionally. Transparent variants
 (outline, ghost, secondary, danger-outline) still set their own
 hover bg since brightness has nothing to dim on transparent.
 
+### Spacing & layout: the wrapper owns it
+
+Lay containers out **top-down with flexbox** and keep spacing in **one
+place — the wrapping element** — never repeated on its children.
+
+- A container that stacks children is `display: flex; flex-direction:
+  column` with a `gap` for the space *between* them. Don't fake that gap
+  with `margin-bottom` on each child, or with a trailing/leading padding.
+- The wrapper owns the inset `padding`. Children do **not** re-declare the
+  same `padding-inline`. The classic smell is `__header` and `__body` both
+  setting `padding: … var(--space-7) …` — hoist it to the parent.
+- A child only owns spacing that is genuinely its own — e.g. the gap
+  *between rows inside* the body — not the inset it shares with its siblings.
+
+Canonical example: `.project-settings-overlay__panel` sets `padding` +
+`gap`; `__header` and `__body` set neither (see
+`_project-settings-overlay.scss`). Build new layouts this way, and prefer
+fixing existing ones toward it when you touch them.
+
+### Layout utilities — reach for these before authoring a flex block
+
+We keep a **small, curated** set of layout classes in
+`app/styles/utilities/_layout.scss`. When a wrapper's *only* job is to lay
+children out — `display: flex` + a `gap` — use a utility in the JSX instead
+of minting a BEM block. This is a deliberate hybrid, **not** Tailwind: the set
+is intentionally tight, and anything beyond layout still belongs in SCSS.
+
+- **`.stack`** — flex column. **`.row`** — flex row, `align-items: center`.
+  Both take a shared gap scale: `--xs --sm --md --lg --xl --2xl --3xl`
+  (→ `--space-1,2,3,4,6,8,10`). The **base** (no modifier) is `--gap-md`
+  (`space-3`). Sizes map onto the *pixel* of a spacing token, not 1:1 with
+  their names — pick the size whose value you want.
+- **`.row`** distribution / alignment: `--between --center --end` (main axis),
+  `--baseline --top` (cross axis), `--wrap`. **`.stack`** cross-axis:
+  `--start --center`.
+- **`.cluster`** — wrapping row, small gap (chips/tags). **`.center`** —
+  flex centered both axes.
+- Child-level atoms (drop on a flex child, no wrapper): **`.grow`**
+  (`flex: 1; min-width: 0`), **`.shrink-0`**, **`.self-start/-center/-end`**.
+
+**Keep BEM when the block has identity beyond layout** — borders, background,
+typography, `position`, or a selector other code depends on. The two mix
+freely: `class="auth-profile stack stack--xl"` uses the utility for the flex +
+gap and a thin `.auth-profile { padding }` for the rest. Don't add a one-off
+atomic class (`.mt-4`, `.text-center`) — if a utility doesn't exist, either
+use a thin BEM block or, if it's genuinely reusable layout, extend
+`_layout.scss` (and keep it tight).
+
+**Two traps that look convertible but aren't:**
+
+1. **No `gap` (or an off-scale gap) → leave it BEM.** Base `.row` / `.stack`
+   carry `gap: space-3` *and* `align-items: center`. Dropping a bare `.row`
+   onto a flex container that had no gap silently adds 12px between children;
+   onto one that relied on the default `align-items: stretch` it re-centers
+   them. Only convert when the existing `gap`/alignment matches a modifier
+   exactly — if the gap is `space-5/7/9` or a raw px (not on the scale), keep
+   the BEM block rather than rounding.
+2. **Descendant selectors → keep the original class.** When the SCSS targets
+   children as *nested real selectors* (`.report-page__header { .report-page__title-row {…} }`
+   → compiles to `.a .b`), the element must keep its class or those rules stop
+   matching. Add the utility *alongside*: `class="report-page__header stack
+   stack--lg"`, and thin the SCSS block to its non-layout rules. (Concatenated
+   `&__child` selectors compile to a standalone `.block__child`, so there it's
+   safe to drop the parent class entirely.)
+
+Canonical example: `_auth-profiles.scss` + `AuthProfilesPanel.tsx` — the
+flex/gap blocks (`__body`, `__field`, `__creds`, `__session`, …) became
+`.stack`/`.row`, leaving SCSS with only component-specific styling. The same
+sweep ran across the settings / detail / shell components, so most of the app
+is now the precedent.
+
 ---
 
 ## Component Organization
@@ -155,10 +226,10 @@ hover bg since brightness has nothing to dim on transparent.
 
 ```
 components/
-├── index/      project + report overview surfaces
-├── detail/     single-page deep-dive + diff
-├── settings/   overlays + wizards + recorders (incl. existing settings/* subdir)
-└── utility/    shell, rail, shared primitives
+├── index/      project + report overview surfaces (Report*, + shared tab controls)
+├── detail/     single-page deep-dive + diff (PageDetail* / PageRoute* families)
+├── settings/   overlays + wizards; shared building blocks in settings/shared/
+└── utility/    shell, rail, cross-area shared primitives
 ```
 
 Each bucket has its own `use/` and `utils/` subfolders. Cross-bucket
@@ -168,6 +239,33 @@ imports.
 
 Within a bucket, imports also use `@/components/{bucket}/X` rather
 than relative `./X` for the same reason.
+
+### Names expose the hierarchy
+
+A component's name should tell you where it sits:
+
+- **Surfaces** (route-level, mounted by `layout.tsx` / a `page.tsx`) end in
+  `*Overlay` or `*Wizard` — `TestSettingsOverlay`, `NewTestWizard`. The three
+  settings overlays are **siblings**, not nested.
+- **Single-owner children** carry their owner's prefix — `TestSettings*`
+  (rendered only by `TestSettingsOverlay`), the `PageDetail*` / `PageRoute*`
+  families in `detail/`, `Report*` in `index/`. The prefix says "who renders
+  me."
+- **Shared building blocks** (used by 2+ surfaces) take a **bare** name — the
+  *absence* of a prefix is the signal. Settings-area ones live in
+  `components/settings/shared/` (its `README.md` maps each to its consumers);
+  truly cross-area UI primitives live in `components/utility/`
+  (`Field`, `BreakpointTabs`, …).
+
+`index/` + `detail/` together are the report-viewing domain, so a few report
+pieces (`BreakpointTabs`, `VariantTabs`, `index/utils/report.ts`) are shared
+across both buckets — expected, not a smell.
+
+The SCSS partials follow the same idea: a partial is 1:1 with the class it
+styles, named for the **owner** — `_step-row.scss` (TestSettingsStepRow),
+`_settings-accordion.scss` (the shared `SettingsAccordion`), or
+`_settings-overlay.scss` for chrome shared by all three overlays (its header
+says so). Don't let one partial accumulate unrelated blocks — split by owner.
 
 ### Logic / presentation split
 
@@ -182,6 +280,45 @@ Every non-trivial component splits like the sidebar:
 Hook filenames are the export name minus the `use` prefix
 (`useFooData` → `fooData.ts`). Inline SVGs go in
 `components/utility/icons.tsx` (shared across all buckets).
+
+### Form inputs — one component
+
+There is **one** labeled-input pattern: the `Field` component
+(`components/utility/Field.tsx`) — a label *above* a plain `.input`, with
+optional `hint` / `error` (debounced) and a trailing affordance. Extensions
+ride on the same component, never a parallel one:
+
+- `status` (`idle` / `valid` / `verified` / `invalid`) → border tint + icon
+- `copyValue` → a copy-to-clipboard button (or pass any `trailing` node)
+- `labelSuffix` → a node after the label (e.g. a `$VAR$` tag)
+
+The affordance pieces (`.field__control`, `.field__trailing`, `.field__var`,
+`.input--with-trailing`) are standalone in `_field.scss`, so a rare composite
+control (e.g. the 2FA mode-toggle + input) can compose them with the exported
+`CopyButton` instead of forking the component. There is no "material" field —
+that label-inside-a-shell variant was the inconsistency this replaced.
+
+---
+
+## Copy & terminology
+
+**One term per concept, consistent noun/verb forms.** Don't mix synonyms for
+the same thing on a screen (or across the app). Pick the word once.
+
+Authentication vocabulary (user-facing copy):
+
+- **sign in** (verb) / **sign-in** (noun + adjective, hyphenated) — the term
+  for authenticating. NOT "log in" / "login", NOT "session" in copy.
+- **credential** — a stored identity (the vault entry: email / password / OTP).
+- **sign-in profile** — a reusable authenticated state (a credential + the
+  sign-in script + its captured state). Tests reference one to start signed in.
+
+Verbs match the noun: the button that runs the sign-in script is **"Test sign
+in"**, its result reads **"Signed in 2 hours ago"** — not "Generate session" /
+"Session captured".
+
+Code identifiers may keep technical names (`loginScript`, `storageState`,
+`captureLoginState`) — this rule governs **user-facing strings**, not symbols.
 
 ---
 
@@ -201,6 +338,14 @@ Hook filenames are the export name minus the `use` prefix
   of related"). The 1:1 rule is the readability win.
 - **Reaching across buckets via relative imports.** Always use
   `@/components/{bucket}/X`.
+- **A second input style.** All labeled inputs are the `Field` component
+  (label above input). Don't reintroduce a near-identical variant — extend
+  `Field` (status / trailing / copy) instead. Bare styled inputs are only for
+  non-form cases (inline title rename, search, the breakpoint add-row).
+- **Repeating padding/gaps across sibling children.** Spacing lives on the
+  flex wrapper (`gap` + one `padding`), not duplicated on `__header`/`__body`-
+  style children or faked with per-child `margin-bottom`. See "Spacing &
+  layout: the wrapper owns it" above.
 
 ---
 

@@ -157,6 +157,22 @@ async function createMainWindow(): Promise<void> {
     return { action: "allow" };
   });
 
+  // Cmd/Ctrl + 0–9 drive the report view's mode shortcuts (breakpoints,
+  // variants, and the All-pages / Changes-only filter). They're intercepted
+  // here in the main process rather than the renderer for two reasons: Cmd+0
+  // otherwise triggers the default "Reset Zoom" menu accelerator (which would
+  // swallow the keypress before the page ever saw it), and this keeps every
+  // digit working regardless of focus. preventDefault suppresses both the menu
+  // shortcut and the page keydown, so the renderer reacts only to the
+  // forwarded event — no double-handling.
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return;
+    if (!(input.meta || input.control) || input.alt || input.shift) return;
+    if (!/^[0-9]$/.test(input.key)) return;
+    event.preventDefault();
+    mainWindow?.webContents.send("window:modeShortcut", Number(input.key));
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

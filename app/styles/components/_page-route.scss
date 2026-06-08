@@ -38,30 +38,22 @@
     border-top-right-radius: var(--radius-lg);
     background: var(--report-page-sticky-background);
 
+    /* Layout: .stack .stack--lg (JSX). Owns only the inset padding. */
     .report-page__header {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-4);
       padding: var(--space-6) var(--space-5) 0;
 
+      /* Layout: .row .row--between .row--lg (JSX). Structural wrapper. */
       .report-page__title-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-4);
 
+        /* Layout: .row .row--lg (JSX). Owns its width constraints. */
         .report-page__title-group {
-          display: flex;
           min-width: 0;
           max-width: 66%;
-          align-items: center;
-          gap: var(--space-4);
 
+          /* Layout: .row .row--baseline .row--xs (JSX). Owns the min-width
+             reset so the page name can truncate. */
           .report-page__title-inner {
-            display: flex;
             min-width: 0;
-            align-items: baseline;
-            gap: var(--space-1);
 
             .report-page__domain {
               flex-shrink: 0;
@@ -109,11 +101,10 @@
           }
         }
 
+        /* Layout: .row .row--xl (JSX). Owns only the no-shrink so the nav
+           controls keep their width when the title group is wide. */
         .report-page__nav {
-          display: flex;
           flex-shrink: 0;
-          align-items: center;
-          gap: var(--space-6);
 
           .report-page__date-btn {
             display: flex;
@@ -168,10 +159,8 @@
     }
   }
 
+  /* Layout: .stack .stack--lg (JSX). Owns only the inset padding. */
   .report-page__body {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
     padding: var(--space-6) var(--space-5);
 
     .report-page__compare-row {

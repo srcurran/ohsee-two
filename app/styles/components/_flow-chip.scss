@@ -1,0 +1,49 @@
+/* Chip-style buttons in settings forms.
+ *   <button .flow-chip [--accent | --warning | --danger]>
+ *
+ * Used by CodegenRecorder and CredentialsSettings.
+ */
+
+.flow-chip {
+  border-radius: var(--radius-sm);
+  background: var(--flow-chip-background);
+  padding: var(--space-1) var(--space-2-5);
+  font-size: var(--font-size-sm);
+  color: var(--flow-chip-color);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-colors);
+  font-family: inherit;
+
+  &:hover {
+    background: var(--flow-chip-background-hover);
+    color: var(--flow-chip-color-hover);
+  }
+
+  &--accent {
+    background: color-mix(in srgb, var(--flow-chip-accent-tint) 10%, transparent);
+    font-weight: var(--weight-bold);
+    color: var(--flow-chip-accent-color);
+
+    &:hover {
+      background: color-mix(in srgb, var(--flow-chip-accent-tint) 20%, transparent);
+      color: var(--flow-chip-accent-color);
+    }
+  }
+
+  &--warning {
+    background: color-mix(in srgb, var(--flow-chip-warning-tint) 20%, transparent);
+    font-weight: var(--weight-bold);
+    color: var(--flow-chip-warning-color);
+
+    &:hover { background: color-mix(in srgb, var(--flow-chip-warning-tint) 30%, transparent); }
+  }
+
+  &--danger {
+    color: var(--flow-chip-danger-color);
+    &:hover {
+      background: color-mix(in srgb, var(--flow-chip-danger-tint) 10%, transparent);
+      color: var(--flow-chip-danger-color);
+    }
+  }
+}

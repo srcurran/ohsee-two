@@ -7,7 +7,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { basicSetup } from "codemirror";
 import type { TestStep } from "@/lib/types";
-import CodegenRecorder from "@/components/settings/CodegenRecorder";
+import CodegenRecorder from "@/components/settings/shared/CodegenRecorder";
 
 /**
  * Inline Playwright-script step editor. CodeMirror setup lifted from the
@@ -75,8 +75,8 @@ export default function ScriptStepEditor({
   }, [editing?.id]);
 
   return (
-    <div className="step-editor">
-      <label className="step-editor__field">
+    <div className="step-editor stack stack--lg">
+      <label className="step-editor__field stack stack--xs">
         <span className="step-editor__label">Name</span>
         <input
           type="text"
@@ -87,7 +87,7 @@ export default function ScriptStepEditor({
           autoFocus
         />
       </label>
-      <div className="step-editor__hint-row">
+      <div className="row row--between">
         <p className="step-editor__hint">
           Your script receives <code className="code-inline code-inline--xs">page</code>{" "}
           (Playwright Page) and <code className="code-inline code-inline--xs">expect</code>{" "}
@@ -109,7 +109,7 @@ export default function ScriptStepEditor({
         )}
       </div>
       <div ref={editorRef} className="code-editor" />
-      <div className="step-editor__actions">
+      <div className="step-editor__actions row row--end">
         <button type="button" className="btn btn--text" onClick={onCancel}>Cancel</button>
         <button
           type="button"

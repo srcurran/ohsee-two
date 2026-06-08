@@ -20,6 +20,7 @@ import {
   getReportVariants,
 } from "@/components/detail/utils/pageRoute";
 import { countUniqueSemanticChanges } from "@/lib/change-identity";
+import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 import { markReportViewed } from "@/lib/viewed-reports";
 
 function PageDetailInner() {
@@ -27,6 +28,7 @@ function PageDetailInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { report, project, allReports } = usePageRouteData(params.reportId);
+  const { accepted } = useAcceptedChanges();
   const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("tap");
   const [showingDev, setShowingDev] = useState(false);
@@ -92,9 +94,20 @@ function PageDetailInner() {
 
       const displayUrl = project.name || getDomain(project.prodUrl);
       const totalUniqueChanges = countUniqueSemanticChanges(
-        Object.values(activeBpData).map((bp) => bp.semanticChanges),
+        Object.values(activeBpData).map((bp) =>
+          activeChanges(bp.semanticChanges, params.reportId, accepted),
+        ),
       );
-      const bpChangeCounts = computeBpChangeCounts(activeBpData);
+      // Accepted (expected) diffs are stripped so the deviation dots match
+      // the (also accepted-filtered) header total.
+      const bpChangeCounts = computeBpChangeCounts(
+        Object.fromEntries(
+          Object.entries(activeBpData).map(([bp, r]) => [
+            bp,
+            { ...r, semanticChanges: activeChanges(r.semanticChanges, params.reportId, accepted) },
+          ]),
+        ),
+      );
 
       content = (
         <div className="report-page">
@@ -142,7 +155,7 @@ function PageDetailInner() {
             )}
           </div>
 
-          <div className="report-page__body">
+          <div className="report-page__body stack stack--lg">
             {bpResult ? (
               <PageRouteCompareRow
                 bpResult={bpResult}
@@ -162,6 +175,7 @@ function PageDetailInner() {
               <PageRouteIssues
                 changes={bpResult.semanticChanges}
                 summary={bpResult.changeSummary}
+                reportId={params.reportId}
                 onIssueClick={(id) => {
                   setHighlightedChangeId(id);
                   setTimeout(() => setHighlightedChangeId(null), 3000);
