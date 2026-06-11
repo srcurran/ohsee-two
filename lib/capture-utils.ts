@@ -20,6 +20,45 @@ export function buildContextOptions(
 }
 
 /**
+ * Query param appended to bust CDN edge caches on capture. Hosts like Webflow
+ * staging sit behind Cloudflare, which keys its HTML edge cache on the full
+ * URL (path + query). A plain capture request gets a cached HIT and comes out
+ * stale even though the page is live in a browser — and a client
+ * `Cache-Control: no-cache` header doesn't help, since Cloudflare ignores it
+ * for already-cached HTML. A never-before-seen query value is a guaranteed
+ * cache MISS, forcing a fresh pull from origin.
+ */
+export const CACHE_BUST_PARAM = "_ohsee_cb";
+
+/** A token unique per run, so each capture forces a fresh edge miss. */
+export function makeCacheBustToken(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Append the cache-bust param, preserving any existing query string. */
+export function withCacheBust(rawUrl: string, token: string): string {
+  try {
+    const u = new URL(rawUrl);
+    u.searchParams.set(CACHE_BUST_PARAM, token);
+    return u.toString();
+  } catch {
+    // Not an absolute URL — leave it untouched for baseURL resolution.
+    return rawUrl;
+  }
+}
+
+/** Strip the cache-bust param so stored/displayed URLs stay clean. */
+export function stripCacheBust(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    u.searchParams.delete(CACHE_BUST_PARAM);
+    return u.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+/**
  * Prepare a page for a clean screenshot capture:
  * kill animations, expand inner scrollers so fullPage catches their
  * content, scroll to trigger lazy content, wait for fonts.
