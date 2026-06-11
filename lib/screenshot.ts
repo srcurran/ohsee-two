@@ -2,7 +2,7 @@ import { chromium, type Browser, type BrowserContextOptions } from "playwright";
 import path from "path";
 import { ensureDir } from "./data";
 import { extractDomSnapshot } from "./dom-snapshot";
-import { buildContextOptions, prepareForScreenshot } from "./capture-utils";
+import { buildContextOptions, prepareForScreenshot, withCacheBust, stripCacheBust, makeCacheBustToken } from "./capture-utils";
 import { withCaptureSlot } from "./capture-semaphore";
 import type { DomSnapshot, BrowserStorageState } from "./types";
 
@@ -31,6 +31,13 @@ export async function captureScreenshots(options: {
 }): Promise<ScreenshotResult[]> {
   const { url, breakpoints, outputDir, prefix, contextOptions, initScript, storageState, onProgress, browser: externalBrowser } = options;
   await ensureDir(outputDir);
+
+  // Force a fresh origin pull past any CDN edge cache (e.g. Cloudflare in front
+  // of Webflow staging) — otherwise the capture can come out stale even though
+  // the page is live in a browser. One token per call so every breakpoint of
+  // this page+environment settles on the same fresh version. See capture-utils.
+  const cacheBustToken = makeCacheBustToken();
+  const navUrl = withCacheBust(url, cacheBustToken);
 
   const browser = externalBrowser ?? await chromium.launch({
     headless: true,
@@ -64,7 +71,7 @@ export async function captureScreenshots(options: {
         // Use domcontentloaded then briefly wait for networkidle.
         // Sites with persistent connections (analytics, websockets) will
         // never reach networkidle — the 5s timeout keeps things moving.
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+        await page.goto(navUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
         await Promise.race([
           page.waitForLoadState("networkidle"),
           page.waitForTimeout(5000),
@@ -75,7 +82,8 @@ export async function captureScreenshots(options: {
         const filePath = path.join(outputDir, `${prefix}-${bp}.png`);
         await page.screenshot({ fullPage: true, path: filePath });
 
-        const capturedUrl = page.url();
+        // Drop the cache-bust param so the stored/displayed URL stays clean.
+        const capturedUrl = stripCacheBust(page.url());
 
         let domSnapshot: DomSnapshot | undefined;
         try {
