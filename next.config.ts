@@ -41,7 +41,6 @@ const nextConfig: NextConfig = {
       "dist-electron/**",
       "electron-build/**",
       ".electron-out/**",
-      ".next/**",
       "docs/**",
       ".git/**",
     ],
