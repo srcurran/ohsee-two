@@ -18,7 +18,11 @@
 /out/
 
 # production
-/build
+# /build is electron-builder's buildResources dir — ignore its contents
+# but keep the committed app-icon resources so packaged builds use them.
+/build/*
+!/build/icon.icns
+!/build/icon-source.png
 
 # misc
 .DS_Store
