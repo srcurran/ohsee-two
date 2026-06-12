@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
   // so Electron can spawn it directly from inside the packaged .app.
   // No-op for `next dev` and normal `next start`.
   output: "standalone",
+  // Pin the file-tracing root to this project. The repo carries two lockfiles
+  // (package-lock.json + pnpm-lock.yaml), which makes Next infer a different
+  // root and silently breaks the relative globs in outputFileTracingExcludes
+  // below — letting the tracer slurp gigabytes of data/build dirs into the
+  // standalone bundle (a 25 GB .app). Pinning the root makes the excludes fire.
+  outputFileTracingRoot: process.cwd(),
   // Next.js's file tracer sometimes misses native-module binaries. Force-include
   // sharp's platform-specific binaries and Playwright's server driver so the
   // packaged standalone build can actually run audits.
@@ -33,7 +39,9 @@ const nextConfig: NextConfig = {
       "data/**",
       "data-electron-dev/**",
       "dist-electron/**",
+      "electron-build/**",
       ".electron-out/**",
+      ".next/**",
       "docs/**",
       ".git/**",
     ],

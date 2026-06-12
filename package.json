@@ -13,7 +13,7 @@
     "electron:build-main": "tsc -p electron/tsconfig.json",
     "dev:electron-next": "OHSEE_LOCAL_USER_ID=local NEXT_PUBLIC_OHSEE_ELECTRON=true OHSEE_DATA_DIR=$HOME/.ohsee/data next dev --port 4000",
     "electron:dev": "concurrently -k -n next,tsc,electron -c blue,yellow,magenta \"npm run dev:electron-next\" \"npm run electron:build-main -- --watch\" \"wait-on http://127.0.0.1:4000 -t 60000 && wait-on .electron-out/main.js && electronmon .\"",
-    "electron:build": "NEXT_PUBLIC_OHSEE_ELECTRON=true next build && rm -rf .next/standalone/data && rm -rf electron-build && mkdir electron-build && cp -R .next/standalone/. electron-build/ && mkdir -p electron-build/.next/static && cp -R .next/static/. electron-build/.next/static/ && cp -R public/. electron-build/public/ && npm run electron:build-main",
+    "electron:build": "rm -rf .next dist-electron electron-build && NEXT_PUBLIC_OHSEE_ELECTRON=true next build && rm -rf .next/standalone/data && rm -rf electron-build && mkdir electron-build && cp -R .next/standalone/. electron-build/ && mkdir -p electron-build/.next/static && cp -R .next/static/. electron-build/.next/static/ && cp -R public/. electron-build/public/ && npm run electron:build-main",
     "electron:pack": "npm run electron:build && electron-builder --mac --arm64 --config.mac.identity=null"
   },
   "electronmon": {
