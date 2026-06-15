@@ -9,7 +9,7 @@ import { Icon } from "@/components/utility/Icon";
 
 export default function Home() {
   const router = useRouter();
-  const { openNewProjectWizard, openSettings } = useSidebar();
+  const { openNewProjectWizard } = useSidebar();
   const [loading, setLoading] = useState(true);
   const [hasProjects, setHasProjects] = useState(false);
 
@@ -78,6 +78,9 @@ export default function Home() {
   }
 
   if (!hasProjects) {
+    // The titlebar settings gear (TitlebarSettingsButton, rendered in the
+    // layout) is the entry point to app settings here — the sidebar that
+    // normally houses it is hidden until the first project exists.
     return (
       <div className="empty-state empty-state--flush">
         <div className="empty-state__badge">

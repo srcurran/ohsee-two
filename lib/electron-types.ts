@@ -22,8 +22,19 @@ export type OhseeNative = {
 
 export type OhseeMeta = {
   getVersion(): Promise<{ app: string; electron: string; chromium: string; node: string }>;
+  /** The folder where projects, reports, and screenshots are stored. */
   getDataDir(): Promise<string>;
+  /** Reveal the current data dir in the OS file manager. */
   openDataDir(): Promise<void>;
+  /**
+   * Open a native directory picker for the projects/data folder.
+   * Returns the chosen absolute path, or null if the user cancelled.
+   */
+  chooseDataDir(): Promise<string | null>;
+  /** Persist a new projects/data folder. Takes effect after `relaunch()`. */
+  setDataDir(dir: string): Promise<void>;
+  /** Relaunch the app so a changed data dir takes effect. */
+  relaunch(): Promise<void>;
 };
 
 export type OhseeNotify = {

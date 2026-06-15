@@ -9,6 +9,7 @@
     "start": "next start",
     "start:stable": "next start --port 4001",
     "lint": "eslint",
+    "icon": "node scripts/generate-icon.mjs",
     "postinstall": "npx playwright install chromium",
     "electron:build-main": "tsc -p electron/tsconfig.json",
     "dev:electron-next": "OHSEE_LOCAL_USER_ID=local NEXT_PUBLIC_OHSEE_ELECTRON=true OHSEE_DATA_DIR=$HOME/.ohsee/data next dev --port 4000",

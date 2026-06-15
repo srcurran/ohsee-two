@@ -153,6 +153,7 @@
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
           padding-bottom: var(--space-4);
+          margin-bottom: var(--space-6);
           font-size: var(--font-size-base);
 
           &--sticky {
@@ -228,7 +229,8 @@
 
         .page-detail-panel__screenshot {
           min-width: 0;
-        }
+          box-shadow: var(--elevation-lg);
+        }z
 
         .page-detail-panel__empty {
           display: flex;

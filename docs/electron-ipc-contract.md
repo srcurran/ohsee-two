@@ -19,13 +19,18 @@ if (ohsee) ohsee.notify({ title: 'Audit complete', reportId: r.id });
 ## Full surface
 
 ### `ohsee.meta`
-Introspection only.
+App introspection plus control over where projects/data live.
 
 | Method | Signature | Main-side |
 |---|---|---|
 | `meta.getVersion()` | `Promise<{ app: string; electron: string; chromium: string; node: string }>` | `app.getVersion()` etc |
-| `meta.getDataDir()` | `Promise<string>` | Returns `app.getPath('userData') + '/ohsee'` |
+| `meta.getDataDir()` | `Promise<string>` | Effective data dir: user override from `ohsee-config.json`, else `app.getPath('userData') + '/ohsee'` |
 | `meta.openDataDir()` | `Promise<void>` | `shell.openPath(dataDir)` |
+| `meta.chooseDataDir()` | `Promise<string \| null>` | `dialog.showOpenDialog` with `openDirectory`/`createDirectory`. Returns chosen path, or null if cancelled. Does not persist. |
+| `meta.setDataDir(dir)` | `Promise<void>` | Persists `dir` to `ohsee-config.json`. Read at startup, so takes effect after `relaunch()`. |
+| `meta.relaunch()` | `Promise<void>` | `app.relaunch()` then `app.quit()` |
+
+**Data dir.** Read once at startup (`main.ts`) and passed to the Next standalone server as `OHSEE_DATA_DIR`. The user override is persisted in `userData/ohsee-config.json` — deliberately *outside* the data dir so it survives relocation. Playwright browsers stay pinned to the default location regardless of the configured data dir, so relocating projects never forces a browser re-download. Changing the folder does not move existing data.
 
 ### `ohsee.notify`
 Audit lifecycle notifications. Clicks focus the window and navigate.

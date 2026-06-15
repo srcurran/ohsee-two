@@ -1,118 +1,85 @@
 # Ohsee
 
-Visual regression testing tool that compares screenshots across environments, breakpoints, and theme variants. Runs as a Next.js web app or an Electron desktop app.
+Visual regression testing app that captures screenshots of production and dev/staging URLs, then highlights what changed — both pixel-level diffs and semantic changes (layout shifts, color changes, typography differences, etc.).
 
-## What it does
+## Features
 
-- Captures screenshots of prod vs dev/staging URLs using Playwright
-- Diffs them at the pixel level (pixelmatch) and detects semantic changes (layout, color, typography)
-- Supports multiple viewport breakpoints (375–1920px, configurable) and light/dark theme variants
-- Records and replays browser flows (click, fill, wait) for pages behind auth or complex navigation
-- Runs inline Playwright micro-tests with a built-in script editor (CodeMirror)
-- Stores everything as JSON files on the local filesystem — no database required
+- **Multi-breakpoint screenshots** — configurable widths (default: 375, 768, 1440px)
+- **Pixel diffing** — side-by-side comparison with highlighted differences via pixelmatch
+- **Semantic diffing** — identifies layout, spacing, color, typography, and content changes
+- **Variant support** — capture light/dark themes or custom states via init scripts
+- **Recorded flows** — record click/fill/wait interactions as replayable test steps
+- **Micro-tests** — inline Playwright scripts for complex assertions
+- **Per-test credentials** — auth via vault (Electron) or explicit session config
+- **Electron app** — macOS desktop app with native notifications and encrypted credential vault
 
-## Tech stack
+## Tech Stack
 
-- **Next.js 16** (App Router) + React 19 + TypeScript
-- **SCSS** design system with two-tier token architecture (primitives + component tokens)
-- **Playwright** for headless browser screenshots and flow recording
-- **sharp + pixelmatch + pngjs** for image processing and diffing
-- **Electron** for the desktop app (native notifications, encrypted credential vault via macOS Keychain)
-- **NextAuth** with Google OAuth (+ dev credentials provider)
+- Next.js 16 (App Router) + React 19 + TypeScript
+- SCSS with a two-tier design token system (primitives + semantic)
+- Playwright for screenshot capture
+- sharp + pixelmatch + pngjs for image processing and diffing
+- NextAuth v5 (Google OAuth + dev credentials)
+- JSON files + filesystem for data storage (no database)
+- Electron for desktop distribution
 
-## Getting started
-
-### Prerequisites
-
-- Node.js 20+
-- A Google OAuth app for auth (or use the dev login in development)
-
-### Setup
+## Getting Started
 
 ```bash
 npm install
 ```
 
-Playwright's Chromium binary installs automatically via `postinstall`.
+Create a `.env.local` with:
 
-Create a `.env.local`:
-
-```env
-AUTH_URL=http://localhost:4000
-AUTH_SECRET=           # generate with: npx auth secret
-AUTH_GOOGLE_ID=        # Google OAuth client ID
-AUTH_GOOGLE_SECRET=    # Google OAuth client secret
 ```
+AUTH_URL=http://localhost:4000
+AUTH_SECRET=<generate with `npx auth secret`>
+AUTH_GOOGLE_ID=<from Google Cloud Console>
+AUTH_GOOGLE_SECRET=<from Google Cloud Console>
 
-For development without Google OAuth, add:
-
-```env
-DEV_LOGIN_EMAIL=dev@example.com
-DEV_LOGIN_PASSWORD=password
+# Optional: dev login without Google OAuth
+DEV_LOGIN_EMAIL=dev@ohsee.local
+DEV_LOGIN_PASSWORD=dev
 DEV_LOGIN_USER_ID=local
 ```
 
-### Run (web)
+Run the dev server:
 
 ```bash
-npm run dev
+npm run dev          # Next.js on port 4000
 ```
 
-Opens at [http://localhost:4000](http://localhost:4000).
-
-### Run (Electron)
+Or run the Electron dev environment:
 
 ```bash
-npm run electron:dev
+npm run electron:dev # Electron + Next.js + tsc watch
 ```
-
-Starts Next.js + TypeScript watcher + Electron with hot reload.
-
-### Build (Electron)
-
-```bash
-npm run electron:pack
-```
-
-Outputs a macOS `.dmg` to `dist-electron/`.
-
-## Project structure
-
-```
-app/
-  (authenticated)/          Routes behind auth (projects, reports, settings)
-  api/                      REST API (projects, tests, reports, screenshots, crawl)
-  styles/                   SCSS design system (tokens, mixins, component partials)
-components/
-  index/                    Project + report overview surfaces
-  detail/                   Page-level diff viewer (side-by-side, slider, change list)
-  settings/                 Wizards, editors, flow recorder
-  utility/                  Shell, sidebar, shared primitives
-electron/
-  main.ts                   Electron entry point
-  ipc/                      IPC handlers (vault, codegen, notify, dialog)
-lib/                        Core business logic (data access, diffing, auth helpers)
-types/                      Shared TypeScript type definitions
-```
-
-## Key routes
-
-| Route | Description |
-|-------|-------------|
-| `/` | Dashboard — list of projects |
-| `/projects/[id]` | Project overview with tests |
-| `/projects/[id]/settings/*` | Project config (pages, tests, flows, advanced) |
-| `/reports/[reportId]` | Report overview — page grid with diff thumbnails |
-| `/reports/[reportId]/pages/[pageId]` | Page detail — pixel diff, slider comparison, change list |
-| `/settings` | User defaults (breakpoints, variants) |
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Next.js dev server on port 4000 |
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Next.js dev server on port 4000 |
 | `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run electron:dev` | Start Electron dev environment |
-| `npm run electron:pack` | Build + package macOS Electron app |
+| `npm run start` | Production server |
+| `npm run start:stable` | Production server on port 4001 |
+| `npm run electron:dev` | Electron + Next.js dev |
+| `npm run electron:pack` | Build macOS DMG (arm64) |
+
+## Project Structure
+
+```
+app/
+  (authenticated)/    Protected routes (settings, reports)
+  api/                REST endpoints (projects, tests, reports, screenshots)
+  sign-in/            Auth page
+  styles/             SCSS tokens, mixins, component styles
+components/
+  index/              Report overview + page grid
+  detail/             Page-level diff viewer
+  settings/           Wizards, editors, configuration panels
+  utility/            Shell, nav, shared primitives
+lib/                  Core logic (report runner, diffing, screenshot capture, flows)
+electron/             Main process, IPC handlers, preload
+data/                 User data + screenshots (gitignored)
+```

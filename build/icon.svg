@@ -1,0 +1,13 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ohsee app icon: two overlapping translucent discs (the prod-vs-dev overlay
+       motif) with a white center hole. The overlap composites to purple. -->
+  <rect width="1024" height="1024" fill="#ffffff"/>
+  <g>
+    <!-- Pink disc (top) -->
+    <circle cx="512" cy="428" r="372" fill="#f5565a" fill-opacity="0.55"/>
+    <!-- Periwinkle disc (bottom), drawn over the pink so the lens reads purple -->
+    <circle cx="512" cy="596" r="372" fill="#4b5fed" fill-opacity="0.55"/>
+    <!-- Center hole -->
+    <circle cx="512" cy="512" r="168" fill="#ffffff"/>
+  </g>
+</svg>

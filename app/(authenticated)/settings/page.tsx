@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
 import CredentialsSettings from "@/components/settings/CredentialsSettings";
+import StorageSettings from "@/components/settings/StorageSettings";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
@@ -134,6 +135,8 @@ export default function SettingsPage() {
                   Notify me when a report run finishes
                 </label>
               </section>
+
+              <StorageSettings />
 
               <section className="animate-card-in" style={{ animationDelay: "100ms" }}>
                 <button onClick={() => signOut({ callbackUrl: "/sign-in" })} className="btn btn--ghost">
