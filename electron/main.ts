@@ -2,6 +2,8 @@ import { app, BrowserWindow, shell } from "electron";
 import { spawn, ChildProcess } from "child_process";
 import { createServer } from "net";
 import path from "path";
+import fs from "fs";
+import { randomBytes } from "crypto";
 import { registerNotifyHandlers, stopAllTracking } from "./ipc/notify";
 import { registerCodegenHandlers, stopAllCodegenSessions } from "./ipc/codegen";
 import { registerVaultHandlers } from "./ipc/vault";
@@ -60,6 +62,23 @@ async function waitForPort(port: number, timeoutMs = 30_000): Promise<void> {
   throw new Error(`Timed out waiting for Next server on port ${port}`);
 }
 
+// next-auth throws "MissingSecret" without AUTH_SECRET, even though Electron
+// bypasses real auth via OHSEE_LOCAL_USER_ID. Persist a per-install random
+// secret in the data dir so JWT signing is stable across launches.
+function getOrCreateAuthSecret(dataDir: string): string {
+  const secretPath = path.join(dataDir, ".auth-secret");
+  try {
+    const existing = fs.readFileSync(secretPath, "utf8").trim();
+    if (existing) return existing;
+  } catch {
+    // not created yet — fall through to generate
+  }
+  const secret = randomBytes(32).toString("hex");
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.writeFileSync(secretPath, secret, { mode: 0o600 });
+  return secret;
+}
+
 async function startNextServer(): Promise<number> {
   if (IS_DEV) {
     // Dev mode: Next is expected to already be running on DEV_PORT (via `npm run dev`).
@@ -76,6 +95,7 @@ async function startNextServer(): Promise<number> {
   // Playwright browsers stay pinned to the default location so relocating the
   // projects folder doesn't orphan (and force a re-download of) the browsers.
   const browsersDir = path.join(defaultDataDir(), "browsers");
+  const authSecret = getOrCreateAuthSecret(dataDir);
 
   // The Next standalone bundle is copied outside asar via electron-builder's
   // extraResources so the child Node process (running as vanilla node via
@@ -94,6 +114,7 @@ async function startNextServer(): Promise<number> {
       PLAYWRIGHT_BROWSERS_PATH: browsersDir,
       OHSEE_LOCAL_USER_ID: "local",
       NEXT_PUBLIC_OHSEE_ELECTRON: "true",
+      AUTH_SECRET: authSecret,
       ELECTRON_RUN_AS_NODE: "1",
     },
     stdio: "inherit",
