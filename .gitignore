@@ -18,7 +18,11 @@
 /out/
 
 # production
-/build
+/build/*
+# …except the app-icon resources electron-builder needs at pack time.
+!/build/icon.svg
+!/build/icon.png
+!/build/icon.icns
 
 # misc
 .DS_Store
