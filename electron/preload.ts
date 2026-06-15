@@ -53,7 +53,18 @@ const dialog = {
     ipcRenderer.invoke("dialog:revealInFinder", path),
 };
 
+const meta = {
+  getVersion: (): Promise<{ app: string; electron: string; chromium: string; node: string }> =>
+    ipcRenderer.invoke("meta:getVersion"),
+  getDataDir: (): Promise<string> => ipcRenderer.invoke("meta:getDataDir"),
+  openDataDir: (): Promise<void> => ipcRenderer.invoke("meta:openDataDir"),
+  chooseDataDir: (): Promise<string | null> => ipcRenderer.invoke("meta:chooseDataDir"),
+  setDataDir: (dir: string): Promise<void> => ipcRenderer.invoke("meta:setDataDir", dir),
+  relaunch: (): Promise<void> => ipcRenderer.invoke("meta:relaunch"),
+};
+
 const ohsee = {
+  meta,
   notify,
   codegen,
   vault,
@@ -64,7 +75,7 @@ const ohsee = {
     ipcRenderer.on("window:modeShortcut", listener);
     return () => ipcRenderer.off("window:modeShortcut", listener);
   },
-  // meta, updater — land in later phases
+  // updater — lands in a later phase
 } as const;
 
 contextBridge.exposeInMainWorld("ohsee", ohsee);

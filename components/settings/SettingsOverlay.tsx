@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import BreakpointEditor from "@/components/settings/shared/BreakpointEditor";
 import CredentialsSettings from "@/components/settings/CredentialsSettings";
+import { useDataDir } from "@/components/settings/useDataDir";
 import { BUILT_IN_VARIANTS } from "@/lib/constants";
 import type { UserSettings } from "@/lib/types";
 import { isElectronRuntime } from "@/lib/electron";
@@ -178,6 +179,8 @@ export default function SettingsOverlay() {
             )}
           </section>
 
+          <StorageSection />
+
           {showCredentials && (
             <>
               <hr className="settings-overlay__divider" />
@@ -188,6 +191,58 @@ export default function SettingsOverlay() {
             </>
           )}
     </SettingsOverlayShell>
+  );
+}
+
+/**
+ * Projects folder (Electron only) — see and relocate where projects, reports,
+ * and screenshots are stored. Renders nothing in the web build. Shares the
+ * `useDataDir` hook with the settings page's StorageSettings.
+ */
+function StorageSection() {
+  const { available, displayed, dataDir, pendingDir, error, change, reveal, restart } = useDataDir();
+
+  if (!available) return null;
+
+  return (
+    <>
+      <hr className="settings-overlay__divider" />
+      <section className="settings-section stack stack--lg">
+        <h3 className="settings-section__title">Storage</h3>
+        <div className="settings-section__row settings-section__row--column">
+          <div>
+            <p className="settings-section__label">Projects folder</p>
+            <p className="settings-section__hint">
+              Where your projects, reports, and screenshots are stored on disk.
+            </p>
+          </div>
+
+          <p className="data-dir-path">{displayed ?? "Loading…"}</p>
+
+          {pendingDir && (
+            <div className="info-box">
+              <p className="section-body" style={{ margin: 0 }}>
+                Restart to start using the new folder. Projects in the previous location stay where they are.
+              </p>
+              <button onClick={restart} className="btn btn--primary-sm" style={{ marginTop: "var(--space-3)" }}>
+                Restart now
+              </button>
+            </div>
+          )}
+
+          {error && <p className="error-text">{error}</p>}
+
+          <div className="row row--sm">
+            <button onClick={change} className="btn btn--ghost">
+              Change…
+            </button>
+            <button onClick={reveal} className="btn btn--ghost" disabled={!dataDir}>
+              Open folder
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 

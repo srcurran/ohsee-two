@@ -79,23 +79,38 @@ export default function Home() {
 
   if (!hasProjects) {
     return (
-      <div className="empty-state empty-state--flush">
-        <div className="empty-state__badge">
-          <Icon name="monitor" size={28} />
-        </div>
-        <div>
-          <h1 className="empty-state__title">Get started with Ohsee</h1>
-          <p className="empty-state__body">
-            Ohsee compares screenshots of your production and dev sites to catch visual regressions before they ship.
+      <>
+        {/* The sidebar (which houses the settings gear) is hidden until the
+            first project exists, so surface a settings entry point here — it's
+            the only way to reach app settings (e.g. the projects folder
+            location) before creating a project. */}
+        <button
+          type="button"
+          onClick={openSettings}
+          aria-label="Settings"
+          title="Settings"
+          className="icon-btn empty-state-settings"
+        >
+          <Icon name="settings" size={20} />
+        </button>
+        <div className="empty-state empty-state--flush">
+          <div className="empty-state__badge">
+            <Icon name="monitor" size={28} />
+          </div>
+          <div>
+            <h1 className="empty-state__title">Get started with Ohsee</h1>
+            <p className="empty-state__body">
+              Ohsee compares screenshots of your production and dev sites to catch visual regressions before they ship.
+            </p>
+          </div>
+          <button onClick={openNewProjectWizard} className="btn btn--primary">
+            Create your first project
+          </button>
+          <p className="empty-state__footnote">
+            You&apos;ll add a production URL and a dev or staging URL. Ohsee handles the rest.
           </p>
         </div>
-        <button onClick={openNewProjectWizard} className="btn btn--primary">
-          Create your first project
-        </button>
-        <p className="empty-state__footnote">
-          You&apos;ll add a production URL and a dev or staging URL. Ohsee handles the rest.
-        </p>
-      </div>
+      </>
     );
   }
 

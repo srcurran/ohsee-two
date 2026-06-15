@@ -6,6 +6,8 @@ import { registerNotifyHandlers, stopAllTracking } from "./ipc/notify";
 import { registerCodegenHandlers, stopAllCodegenSessions } from "./ipc/codegen";
 import { registerVaultHandlers } from "./ipc/vault";
 import { registerDialogHandlers } from "./ipc/dialog";
+import { registerMetaHandlers } from "./ipc/meta";
+import { getDataDir, defaultDataDir } from "./config";
 
 const IS_DEV = !app.isPackaged;
 
@@ -68,8 +70,12 @@ async function startNextServer(): Promise<number> {
 
   // Prod mode: spawn the standalone server on a random port.
   const port = await pickFreePort();
-  const dataDir = path.join(app.getPath("userData"), "ohsee");
-  const browsersDir = path.join(dataDir, "browsers");
+  // Where projects/reports/screenshots live. User-configurable via Settings →
+  // Projects folder (persisted in ohsee-config.json, read here at startup).
+  const dataDir = getDataDir();
+  // Playwright browsers stay pinned to the default location so relocating the
+  // projects folder doesn't orphan (and force a re-download of) the browsers.
+  const browsersDir = path.join(defaultDataDir(), "browsers");
 
   // The Next standalone bundle is copied outside asar via electron-builder's
   // extraResources so the child Node process (running as vanilla node via
@@ -119,6 +125,10 @@ async function createMainWindow(): Promise<void> {
   registerVaultHandlers();
 
   registerDialogHandlers({
+    getMainWindow: () => mainWindow,
+  });
+
+  registerMetaHandlers({
     getMainWindow: () => mainWindow,
   });
 
