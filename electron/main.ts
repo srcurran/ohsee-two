@@ -1,7 +1,8 @@
-import { app, BrowserWindow, shell } from "electron";
-import { spawn, ChildProcess } from "child_process";
+import { app, BrowserWindow, shell, utilityProcess, type UtilityProcess } from "electron";
 import { createServer } from "net";
 import path from "path";
+import fs from "fs";
+import { randomBytes } from "crypto";
 import { registerNotifyHandlers, stopAllTracking } from "./ipc/notify";
 import { registerCodegenHandlers, stopAllCodegenSessions } from "./ipc/codegen";
 import { registerVaultHandlers } from "./ipc/vault";
@@ -15,7 +16,7 @@ const IS_DEV = !app.isPackaged;
 // In prod, the main process spawns `.next/standalone/server.js` on a random free port.
 const DEV_PORT = 4000;
 
-let nextServerProcess: ChildProcess | null = null;
+let nextServerProcess: UtilityProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 let appUrl = "";
 let isQuitting = false;
@@ -60,6 +61,23 @@ async function waitForPort(port: number, timeoutMs = 30_000): Promise<void> {
   throw new Error(`Timed out waiting for Next server on port ${port}`);
 }
 
+// next-auth throws "MissingSecret" without AUTH_SECRET, even though Electron
+// bypasses real auth via OHSEE_LOCAL_USER_ID. Persist a per-install random
+// secret in the data dir so JWT signing is stable across launches.
+function getOrCreateAuthSecret(dataDir: string): string {
+  const secretPath = path.join(dataDir, ".auth-secret");
+  try {
+    const existing = fs.readFileSync(secretPath, "utf8").trim();
+    if (existing) return existing;
+  } catch {
+    // not created yet — fall through to generate
+  }
+  const secret = randomBytes(32).toString("hex");
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.writeFileSync(secretPath, secret, { mode: 0o600 });
+  return secret;
+}
+
 async function startNextServer(): Promise<number> {
   if (IS_DEV) {
     // Dev mode: Next is expected to already be running on DEV_PORT (via `npm run dev`).
@@ -76,15 +94,23 @@ async function startNextServer(): Promise<number> {
   // Playwright browsers stay pinned to the default location so relocating the
   // projects folder doesn't orphan (and force a re-download of) the browsers.
   const browsersDir = path.join(defaultDataDir(), "browsers");
+  const authSecret = getOrCreateAuthSecret(dataDir);
 
   // The Next standalone bundle is copied outside asar via electron-builder's
-  // extraResources so the child Node process (running as vanilla node via
-  // ELECTRON_RUN_AS_NODE) can read its files directly.
+  // extraResources so the child Node process can read its files directly.
   const standaloneDir = path.join(process.resourcesPath, "app.standalone");
   const standaloneServer = path.join(standaloneDir, "server.js");
 
-  nextServerProcess = spawn(process.execPath, [standaloneServer], {
+  // Run the Next server via utilityProcess (Electron's managed Node child),
+  // NOT child_process.spawn(process.execPath). Spawning the app's own bundle
+  // binary registers a *second* "Ohsee" app instance with macOS, which adds a
+  // stray Dock tile (rendered as a generic "exec" icon) and — because its
+  // process title is "next-server", not "Ohsee" — survives quit and piles up
+  // across launches. utilityProcess runs headless (no Dock icon) and is torn
+  // down with the app.
+  nextServerProcess = utilityProcess.fork(standaloneServer, [], {
     cwd: standaloneDir,
+    serviceName: "ohsee-next-server",
     env: {
       ...process.env,
       PORT: String(port),
@@ -94,7 +120,7 @@ async function startNextServer(): Promise<number> {
       PLAYWRIGHT_BROWSERS_PATH: browsersDir,
       OHSEE_LOCAL_USER_ID: "local",
       NEXT_PUBLIC_OHSEE_ELECTRON: "true",
-      ELECTRON_RUN_AS_NODE: "1",
+      AUTH_SECRET: authSecret,
     },
     stdio: "inherit",
   });
@@ -205,7 +231,5 @@ app.on("before-quit", () => {
   isQuitting = true;
   stopAllTracking();
   stopAllCodegenSessions();
-  if (nextServerProcess && !nextServerProcess.killed) {
-    nextServerProcess.kill("SIGTERM");
-  }
+  nextServerProcess?.kill();
 });
