@@ -1,5 +1,4 @@
-import { app, BrowserWindow, shell } from "electron";
-import { spawn, ChildProcess } from "child_process";
+import { app, BrowserWindow, shell, utilityProcess, type UtilityProcess } from "electron";
 import { createServer } from "net";
 import path from "path";
 import fs from "fs";
@@ -17,7 +16,7 @@ const IS_DEV = !app.isPackaged;
 // In prod, the main process spawns `.next/standalone/server.js` on a random free port.
 const DEV_PORT = 4000;
 
-let nextServerProcess: ChildProcess | null = null;
+let nextServerProcess: UtilityProcess | null = null;
 let mainWindow: BrowserWindow | null = null;
 let appUrl = "";
 let isQuitting = false;
@@ -98,13 +97,20 @@ async function startNextServer(): Promise<number> {
   const authSecret = getOrCreateAuthSecret(dataDir);
 
   // The Next standalone bundle is copied outside asar via electron-builder's
-  // extraResources so the child Node process (running as vanilla node via
-  // ELECTRON_RUN_AS_NODE) can read its files directly.
+  // extraResources so the child Node process can read its files directly.
   const standaloneDir = path.join(process.resourcesPath, "app.standalone");
   const standaloneServer = path.join(standaloneDir, "server.js");
 
-  nextServerProcess = spawn(process.execPath, [standaloneServer], {
+  // Run the Next server via utilityProcess (Electron's managed Node child),
+  // NOT child_process.spawn(process.execPath). Spawning the app's own bundle
+  // binary registers a *second* "Ohsee" app instance with macOS, which adds a
+  // stray Dock tile (rendered as a generic "exec" icon) and — because its
+  // process title is "next-server", not "Ohsee" — survives quit and piles up
+  // across launches. utilityProcess runs headless (no Dock icon) and is torn
+  // down with the app.
+  nextServerProcess = utilityProcess.fork(standaloneServer, [], {
     cwd: standaloneDir,
+    serviceName: "ohsee-next-server",
     env: {
       ...process.env,
       PORT: String(port),
@@ -115,7 +121,6 @@ async function startNextServer(): Promise<number> {
       OHSEE_LOCAL_USER_ID: "local",
       NEXT_PUBLIC_OHSEE_ELECTRON: "true",
       AUTH_SECRET: authSecret,
-      ELECTRON_RUN_AS_NODE: "1",
     },
     stdio: "inherit",
   });
@@ -226,7 +231,5 @@ app.on("before-quit", () => {
   isQuitting = true;
   stopAllTracking();
   stopAllCodegenSessions();
-  if (nextServerProcess && !nextServerProcess.killed) {
-    nextServerProcess.kill("SIGTERM");
-  }
+  nextServerProcess?.kill();
 });
