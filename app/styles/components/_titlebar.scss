@@ -71,3 +71,16 @@
       var(--transition-colors);
   }
 }
+
+/* Settings gear shown in the titlebar on the empty (no-projects) state. Same
+   layer as .titlebar-collapse so its no-drag is honored in the macOS drag
+   strip; pinned top-right, clear of the traffic lights on the left. Reuses
+   .icon-btn for the button visuals. */
+.titlebar-settings {
+  position: fixed;
+  top: 4px;
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

@@ -59,19 +59,6 @@
 
 }
 
-/* Settings gear shown on the no-projects home screen, where the sidebar (and
-   its settings gear) is hidden. Pinned top-right, clear of the macOS traffic
-   lights on the left; opts out of the titlebar drag region so it stays
-   clickable in Electron. */
-.empty-state-settings {
-  position: fixed;
-  top: 4px;
-  right: var(--space-4);
-  z-index: var(--z-toast);
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
-}
-
 /* A single muted line standing in for empty content ("No sign-in profiles
    yet."). Distinct from .empty-state (a centered, illustrated callout). */
 .empty-note {
