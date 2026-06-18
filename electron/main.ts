@@ -8,7 +8,7 @@ import { registerCodegenHandlers, stopAllCodegenSessions } from "./ipc/codegen";
 import { registerVaultHandlers } from "./ipc/vault";
 import { registerDialogHandlers } from "./ipc/dialog";
 import { registerMetaHandlers } from "./ipc/meta";
-import { getDataDir, defaultDataDir } from "./config";
+import { getDataDir } from "./config";
 
 const IS_DEV = !app.isPackaged;
 
@@ -91,9 +91,11 @@ async function startNextServer(): Promise<number> {
   // Where projects/reports/screenshots live. User-configurable via Settings →
   // Projects folder (persisted in ohsee-config.json, read here at startup).
   const dataDir = getDataDir();
-  // Playwright browsers stay pinned to the default location so relocating the
-  // projects folder doesn't orphan (and force a re-download of) the browsers.
-  const browsersDir = path.join(defaultDataDir(), "browsers");
+  // Playwright browsers are bundled inside the app (Contents/Resources/browsers,
+  // installed by the afterPack hook) so the packaged app is self-contained: no
+  // first-run download, works offline, and the browser version always matches
+  // the bundled `playwright`. process.resourcesPath is Contents/Resources in prod.
+  const browsersDir = path.join(process.resourcesPath, "browsers");
   const authSecret = getOrCreateAuthSecret(dataDir);
 
   // The Next standalone bundle is copied outside asar via electron-builder's
