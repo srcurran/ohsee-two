@@ -45,13 +45,37 @@ exports.default = async function afterPack(context) {
     console.log(`[afterPack] node_modules copied`);
   }
 
-  // 2) Ad-hoc code-sign the bundle. We pack with identity=null (no Apple
+  // 2) Bundle the Playwright browsers inside the app so it's self-contained —
+  //    no first-run download, works offline, and the browser version always
+  //    matches the bundled `playwright` (we invoke its own CLI rather than
+  //    hardcoding a build number). At runtime main.ts points
+  //    PLAYWRIGHT_BROWSERS_PATH at this same Contents/Resources/browsers dir.
+  //    Must run BEFORE the code-sign below so the seal covers the binaries.
+  const browsersDest = path.join(appPath, "Contents", "Resources", "browsers");
+  if (fs.existsSync(browsersDest) && fs.readdirSync(browsersDest).length > 0) {
+    console.log(`[afterPack] skip browser install — already present at ${browsersDest}`);
+  } else {
+    const playwrightCli = path.resolve(
+      packager.info.projectDir,
+      "node_modules",
+      "playwright",
+      "cli.js",
+    );
+    console.log(`[afterPack] installing Playwright chromium → ${browsersDest}`);
+    execFileSync(process.execPath, [playwrightCli, "install", "chromium"], {
+      env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: browsersDest },
+      stdio: "inherit",
+    });
+    console.log(`[afterPack] browser install done`);
+  }
+
+  // 3) Ad-hoc code-sign the bundle. We pack with identity=null (no Apple
   //    Developer cert), so electron-builder SKIPS signing — but Apple Silicon
   //    refuses to launch an unsigned / invalidly-sealed app ("damaged, can't
   //    be opened"). A self-signed ad-hoc signature ("-") satisfies the kernel
-  //    for local use. Must run AFTER the node_modules copy so the seal covers
-  //    it, and here in afterPack (before the DMG is built) so the disk image
-  //    ships the signed app too.
+  //    for local use. Must run AFTER the node_modules copy + browser install so
+  //    the seal covers them, and here in afterPack (before the DMG is built) so
+  //    the disk image ships the signed app too.
   if (electronPlatformName === "darwin") {
     console.log(`[afterPack] ad-hoc code-signing ${appPath}`);
     execFileSync("codesign", ["--force", "--deep", "--sign", "-", appPath], { stdio: "inherit" });
