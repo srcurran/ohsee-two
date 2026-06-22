@@ -15,7 +15,6 @@ import { ReportPageGrid } from "@/components/index/ReportPageGrid";
 import { useReportData } from "@/components/index/use/reportData";
 import { useReportUrlState } from "@/components/index/use/reportUrlState";
 import { useReportModeShortcuts } from "@/components/index/use/reportModeShortcuts";
-import { markReportViewed } from "@/lib/viewed-reports";
 import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
 import {
   computeBpChangeCounts,
@@ -106,16 +105,6 @@ function ReportPageInner() {
       router.replace("/");
     }
   }, [notFound, router]);
-
-  // Opening a completed report flips the sidebar dot from solid to
-  // outlined. A run that's still capturing isn't yet "viewable" — wait
-  // for the status to settle before marking, so a refresh-after-finish
-  // flips the dot the moment there's something final to read.
-  useEffect(() => {
-    if (params.reportId && report && report.status !== "running") {
-      markReportViewed(params.reportId);
-    }
-  }, [params.reportId, report]);
 
   // Push a custom titlebar header (project label, clickable to open
   // settings) into the 36px drag region. Memoized so the slot doesn't

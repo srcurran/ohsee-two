@@ -1,7 +1,6 @@
 /* StatusDot — small colored circle indicator. Each variant sets the
  * --status-dot-color custom property; the base rule uses it for the solid
- * fill, and the `--viewed` modifier swaps the fill for an inset 2px ring
- * (so a viewed report reads as an outlined dot, an unviewed one as solid). */
+ * fill. */
 
 .status-dot {
   display: inline-block;
@@ -19,12 +18,5 @@
   &--running  {
     --status-dot-color: var(--status-dot-running-background);
     animation: breathe 2s ease-in-out infinite;
-  }
-
-  /* Inset shadow rather than `border` keeps the dot's outer dimensions
-     constant — adding a border would have nudged sibling text on toggle. */
-  &--viewed {
-    background: transparent;
-    box-shadow: inset 0 0 0 2px var(--status-dot-color);
   }
 }
