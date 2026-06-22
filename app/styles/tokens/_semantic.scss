@@ -351,7 +351,10 @@
   --flow-chip-warning-color:             var(--neutral-dark-900);
   --flow-chip-danger-tint:               var(--status-error-500);
   --flow-chip-danger-color:              var(--status-error-500);
-  --comparison-background:               var(--neutral-dark-400);
+  /* Neutral surface behind the screenshots — visible only while an image
+     loads or during the breakpoint cross-fade, so keep it a light neutral
+     rather than a dark grey that flashes during the swap. */
+  --comparison-background:               var(--neutral-light-200);
   --comparison-handle-background:        var(--neutral-dark-500);
   --comparison-header-label-color:       var(--neutral-dark-500);
   --comparison-header-label-color-active: var(--neutral-dark-900);

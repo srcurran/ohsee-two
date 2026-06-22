@@ -39,6 +39,8 @@
     font-size: inherit;
     color: inherit;
     transition: var(--transition-colors);
+    /* Nudge the label down to sit centered in the titlebar drag region. */
+    padding-top: var(--space-1);
 
     &:hover {
       color: var(--report-project-label-color-hover, var(--neutral-dark-900));

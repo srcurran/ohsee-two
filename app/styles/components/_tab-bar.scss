@@ -41,8 +41,7 @@
     color: var(--tab-color-active);
   }
 
-  /* Small dot(s) that flag breakpoints with changes — makes change types
-     visible at a glance. Outline = universal, filled = breakpoint-specific. */
+  /* Small solid dot that flags breakpoints with changes — visible at a glance. */
   &__deviation {
     display: inline-block;
     width: 6px;
@@ -50,11 +49,6 @@
     border-radius: var(--radius-full);
     background: var(--status-error-500);
     flex-shrink: 0;
-
-    &--outline {
-      background: transparent;
-      box-shadow: inset 0 0 0 1.5px var(--status-error-500);
-    }
   }
 
   &__indicator {

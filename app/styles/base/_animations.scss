@@ -43,13 +43,6 @@
   50%      { opacity: 0.4; }
 }
 
-/* Sweeps a background-position across a wide gradient — used for skeleton
-   placeholders. The element must set background-size larger than 100%. */
-@keyframes shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
-}
-
 /* Wizard step transitions — a subtle horizontal slide + fade keyed on the
    step-change direction: forward slides the new step in from the right, back
    from the left. Travel is small (one space step) so the moving panel stays

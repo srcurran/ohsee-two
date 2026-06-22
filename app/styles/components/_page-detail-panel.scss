@@ -229,17 +229,21 @@
 
         .page-detail-panel__screenshot {
           min-width: 0;
+          /* Neutral surface revealed at the cross-fade trough (and while an
+             image loads). The frame itself doesn't fade — only the shot
+             inside it does — so the backdrop stays put. */
+          background: var(--comparison-background);
+        }
+
+        /* The breakpoint cross-fade lives in the shared `.bp-crossfade` utility
+           (also used by the report grid); this `.page-detail-panel__shot` layer
+           just carries it. The shadow rides on this same layer so it fades as
+           one with the image — no separate shadow animation to drift out of
+           step. Width snaps behind the fade (not animated) so the screenshot
+           never stretches, and the frame's neutral background shows through at
+           the trough. */
+        .page-detail-panel__shot {
           box-shadow: var(--elevation-lg);
-
-          /* Switching breakpoints changes this frame's max-width (set inline
-             from the active px value). Ease it so 375 -> 1024 glides instead
-             of snapping; the width:100% images inside follow, so their height
-             tracks the new aspect ratio across the same transition. */
-          transition: max-width var(--duration-base) var(--ease-decel);
-
-          @media (prefers-reduced-motion: reduce) {
-            transition: none;
-          }
         }
 
         .page-detail-panel__empty {

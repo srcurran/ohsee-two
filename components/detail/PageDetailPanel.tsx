@@ -14,6 +14,7 @@ import { PageDetailChanges } from "@/components/detail/PageDetailChanges";
 import { usePageDetailAnimation } from "@/components/detail/use/pageDetailAnimation";
 import { usePageDetailViewMode } from "@/components/detail/use/pageDetailViewMode";
 import { usePageDetailKeyboardNav } from "@/components/detail/use/pageDetailKeyboardNav";
+import { useBreakpointCrossfade } from "@/components/utility/useBreakpointCrossfade";
 import {
   ANIM_EASE,
   ANIM_MS,
@@ -74,6 +75,14 @@ export default function PageDetailPanel({
 
   const activeBp = initialBp;
   const activeVariant = initialVariant;
+
+  // Breakpoint switch is a cross-fade, not a width animation — animating the
+  // frame's width stretched the screenshot and exposed the half-loaded shot.
+  // The visible shot lags `activeBp` (`displayedBp`): the current shot fades
+  // out to the neutral surface, the frame width + image sources swap while
+  // hidden, then the new shot fades in. Tabs/badges still track `activeBp` so
+  // the active tab moves the instant it's clicked. Shared with the report grid.
+  const { displayedBp, switching: bpSwitching } = useBreakpointCrossfade(activeBp);
 
   const { animState, handleClose, getPanelStyle } = usePageDetailAnimation({
     originRect,
@@ -260,10 +269,46 @@ export default function PageDetailPanel({
     return merged;
   }, [bpChangeCounts, dotScope]);
 
+  // Hold the shot hidden until the swapped-in breakpoint image is actually
+  // decoded. The `<img>` keeps painting the *previous* breakpoint until the
+  // new source decodes, so without this the fade back in briefly shows the
+  // old shot before the new one snaps in (reads as an out/in/out stutter).
+  // Keyed on the plain prod source for `displayedBp`, so it only re-gates on a
+  // breakpoint switch — not on Diff / view-mode toggles.
+  const shotForReady = activeBpData[String(displayedBp)];
+  const shotImgSrc = shotForReady
+    ? `/api/screenshots/${shotForReady.alignedProdScreenshot ?? shotForReady.prodScreenshot}`
+    : null;
+  // Track the src that has finished decoding and DERIVE readiness from it.
+  // (A boolean reset in the effect would lag one render behind the source
+  // swap — long enough for the stale "ready" to fade the old image back in.)
+  const [decodedSrc, setDecodedSrc] = useState<string | null>(null);
+  const shotReady = !!shotImgSrc && decodedSrc === shotImgSrc;
+  useEffect(() => {
+    if (!shotImgSrc) return;
+    let cancelled = false;
+    const img = new Image();
+    const done = () => {
+      if (!cancelled) setDecodedSrc(shotImgSrc);
+    };
+    img.onload = done;
+    img.onerror = done;
+    img.src = shotImgSrc;
+    img.decode?.().then(done).catch(done);
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [shotImgSrc]);
+
   // Early return must follow every hook above so hook order stays stable.
   if (!currentPage) return null;
 
   const bpResult = activeBpData[String(activeBp)];
+  // The screenshot frame renders the lagged breakpoint (see the cross-fade
+  // effect above) so the outgoing shot is the one that fades out.
+  const shotResult = activeBpData[String(displayedBp)];
 
   // Keep the leading slash so the title matches how the page renders in the
   // grid card ("/post/foyer-and-nayya", not "post/foyer-and-nayya").
@@ -383,43 +428,52 @@ export default function PageDetailPanel({
                     setDiffMode={setDiffMode}
                   />
                 )}
-                {bpResult ? (
+                {shotResult ? (
                   <div
                     ref={screenshotRef}
                     className="page-detail-panel__screenshot"
-                    style={{ maxWidth: activeBp }}
+                    style={{ maxWidth: displayedBp }}
                   >
-                    {/* Tap/Slider compare prod vs dev. The Diff toggle swaps
-                        the plain aligned screenshots for their change-
-                        highlighted variants (falling back to plain when a
-                        side has no highlight — e.g. zero-change pages). Blend
-                        derives its own diff from the plain images, so it always
-                        uses the un-highlighted aligned pair. */}
-                    <SliderComparison
-                      prodSrc={`/api/screenshots/${
-                        diffMode && viewMode !== "blend" && bpResult.highlightScreenshot
-                          ? bpResult.highlightScreenshot
-                          : bpResult.alignedProdScreenshot ?? bpResult.prodScreenshot
-                      }`}
-                      devSrc={`/api/screenshots/${
-                        diffMode && viewMode !== "blend" && bpResult.highlightDevScreenshot
-                          ? bpResult.highlightDevScreenshot
-                          : bpResult.alignedDevScreenshot ?? bpResult.devScreenshot
-                      }`}
-                      mode={viewMode}
-                      onModeChange={(m) => {
-                        changeViewMode(m);
-                        if (m !== "tap") {
-                          setForceDevLocked(false);
-                          setShowingDev(false);
-                        }
-                      }}
-                      onPressedChange={setShowingDev}
-                      forceDev={forceDevLocked}
-                      hideHeader
-                      changes={bpResult.semanticChanges}
-                      highlightedChangeId={highlightedChangeId}
-                    />
+                    {/* Inner layer (image + shadow) fades on breakpoint switch;
+                        the frame's neutral background shows through at the
+                        trough. Stay hidden through the fade-out AND until the
+                        swapped-in image has decoded, so the new shot — not the
+                        old one — is what fades in. */}
+                    <div
+                      className={`page-detail-panel__shot bp-crossfade${bpSwitching || !shotReady ? " bp-crossfade--switching" : ""}`}
+                    >
+                      {/* Tap/Slider compare prod vs dev. The Diff toggle swaps
+                          the plain aligned screenshots for their change-
+                          highlighted variants (falling back to plain when a
+                          side has no highlight — e.g. zero-change pages). Blend
+                          derives its own diff from the plain images, so it always
+                          uses the un-highlighted aligned pair. */}
+                      <SliderComparison
+                        prodSrc={`/api/screenshots/${
+                          diffMode && viewMode !== "blend" && shotResult.highlightScreenshot
+                            ? shotResult.highlightScreenshot
+                            : shotResult.alignedProdScreenshot ?? shotResult.prodScreenshot
+                        }`}
+                        devSrc={`/api/screenshots/${
+                          diffMode && viewMode !== "blend" && shotResult.highlightDevScreenshot
+                            ? shotResult.highlightDevScreenshot
+                            : shotResult.alignedDevScreenshot ?? shotResult.devScreenshot
+                        }`}
+                        mode={viewMode}
+                        onModeChange={(m) => {
+                          changeViewMode(m);
+                          if (m !== "tap") {
+                            setForceDevLocked(false);
+                            setShowingDev(false);
+                          }
+                        }}
+                        onPressedChange={setShowingDev}
+                        forceDev={forceDevLocked}
+                        hideHeader
+                        changes={shotResult.semanticChanges}
+                        highlightedChangeId={highlightedChangeId}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="page-detail-panel__empty">
