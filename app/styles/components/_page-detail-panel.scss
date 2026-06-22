@@ -230,7 +230,17 @@
         .page-detail-panel__screenshot {
           min-width: 0;
           box-shadow: var(--elevation-lg);
-        }z
+
+          /* Switching breakpoints changes this frame's max-width (set inline
+             from the active px value). Ease it so 375 -> 1024 glides instead
+             of snapping; the width:100% images inside follow, so their height
+             tracks the new aspect ratio across the same transition. */
+          transition: max-width var(--duration-base) var(--ease-decel);
+
+          @media (prefers-reduced-motion: reduce) {
+            transition: none;
+          }
+        }
 
         .page-detail-panel__empty {
           display: flex;
