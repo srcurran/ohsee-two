@@ -13,28 +13,21 @@ interface Props {
 }
 
 /**
- * The report's breakpoint switcher — a TabBar whose tabs carry a change dot:
- * filled when at least one change here is viewport-specific (the signal worth
- * shouting about), outline when changes exist but fire at every breakpoint,
- * none when there are no changes.
+ * The report's breakpoint switcher — a TabBar whose tabs carry a solid change
+ * dot when that breakpoint has any change, and nothing when it doesn't.
  */
 export default function BreakpointTabs({ active, onChange, changeCounts, breakpoints: bpOverride, align = "center" }: Props) {
   const bps = bpOverride || [...BREAKPOINTS];
   const items = bps.map((bp) => {
     const stats = changeCounts?.[String(bp)];
-    const specific = stats?.specificCount ?? 0;
-    const universal = stats?.universalCount ?? 0;
-    const hasAnyChange = (stats?.changeCount ?? 0) > 0;
-    const dotMod = specific > 0 ? "filled" : universal > 0 || hasAnyChange ? "outline" : null;
+    const hasChange =
+      (stats?.changeCount ?? 0) > 0 ||
+      (stats?.specificCount ?? 0) > 0 ||
+      (stats?.universalCount ?? 0) > 0;
     return {
       id: bp,
       label: <span className="tab__label">{bp}px</span>,
-      trailing:
-        dotMod === "outline" ? (
-          <span className="tab__deviation tab__deviation--outline" />
-        ) : dotMod === "filled" ? (
-          <span className="tab__deviation" />
-        ) : null,
+      trailing: hasChange ? <span className="tab__deviation" /> : null,
     };
   });
 

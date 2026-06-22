@@ -12,35 +12,42 @@ import { getPageBp } from "@/components/index/utils/report";
 import { changeGroupKey } from "@/lib/change-identity";
 import { useAcceptedChanges, acceptedChangeKey } from "@/lib/accepted-changes";
 import { formatDuration } from "@/lib/relative-time";
+import { useBreakpointCrossfade } from "@/components/utility/useBreakpointCrossfade";
 import type { ReportFilterMode } from "@/components/index/use/reportUrlState";
 
-/** Page-tile thumbnail with a shimmer placeholder shown until the image is
- *  paint-ready. Report thumbnails are very tall PNGs (~1024×10000px); the
- *  browser fires `load` before it has decoded them, so a plain <img> flashes
- *  a blank box. The <img> is always mounted (so `decode()` can run on the
- *  real element); the skeleton sits on top of it until that decode resolves. */
+/** Page-tile thumbnail. Report thumbnails are very tall PNGs (~1024×10000px);
+ *  the browser fires `load` before it has decoded them, and changing the src
+ *  keeps painting the *previous* thumbnail until the new one decodes. So the
+ *  <img> is held hidden (showing the thumb's neutral background) until the
+ *  current source has decoded, then cross-faded in — otherwise a breakpoint
+ *  switch briefly shows the old thumbnail fading back in. */
 function PageTileThumb({
   thumbSrc,
   alt,
+  switching,
 }: {
   thumbSrc: string | null;
   alt: string;
+  switching: boolean;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const [ready, setReady] = useState(false);
+  // Derive readiness from the decoded source rather than a flag toggled in an
+  // effect — a boolean would lag one render behind the src swap, long enough
+  // for the stale "ready" to fade the old thumbnail back in.
+  const [decodedSrc, setDecodedSrc] = useState<string | null>(null);
+  const ready = !!thumbSrc && decodedSrc === thumbSrc;
 
   useEffect(() => {
     if (!thumbSrc) return;
-    setReady(false);
     const img = imgRef.current;
     if (!img) return;
     let cancelled = false;
     const settle = () => {
-      if (!cancelled) setReady(true);
+      if (!cancelled) setDecodedSrc(thumbSrc);
     };
-    // decode() resolves once the element is decoded and safe to paint
-    // without a flash; it rejects on a decode error — reveal the <img>
-    // anyway so the browser can show its own broken-image state.
+    // decode() resolves once the element is decoded and safe to paint; it
+    // rejects on a decode error — reveal anyway so the browser can show its
+    // own broken-image state.
     img.decode().then(settle).catch(settle);
     return () => {
       cancelled = true;
@@ -57,16 +64,21 @@ function PageTileThumb({
 
   return (
     <div className="page-tile__thumb">
-      {!ready && (
-        <div className="page-tile__thumb-skeleton" aria-hidden="true" />
-      )}
-      <img
-        ref={imgRef}
-        src={thumbSrc}
-        alt={alt}
-        className="page-tile__thumb-img"
-        decoding="async"
-      />
+      {/* Inner layer cross-fades on breakpoint switch (shared with the detail
+          panel). Hidden through the fade-out AND until the swapped-in
+          thumbnail has decoded, so the new image — not the old one — fades in;
+          the thumb's neutral background shows through meanwhile. */}
+      <div
+        className={`bp-crossfade${switching || !ready ? " bp-crossfade--switching" : ""}`}
+      >
+        <img
+          ref={imgRef}
+          src={thumbSrc}
+          alt={alt}
+          className="page-tile__thumb-img"
+          decoding="async"
+        />
+      </div>
     </div>
   );
 }
@@ -88,6 +100,11 @@ function ReportPageGridComponent({
 }: ReportPageGridProps) {
   const { accepted } = useAcceptedChanges();
 
+  // Cross-fade the thumbnails when the breakpoint changes — same transition as
+  // the detail panel. `displayedBp` lags `activeBp` so the outgoing thumbnails
+  // fade out before the sources swap; `switching` drives the fade on each tile.
+  const { displayedBp, switching } = useBreakpointCrossfade(activeBp);
+
   // Total unique (unaccepted) changes across every breakpoint for a page.
   // Counting per active-bp would make the badge jump around as the user
   // switches viewports even though the underlying issue list is the same —
@@ -108,7 +125,7 @@ function ReportPageGridComponent({
   };
 
   const renderPageCard = (page: ReportPage, index: number) => {
-    const bpResult = getPageBp(page, String(activeBp), activeVariant);
+    const bpResult = getPageBp(page, String(displayedBp), activeVariant);
     const hasScreenshot = !!bpResult?.prodScreenshot;
     const changeCount = pageChangeCount(page);
 
@@ -129,7 +146,7 @@ function ReportPageGridComponent({
         className="page-tile animate-card-in"
         style={{ animationDelay: `${index * 50}ms` }}
       >
-        <PageTileThumb thumbSrc={thumbSrc} alt={page.stepLabel || page.path} />
+        <PageTileThumb thumbSrc={thumbSrc} alt={page.stepLabel || page.path} switching={switching} />
         <div className="page-tile__footer">
           <div className="page-tile__footer-text">
             <span className="page-tile__label">

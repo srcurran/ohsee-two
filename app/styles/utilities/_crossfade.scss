@@ -1,0 +1,26 @@
+/* Breakpoint cross-fade. Applied to the element whose content swaps when the
+ * active breakpoint changes — the detail-panel shot and each grid thumbnail.
+ * The element's breakpoint lags via useBreakpointCrossfade, so adding
+ * --switching fades the OUTGOING content out; removing it fades the incoming
+ * content in. Whatever sits behind (a neutral surface) shows at the trough.
+ *
+ * Both the easing and the duration are split by direction: a transition uses
+ * the timing properties of the state it lands in, so the base style (returning
+ * to opacity 1) drives the fade IN (120ms, ease-in) and --switching (going to
+ * opacity 0) drives the fade OUT (90ms, ease-out). Kept short so a full cycle
+ * beats a normal click and the fades don't stack into a flicker. The fade-out
+ * duration is kept in sync with BP_FADE_MS in useBreakpointCrossfade.ts —
+ * that's when the content swaps, at the trough. */
+.bp-crossfade {
+  transition: opacity 120ms var(--ease-in); /* fade in */
+
+  &--switching {
+    opacity: 0;
+    transition-duration: 90ms;                        /* fade out */
+    transition-timing-function: var(--ease-standard); /* ease-out, fade out */
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

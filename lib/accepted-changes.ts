@@ -7,9 +7,9 @@
  *
  *  Keyed by `${reportId}::${changeGroupKey(change)}` — the same stable
  *  cross-breakpoint identity the list uses as its React key (change `id` is a
- *  per-detection UUID, so it can't be used). Stored in localStorage (mirrors
- *  lib/viewed-reports.ts): survives reloads, stays per-browser, and a custom
- *  event keeps every mounted hook in sync within the tab. */
+ *  per-detection UUID, so it can't be used). Stored in localStorage:
+ *  survives reloads, stays per-browser, and a custom event keeps every
+ *  mounted hook in sync within the tab. */
 
 import { useEffect, useState } from "react";
 import { changeGroupKey } from "./change-identity";

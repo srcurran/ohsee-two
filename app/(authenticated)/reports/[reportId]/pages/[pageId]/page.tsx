@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
@@ -21,7 +21,6 @@ import {
 } from "@/components/detail/utils/pageRoute";
 import { countUniqueSemanticChanges } from "@/lib/change-identity";
 import { useAcceptedChanges, activeChanges } from "@/lib/accepted-changes";
-import { markReportViewed } from "@/lib/viewed-reports";
 
 function PageDetailInner() {
   const params = useParams<{ reportId: string; pageId: string }>();
@@ -37,16 +36,6 @@ function PageDetailInner() {
 
   usePageTitle(project ? project.name || getDomain(project.prodUrl) : null);
   usePageRouteKeyboardNav(report, params.pageId, activeBp);
-
-  // Landing on a per-page detail counts as viewing the parent report — the
-  // sidebar dot flips from solid to outlined. A still-running report
-  // doesn't have final results to "view" yet, so wait for the status to
-  // settle before marking.
-  useEffect(() => {
-    if (params.reportId && report && report.status !== "running") {
-      markReportViewed(params.reportId);
-    }
-  }, [params.reportId, report]);
 
   const handleBpChange = (bp: number) => {
     const p = new URLSearchParams(searchParams.toString());
