@@ -9,11 +9,12 @@ const MAIN_RIGHT_PADDING = 12;
 // When the sidebar is collapsed the title bar shares the top strip with
 // the TitlebarCollapseButton (and, in Electron, the macOS stoplights).
 // These offsets keep the title clear of both. Numbers come from
-// _shell.scss .titlebar-collapse positioning: web at left 24px (var
+// _titlebar.scss .titlebar-collapse positioning: web at left 24px (var
 // --space-6, aligning with the content rail; 32px wide); Electron at
-// left 80px (32px wide, after stoplights).
-const COLLAPSED_LEFT_WEB = 40;
-const COLLAPSED_LEFT_ELECTRON = 80 + 32 + 8; // 120
+// left 80px (32px wide, after stoplights). The +16 follows the toggle's
+// own 16px left margin so the title keeps the same clearance from it.
+const COLLAPSED_LEFT_WEB = 40 + 16; // 56
+const COLLAPSED_LEFT_ELECTRON = 80 + 32 + 8 + 16; // 136
 
 export default function PageTitleBar() {
   const { pageTitle, pageHeader, collapsed } = useSidebar();

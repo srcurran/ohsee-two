@@ -78,9 +78,10 @@ export default function Home() {
   }
 
   if (!hasProjects) {
-    // The titlebar settings gear (TitlebarSettingsButton, rendered in the
-    // layout) is the entry point to app settings here — the sidebar that
-    // normally houses it is hidden until the first project exists.
+    // The titlebar settings gear (AppSettingsFlyout, rendered top-right in the
+    // layout) is the entry point to app settings here too — it lives in the
+    // titlebar, so it stays available even though the sidebar is hidden until
+    // the first project exists.
     return (
       <div className="empty-state empty-state--flush">
         <div className="empty-state__badge">

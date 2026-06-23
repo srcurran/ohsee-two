@@ -9,7 +9,7 @@
  *           <button .sidebar__show-more>
  *           <button .sidebar__add-test>
  *       <button .sidebar__add-site>      ← "+ Add new site"
- *     <div .sidebar__footer-row>          ← settings icon
+ *   (app-settings gear lives in the titlebar now, not the sidebar footer)
  */
 
 .sidebar {
@@ -246,11 +246,5 @@
         color: var(--sidebar-footer-color);
       }
     }
-  }
-
-  .sidebar__footer-row {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--space-3) var(--space-2);
   }
 }

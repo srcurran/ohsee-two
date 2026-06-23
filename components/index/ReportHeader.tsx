@@ -8,7 +8,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { formatRelativeTime, formatFullDateTime } from "@/lib/relative-time";
-import { reportDotModifier } from "@/lib/colors";
+import { reportDotModifier, getReportActiveChanges } from "@/lib/colors";
 import { useAcceptedChanges } from "@/lib/accepted-changes";
 import type { Report } from "@/lib/types";
 import { Icon } from "@/components/utility/Icon";
@@ -22,6 +22,9 @@ interface ReportHeaderProps {
   onCancel: () => void;
   onOpenSettings: () => void;
   settingsTitle: string;
+  /** Gate the "No changes" badge until the grid thumbnails have decoded, so
+   *  it animates in after the images rather than popping in with the title. */
+  imagesReady: boolean;
 }
 
 export function ReportHeader({
@@ -33,16 +36,27 @@ export function ReportHeader({
   onCancel,
   onOpenSettings,
   settingsTitle,
+  imagesReady,
 }: ReportHeaderProps) {
   const [showReportNav, setShowReportNav] = useState(false);
   const { accepted } = useAcceptedChanges();
   const progressCompleted = report.progress?.completed || 0;
   const progressTotal = report.progress?.total || 1;
+  // A completed run with no (unaccepted) changes passed clear — flag it.
+  const passesClear =
+    report.status === "completed" &&
+    getReportActiveChanges(report, accepted) === 0;
 
   return (
     <div className="report__title-row">
       <div className="report__title-group">
         <h1 className="report__title">{headerTitle}</h1>
+        {passesClear && imagesReady && (
+          <span className="report__pass-badge">
+            <Icon name="check" size={16} />
+            No changes
+          </span>
+        )}
       </div>
 
       <div className="report__right">

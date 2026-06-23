@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { SidebarGroup } from "@/components/utility/SidebarGroup";
-import AppSettingsFlyout from "@/components/utility/AppSettingsFlyout";
 import { useSidebarData } from "@/components/utility/use/sidebarData";
 import { useProjectDrag } from "@/components/utility/use/projectDrag";
 import { useGlobalShortcuts } from "@/components/utility/use/globalShortcuts";
@@ -126,10 +125,6 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-
-      <div className="sidebar__footer-row">
-        <AppSettingsFlyout />
-      </div>
     </aside>
   );
 }

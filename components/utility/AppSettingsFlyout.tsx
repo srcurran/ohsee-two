@@ -1,25 +1,26 @@
 "use client";
 
-/** Compact app-settings flyout anchored to the sidebar-footer gear: dark-mode
- * toggle, run-finished notifications toggle, and log out — plus links to the
- * shortcuts cheat sheet and the full settings overlay (which still owns the
- * heavier stuff: capture defaults, credentials). Reuses the .dropdown chrome. */
+/** App-settings flyout in the titlebar (top-right gear): a Light / System /
+ * Dark theme switcher, run-finished notifications toggle, and log out — plus
+ * links to the shortcuts cheat sheet and the full settings overlay (which
+ * still owns the heavier stuff: capture defaults, credentials). Reuses the
+ * .dropdown chrome and opens downward from the gear. */
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useSidebar } from "@/components/utility/SidebarProvider";
 import { Icon } from "@/components/utility/Icon";
+import Segmented from "@/components/utility/Segmented";
 import type { UserSettings } from "@/lib/types";
+
+type ThemeChoice = "light" | "system" | "dark";
 
 export default function AppSettingsFlyout() {
   const { openSettings, openShortcuts } = useSidebar();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState<UserSettings | null>(null);
-
-  useEffect(() => setMounted(true), []);
 
   // Load settings the first time the flyout opens (the notifications toggle
   // needs the full object so a save round-trips the rest unchanged).
@@ -32,7 +33,6 @@ export default function AppSettingsFlyout() {
     }
   }, [open, settings]);
 
-  const isDark = mounted && resolvedTheme === "dark";
   const close = () => setOpen(false);
 
   const saveAlerts = (v: boolean) => {
@@ -56,20 +56,24 @@ export default function AppSettingsFlyout() {
         title="Settings"
         className="icon-btn"
       >
-        <Icon name="settings" size={16} />
+        <Icon name="settings" size={18} />
       </button>
 
       {open && (
         <>
           <div className="dropdown-backdrop" onClick={close} />
           <div className="dropdown-panel app-settings__menu" role="menu">
-            <div className="app-settings__row">
-              <span className="app-settings__label">Dark mode</span>
-              <Toggle
-                checked={isDark}
-                disabled={!mounted}
-                onChange={(v) => setTheme(v ? "dark" : "light")}
-                label="Dark mode"
+            {/* The menu only mounts on click (well after hydration), so the
+                next-themes value is settled — no flash/mismatch guard needed. */}
+            <div className="app-settings__theme">
+              <Segmented<ThemeChoice>
+                options={[
+                  { value: "light", label: <ThemeOpt icon="sun" text="Light" /> },
+                  { value: "system", label: <ThemeOpt icon="system" text="System" /> },
+                  { value: "dark", label: <ThemeOpt icon="moon" text="Dark" /> },
+                ]}
+                value={(theme ?? "system") as ThemeChoice}
+                onChange={setTheme}
               />
             </div>
             <div className="app-settings__row">
@@ -113,6 +117,15 @@ export default function AppSettingsFlyout() {
         </>
       )}
     </div>
+  );
+}
+
+function ThemeOpt({ icon, text }: { icon: "sun" | "system" | "moon"; text: string }) {
+  return (
+    <span className="app-settings__theme-opt">
+      <Icon name={icon} size={15} />
+      {text}
+    </span>
   );
 }
 

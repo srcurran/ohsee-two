@@ -35,6 +35,9 @@ export type IconName =
   | "copy"
   | "alert-circle"
   | "monitor"
+  | "sun"
+  | "moon"
+  | "system"
   | "project-menu"
   | "play"
   | "dots"
@@ -161,6 +164,33 @@ const ICONS: Record<IconName, VectorDef | RasterDef> = {
         <circle cx="12" cy="12" r="9" stroke="currentColor" />
         <path d="M12 7v6" stroke="currentColor" />
         <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+      </>
+    ),
+  },
+  sun: {
+    viewBox: "0 0 24 24",
+    body: (
+      <>
+        <circle cx="12" cy="12" r="4" stroke="currentColor" />
+        <path
+          d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"
+          stroke="currentColor"
+        />
+      </>
+    ),
+  },
+  moon: {
+    viewBox: "0 0 24 24",
+    body: <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" stroke="currentColor" />,
+  },
+  // System / "follow OS" — a half-filled circle (left half solid), matching
+  // the common light/system/dark glyph set.
+  system: {
+    viewBox: "0 0 24 24",
+    body: (
+      <>
+        <circle cx="12" cy="12" r="9" stroke="currentColor" />
+        <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" />
       </>
     ),
   },

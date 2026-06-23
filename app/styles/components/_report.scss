@@ -48,6 +48,30 @@
   }
 }
 
+/* Green "passed clear" pill shown beside the report title when a completed
+   run has no unaccepted changes. */
+.report__pass-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-xs);
+  padding: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--weight-regular);
+  line-height: var(--line-none);
+  white-space: nowrap;
+  background: var(--badge-success-background);
+  color: var(--badge-success-color);
+  /* Mounts only once the thumbnails have decoded (see ReportHeader), so this
+     plays as it appears — after the images. */
+  animation: badge-pop var(--duration-base) var(--ease-back) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 .report {
   position: relative;
   min-height: 100%;

@@ -25,6 +25,8 @@
 .titlebar-collapse {
   position: fixed;
   top: 4px;
+  /* Inset from the window edge / traffic lights. */
+  margin-left: var(--space-4);
   z-index: var(--z-toast);
   display: inline-flex;
   /* Match the sidebar footer's gear icon size so the collapse button and
@@ -70,17 +72,4 @@
       left 0.2s var(--ease-standard),
       var(--transition-colors);
   }
-}
-
-/* Settings gear shown in the titlebar on the empty (no-projects) state. Same
-   layer as .titlebar-collapse so its no-drag is honored in the macOS drag
-   strip; pinned top-right, clear of the traffic lights on the left. Reuses
-   .icon-btn for the button visuals. */
-.titlebar-settings {
-  position: fixed;
-  top: 4px;
-  right: var(--space-4);
-  z-index: var(--z-toast);
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
 }
