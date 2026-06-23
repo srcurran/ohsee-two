@@ -1,20 +1,46 @@
-/* App-settings flyout anchored to the sidebar-footer gear. Built on the shared
-   .dropdown chrome; this adds positioning, the toggle rows, and the divider. */
+/* App-settings flyout in the titlebar (top-right gear). Built on the shared
+   .dropdown chrome; this pins the gear into the drag strip (same layer as the
+   collapse toggle so its no-drag is honored) and opens the panel downward. */
 .app-settings {
-  position: relative;
+  position: fixed;
+  top: 4px;
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .app-settings__menu {
   position: absolute;
-  bottom: calc(100% + var(--space-2));
-  /* Gear sits at the sidebar's right edge, which is overflow:hidden and only
-     240px wide — anchor to the gear's right and open up-and-left so the panel
-     stays inside the rail (not clipped). */
+  top: calc(100% + var(--space-2));
   right: 0;
-  width: 210px;
+  width: 260px;
   min-width: 0; /* override .dropdown-panel's 280px floor */
   /* Above the .dropdown-backdrop (--z-overlay). */
   z-index: var(--z-modal);
+}
+
+/* Three-way Light | System | Dark picker — fills the menu width with equal
+   segments. */
+.app-settings__theme {
+  padding: var(--space-2) var(--space-3);
+
+  .segmented {
+    display: flex;
+    width: 100%;
+  }
+  .segmented__item {
+    flex: 1;
+    justify-content: center;
+    font-size: var(--font-size-sm);
+  }
+}
+
+.app-settings__theme-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
 }
 
 .app-settings__row {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BreakpointTabs from "@/components/index/BreakpointTabs";
 import VariantTabs from "@/components/index/VariantTabs";
@@ -22,6 +22,7 @@ import {
   computeReportVariants,
   getDomain,
   pickActiveBp,
+  getPageBp,
 } from "@/components/index/utils/report";
 
 function ReportPageInner() {
@@ -75,6 +76,40 @@ function ReportPageInner() {
     onVariantChange: handleVariantChange,
     onFilterChange: handleFilterChange,
   });
+
+  // Hold the "No changes" badge until the page's thumbnails have decoded, so
+  // it animates in after the images instead of popping in with the title.
+  // Preloads the visible thumbnails for the active view and latches true on
+  // first completion (stays true across breakpoint switches).
+  const [thumbsReady, setThumbsReady] = useState(false);
+  useEffect(() => {
+    if (!report) return;
+    const bp = pickActiveBp(bpParam, reportBreakpoints);
+    const srcs = report.pages
+      .map((p) => {
+        const r = getPageBp(p, String(bp), activeVariant);
+        const s = r?.highlightScreenshot ?? r?.prodScreenshot;
+        return s ? `/api/screenshots/${s}` : null;
+      })
+      .filter((s): s is string => !!s);
+    if (srcs.length === 0) {
+      setThumbsReady(true);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      srcs.map((src) => {
+        const img = new Image();
+        img.src = src;
+        return img.decode().catch(() => {});
+      }),
+    ).then(() => {
+      if (!cancelled) setThumbsReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [report, bpParam, reportBreakpoints, activeVariant]);
 
   // Cmd/Ctrl + Enter — run the current test now (ignored mid-run or while a
   // field is focused).
@@ -195,6 +230,7 @@ function ReportPageInner() {
             onCancel={cancel}
             onOpenSettings={openSettings}
             settingsTitle={report.siteTestId ? "Test settings" : "Project settings"}
+            imagesReady={thumbsReady}
           />
 
           <ReportStatusBanner report={report} />

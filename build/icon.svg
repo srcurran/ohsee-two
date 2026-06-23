@@ -4,9 +4,9 @@
   <rect width="1024" height="1024" fill="#ffffff"/>
   <g>
     <!-- Pink disc (top) -->
-    <circle cx="512" cy="428" r="372" fill="#f5565a" fill-opacity="0.55"/>
+    <circle cx="512" cy="428" r="372" fill="#f5565a" fill-opacity="0.62"/>
     <!-- Periwinkle disc (bottom), drawn over the pink so the lens reads purple -->
-    <circle cx="512" cy="596" r="372" fill="#4b5fed" fill-opacity="0.55"/>
+    <circle cx="512" cy="596" r="372" fill="#4b5fed" fill-opacity="0.62"/>
     <!-- Center hole -->
     <circle cx="512" cy="512" r="168" fill="#ffffff"/>
   </g>

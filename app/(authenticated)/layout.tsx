@@ -6,7 +6,7 @@ import SidebarProvider, { useSidebar } from "@/components/utility/SidebarProvide
 import Sidebar from "@/components/utility/Sidebar";
 import ShortcutsOverlay from "@/components/utility/ShortcutsOverlay";
 import TitlebarCollapseButton from "@/components/utility/TitlebarCollapseButton";
-import TitlebarSettingsButton from "@/components/utility/TitlebarSettingsButton";
+import AppSettingsFlyout from "@/components/utility/AppSettingsFlyout";
 import PageTitleBar from "@/components/utility/PageTitleBar";
 
 /* Overlays + wizards are lazy-loaded. Each is only mounted when the
@@ -51,7 +51,7 @@ export default function AuthenticatedLayout({
               the collapse button and page title in stacking order. */}
           <div aria-hidden className="titlebar-drag-region" />
           <TitlebarCollapseButton />
-          <TitlebarSettingsButton />
+          <AppSettingsFlyout />
           <PageTitleBar />
           <Sidebar />
           <SidebarScrim />
