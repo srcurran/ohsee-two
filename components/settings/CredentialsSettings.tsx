@@ -115,6 +115,11 @@ export default function CredentialsSettings() {
                     {flashed === entry.key ? "Copied!" : "Copy TOTP"}
                   </button>
                 )}
+                {entry.manualOtp && (
+                  <span className="flow-chip" style={{ cursor: "default", opacity: 0.7 }}>
+                    Manual OTP
+                  </span>
+                )}
                 <button onClick={() => setEditing(entry)} className="flow-chip">
                   Edit
                 </button>

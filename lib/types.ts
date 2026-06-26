@@ -109,6 +109,9 @@ export interface ScriptCredentials {
   password: string;
   totpSeed?: string;
   staticOtp?: string;
+  /** When true, `$OTP$` has no stored value — the code is entered by the user
+   *  at run time. The runner pauses and prompts for it (see lib/otp-prompt). */
+  manualOtp?: boolean;
 }
 
 /**

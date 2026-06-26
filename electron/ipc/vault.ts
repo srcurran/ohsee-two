@@ -9,6 +9,9 @@ type StoredEntry = {
   encryptedSecret: string;
   encryptedTotpSeed?: string;
   encryptedStaticOtp?: string;
+  /** When true, the OTP is entered by the user at run time — nothing is stored
+   *  here (there's no seed or fixed code). */
+  manualOtp?: boolean;
 };
 
 type VaultFile = {
@@ -21,6 +24,7 @@ type VaultEntryMeta = {
   label: string;
   createdAt: string;
   hasTotp: boolean;
+  manualOtp: boolean;
 };
 
 type VaultEntry = VaultEntryMeta & {
@@ -89,6 +93,7 @@ export function registerVaultHandlers(): void {
       label: entry.label,
       createdAt: entry.createdAt,
       hasTotp: !!(entry.encryptedTotpSeed || entry.encryptedStaticOtp),
+      manualOtp: !!entry.manualOtp,
     }));
   });
 
@@ -102,6 +107,7 @@ export function registerVaultHandlers(): void {
       label: entry.label,
       createdAt: entry.createdAt,
       hasTotp: !!(entry.encryptedTotpSeed || entry.encryptedStaticOtp),
+      manualOtp: !!entry.manualOtp,
       secret: decrypt(entry.encryptedSecret),
       totpSeed: entry.encryptedTotpSeed ? decrypt(entry.encryptedTotpSeed) : undefined,
       staticOtp: entry.encryptedStaticOtp ? decrypt(entry.encryptedStaticOtp) : undefined,
@@ -110,7 +116,7 @@ export function registerVaultHandlers(): void {
 
   ipcMain.handle(
     "vault:set",
-    async (_event, key: string, payload: { label: string; secret: string; totpSeed?: string; staticOtp?: string }) => {
+    async (_event, key: string, payload: { label: string; secret: string; totpSeed?: string; staticOtp?: string; manualOtp?: boolean }) => {
       assertSafeStorage();
       if (!key || typeof key !== "string") throw new Error("Invalid key");
       if (typeof payload?.secret !== "string") throw new Error("Invalid secret");
@@ -125,6 +131,7 @@ export function registerVaultHandlers(): void {
         encryptedSecret: encrypt(payload.secret),
         ...(normalizedSeed ? { encryptedTotpSeed: encrypt(normalizedSeed) } : {}),
         ...(payload.staticOtp ? { encryptedStaticOtp: encrypt(payload.staticOtp) } : {}),
+        ...(payload.manualOtp ? { manualOtp: true } : {}),
       };
       await saveVault(vault);
     },

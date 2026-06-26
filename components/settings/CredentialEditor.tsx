@@ -8,6 +8,7 @@ export type VaultEntryMeta = {
   label: string;
   createdAt: string;
   hasTotp: boolean;
+  manualOtp?: boolean;
 };
 
 interface CredentialEditorProps {
@@ -29,7 +30,9 @@ export function CredentialEditor({
   const [key, setKey] = useState(existing?.key ?? "");
   const [label, setLabel] = useState(existing?.label ?? "");
   const [secret, setSecret] = useState("");
-  const [otpMode, setOtpMode] = useState<"none" | "totp" | "static">("none");
+  const [otpMode, setOtpMode] = useState<"none" | "totp" | "static" | "manual">(
+    existing?.manualOtp ? "manual" : "none",
+  );
   const [totpSeed, setTotpSeed] = useState("");
   const [staticOtp, setStaticOtp] = useState("");
   const [saving, setSaving] = useState(false);
@@ -48,6 +51,7 @@ export function CredentialEditor({
         secret,
         totpSeed: otpMode === "totp" && totpSeed.trim() ? totpSeed.trim() : undefined,
         staticOtp: otpMode === "static" && staticOtp.trim() ? staticOtp.trim() : undefined,
+        manualOtp: otpMode === "manual" ? true : undefined,
       });
       onSaved(key.trim());
     } catch (err) {
@@ -109,14 +113,14 @@ export function CredentialEditor({
           </label>
 
           <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-2)" }}>
-            {(["none", "totp", "static"] as const).map((mode) => (
+            {(["none", "totp", "static", "manual"] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setOtpMode(mode)}
                 className={`btn btn--xs ${otpMode === mode ? "btn--primary-sm" : "btn--ghost"}`}
               >
-                {mode === "none" ? "None" : mode === "totp" ? "TOTP seed" : "Static code"}
+                {mode === "none" ? "None" : mode === "totp" ? "TOTP seed" : mode === "static" ? "Static code" : "Manual"}
               </button>
             ))}
           </div>
@@ -148,9 +152,16 @@ export function CredentialEditor({
                 style={{ background: "var(--neutral-light-200)" }}
               />
               <p className="field__hint" style={{ fontSize: "var(--font-size-xs)" }}>
-                A fixed OTP code that doesn't rotate (e.g. a test/staging bypass code).
+                A fixed OTP code that doesn&apos;t rotate (e.g. a test/staging bypass code).
               </p>
             </>
+          )}
+
+          {otpMode === "manual" && (
+            <p className="field__hint" style={{ fontSize: "var(--font-size-xs)" }}>
+              No code is stored. You&apos;ll be prompted to type the verification code during
+              each sign-in run — once for prod, then once for dev.
+            </p>
           )}
         </div>
 

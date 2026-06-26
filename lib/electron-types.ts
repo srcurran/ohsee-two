@@ -75,6 +75,8 @@ export type VaultEntryMeta = {
   label: string;
   createdAt: string;
   hasTotp: boolean;
+  /** When true, the OTP is typed by the user at run time (no stored value). */
+  manualOtp: boolean;
 };
 
 export type VaultEntry = VaultEntryMeta & {
@@ -86,7 +88,7 @@ export type VaultEntry = VaultEntryMeta & {
 export type OhseeVault = {
   list(): Promise<VaultEntryMeta[]>;
   get(key: string): Promise<VaultEntry>;
-  set(key: string, value: { label: string; secret: string; totpSeed?: string; staticOtp?: string }): Promise<void>;
+  set(key: string, value: { label: string; secret: string; totpSeed?: string; staticOtp?: string; manualOtp?: boolean }): Promise<void>;
   delete(key: string): Promise<void>;
   /** Returns a 6-digit OTP code — generated from seed (TOTP) or the stored
    *  static code, whichever is configured. */

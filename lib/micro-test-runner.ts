@@ -49,9 +49,27 @@ function rewriteGotoUrls(script: string, baseUrl: string | undefined): string {
 }
 
 /**
+ * Default `$OTP$` resolver injected into every script scope. Manual OTP entry
+ * only works where an interactive prompt is wired up (session generation), so
+ * everywhere else a manual `$OTP$` surfaces this explicit error instead of a
+ * bare `__ohseeOtp is not defined` ReferenceError.
+ */
+const otpNotInteractive = async (): Promise<string> => {
+  throw new Error(
+    "This login uses a manual $OTP$, but this run has no way to prompt for it. " +
+    "Manual codes are only supported when you click “Test sign in” to generate a session.",
+  );
+};
+
+/**
  * Replace `$EMAIL$`, `$PASSWORD$`, `$OTP$` template variables in a script
  * with values from the resolved vault entry. Generates a fresh TOTP code
  * (or returns the static OTP) at call time so each invocation is live.
+ *
+ * For a *manual* credential there's no stored code: each `$OTP$` is rewritten
+ * to `(await __ohseeOtp())`, a resolver injected into the script scope that
+ * blocks until the user types the code the site just sent. Callers that don't
+ * provide a resolver get {@link otpNotInteractive}.
  */
 function interpolateCredentials(script: string, creds: ScriptCredentials): string {
   let out = script;
@@ -59,18 +77,32 @@ function interpolateCredentials(script: string, creds: ScriptCredentials): strin
   out = out.replace(/\$PASSWORD\$/g, creds.password.replace(/\\/g, "\\\\").replace(/'/g, "\\'"));
 
   if (out.includes("$OTP$")) {
-    let otp = "";
-    if (creds.staticOtp) {
-      otp = creds.staticOtp;
-    } else if (creds.totpSeed) {
-      const totp = new TOTP({ secret: Secret.fromBase32(creds.totpSeed), digits: 6, period: 30 });
-      otp = totp.generate();
+    if (creds.manualOtp) {
+      // Lazy: resolve the code at the moment the script reaches it. Handles the
+      // common quoted forms — `'$OTP$'`, `"$OTP$"`, `` `$OTP$` `` — turning the
+      // string literal into a call so e.g. page.fill(sel, '$OTP$') becomes
+      // page.fill(sel, (await __ohseeOtp())).
+      out = out
+        .replace(/(['"`])\$OTP\$\1/g, "(await __ohseeOtp())")
+        // Any bare leftover (e.g. inside a template literal) resolves too.
+        .replace(/\$OTP\$/g, "${await __ohseeOtp()}");
+    } else {
+      let otp = "";
+      if (creds.staticOtp) {
+        otp = creds.staticOtp;
+      } else if (creds.totpSeed) {
+        const totp = new TOTP({ secret: Secret.fromBase32(creds.totpSeed), digits: 6, period: 30 });
+        otp = totp.generate();
+      }
+      out = out.replace(/\$OTP\$/g, otp);
     }
-    out = out.replace(/\$OTP\$/g, otp);
   }
 
   return out;
 }
+
+/** Resolver invoked by `(await __ohseeOtp())` in interpolated scripts. */
+type OtpResolver = () => Promise<string>;
 
 /**
  * Execute a single micro-test script against a Playwright Page.
@@ -111,16 +143,17 @@ export async function executeMicroTest(
     // @playwright/test may not be installed — scripts that need `expect` will fail
   }
 
-  const fn = new Function("page", "expect", `return (async () => { ${processed} })()`) as (
+  const fn = new Function("page", "expect", "__ohseeOtp", `return (async () => { ${processed} })()`) as (
     page: Page,
     expect: unknown,
+    __ohseeOtp: OtpResolver,
   ) => Promise<void>;
 
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error(`Micro-test timed out after ${timeout}ms`)), timeout),
   );
 
-  await Promise.race([fn(page, expectFn), timeoutPromise]);
+  await Promise.race([fn(page, expectFn, otpNotInteractive), timeoutPromise]);
 }
 
 /** One screenshot produced by an `ohsee.snapshot()` call in a script test. */
@@ -247,14 +280,14 @@ export async function executeScriptTest(options: {
         };
 
         const fn = new Function(
-          "page", "expect", "ohsee",
+          "page", "expect", "ohsee", "__ohseeOtp",
           `return (async () => { ${processed} })()`,
-        ) as (page: Page, expect: unknown, ohsee: unknown) => Promise<void>;
+        ) as (page: Page, expect: unknown, ohsee: unknown, __ohseeOtp: OtpResolver) => Promise<void>;
 
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error(`Script timed out after ${SCRIPT_TIMEOUT}ms`)), SCRIPT_TIMEOUT),
         );
-        await Promise.race([fn(page, expectFn, ohsee), timeoutPromise]);
+        await Promise.race([fn(page, expectFn, ohsee, otpNotInteractive), timeoutPromise]);
       } catch (err) {
         // Keep whatever snapshots were captured before the failure, but report
         // the failing step so the run can surface it.
@@ -287,8 +320,11 @@ export async function captureLoginState(options: {
   loginScript: string;
   baseUrl: string;
   credentials?: ScriptCredentials;
+  /** Resolves `$OTP$` for a manual credential — called when the script reaches
+   *  it, blocking until the user submits the code. */
+  otpResolver?: OtpResolver;
 }): Promise<BrowserStorageState> {
-  const { loginScript, baseUrl, credentials } = options;
+  const { loginScript, baseUrl, credentials, otpResolver } = options;
 
   let processed = rewriteGotoUrls(loginScript, baseUrl);
   if (credentials) processed = interpolateCredentials(processed, credentials);
@@ -309,13 +345,16 @@ export async function captureLoginState(options: {
     const context = await browser.newContext({ baseURL: baseUrl });
     const page = await context.newPage();
     const fn = new Function(
-      "page", "expect",
+      "page", "expect", "__ohseeOtp",
       `return (async () => { ${processed} })()`,
-    ) as (page: Page, expect: unknown) => Promise<void>;
+    ) as (page: Page, expect: unknown, __ohseeOtp: OtpResolver) => Promise<void>;
+    // A manual OTP means the script blocks on a human typing the code, so the
+    // normal flow timeout would fire before they finish. Give the prompt room.
+    const loginTimeout = otpResolver ? SCRIPT_TIMEOUT + 6 * 60_000 : SCRIPT_TIMEOUT;
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Login script timed out after ${SCRIPT_TIMEOUT}ms`)), SCRIPT_TIMEOUT),
+      setTimeout(() => reject(new Error(`Login script timed out after ${loginTimeout}ms`)), loginTimeout),
     );
-    await Promise.race([fn(page, expectFn), timeoutPromise]);
+    await Promise.race([fn(page, expectFn, otpResolver ?? otpNotInteractive), timeoutPromise]);
     // Let the sign-in settle before snapshotting — the script's last action
     // (submitting a code / clicking through) often triggers a redirect that
     // sets the session cookie. Capturing too early grabs a half-authenticated

@@ -68,6 +68,7 @@ export async function resolveVaultCredentials(
       password: entry.secret,
       totpSeed: entry.totpSeed,
       staticOtp: entry.staticOtp,
+      manualOtp: entry.manualOtp,
     };
   } catch (err) {
     console.error("Failed to resolve vault credentials:", err);

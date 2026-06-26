@@ -4,18 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ScriptEditor from "@/components/settings/shared/ScriptEditor";
 import Field, { CopyButton } from "@/components/utility/Field";
 import Segmented from "@/components/utility/Segmented";
+import { ManualOtpPrompt } from "@/components/utility/ManualOtpPrompt";
 import { getOhsee, isElectronRuntime } from "@/lib/electron";
 import { resolveVaultCredentials } from "@/lib/vault-resolve";
 import { formatRelativeTime } from "@/lib/relative-time";
 import type { AuthProfile, Project } from "@/lib/types";
 
 /** Inline credential fields, mirrored from the profile's Keychain entry.
- *  `$OTP$` is either a TOTP seed (a fresh code is generated each run) or a
- *  fixed/static code — `otpMode` picks which. */
+ *  `$OTP$` is a TOTP seed (a fresh code each run), a fixed/static code, or
+ *  `manual` — typed by the user at run time. `otpMode` picks which. */
 interface Cred {
   email: string;
   password: string;
-  otpMode: "totp" | "static";
+  otpMode: "totp" | "static" | "manual";
   otpValue: string;
 }
 const EMPTY_CRED: Cred = { email: "", password: "", otpMode: "totp", otpValue: "" };
@@ -33,6 +34,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   const [profiles, setProfiles] = useState<AuthProfile[]>([]);
   const [credsById, setCredsById] = useState<Record<string, Cred>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  // The active manual-OTP run id (drives the prompt poller); null when idle.
+  const [otpRunId, setOtpRunId] = useState<string | null>(null);
   // Errors are per-profile so they render next to that profile's button.
   const [errorById, setErrorById] = useState<Record<string, string>>({});
   const setError = (profileId: string, message: string | null) =>
@@ -64,7 +67,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
               next[pr.id] = {
                 email: e.label ?? "",
                 password: e.secret ?? "",
-                otpMode: e.staticOtp ? "static" : "totp",
+                otpMode: e.manualOtp ? "manual" : e.staticOtp ? "static" : "totp",
                 otpValue: e.staticOtp ?? e.totpSeed ?? "",
               };
             } catch {
@@ -169,6 +172,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
         secret: c.password,
         totpSeed: c.otpMode === "totp" && otp ? otp : undefined,
         staticOtp: c.otpMode === "static" && otp ? otp : undefined,
+        manualOtp: c.otpMode === "manual" ? true : undefined,
       });
       if (!profile?.vaultEntryId) update(profileId, { vaultEntryId: key }, true);
       setError(profileId, null);
@@ -180,14 +184,20 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
   const generate = async (profile: AuthProfile) => {
     setBusyId(profile.id);
     setError(profile.id, null);
+    const creds = await resolveVaultCredentials(profile.vaultEntryId);
+
+    // Manual OTP: the run pauses per environment waiting for a typed code.
+    // runId scopes the prompt poller (<ManualOtpPrompt/>) to this run.
+    const runId = creds?.manualOtp ? crypto.randomUUID() : undefined;
+    if (runId) setOtpRunId(runId);
+
     try {
-      const creds = await resolveVaultCredentials(profile.vaultEntryId);
       const res = await fetch(
         `/api/projects/${projectId}/auth-profiles/${profile.id}/session`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scriptCredentials: creds }),
+          body: JSON.stringify({ scriptCredentials: creds, runId }),
         },
       );
       if (!res.ok) {
@@ -200,6 +210,7 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
         prev.map((p) => (p.id === profile.id ? { ...p, tokensUpdatedAt } : p)),
       );
     } finally {
+      setOtpRunId(null);
       setBusyId(null);
     }
   };
@@ -252,27 +263,35 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
                           options={[
                             { value: "totp", label: "TOTP seed" },
                             { value: "static", label: "Fixed code" },
+                            { value: "manual", label: "Manual" },
                           ]}
                           value={cred.otpMode}
                           onChange={(otpMode) => updateCred(profile.id, { otpMode })}
                         />
                       </label>
-                      <div className="field__control">
-                        <input
-                          type="password"
-                          className="input input--with-trailing"
-                          value={cred.otpValue}
-                          placeholder={
-                            cred.otpMode === "totp"
-                              ? "Optional — TOTP secret (base32)"
-                              : "Optional — fixed code"
-                          }
-                          spellCheck={false}
-                          autoComplete="off"
-                          onChange={(e) => updateCred(profile.id, { otpValue: e.target.value })}
-                        />
-                        <div className="field__trailing"><CopyButton value="$OTP$" /></div>
-                      </div>
+                      {cred.otpMode === "manual" ? (
+                        <p className="field__hint">
+                          You&apos;ll be prompted to type the verification code during sign-in —
+                          once for prod, then once for dev.
+                        </p>
+                      ) : (
+                        <div className="field__control">
+                          <input
+                            type="password"
+                            className="input input--with-trailing"
+                            value={cred.otpValue}
+                            placeholder={
+                              cred.otpMode === "totp"
+                                ? "Optional — TOTP secret (base32)"
+                                : "Optional — fixed code"
+                            }
+                            spellCheck={false}
+                            autoComplete="off"
+                            onChange={(e) => updateCred(profile.id, { otpValue: e.target.value })}
+                          />
+                          <div className="field__trailing"><CopyButton value="$OTP$" /></div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -320,6 +339,8 @@ export default function AuthProfilesPanel({ projectId }: { projectId: string }) 
           + Add sign-in profile
         </button>
       </div>
+
+      <ManualOtpPrompt runId={otpRunId} active={!!otpRunId} />
     </div>
   );
 }

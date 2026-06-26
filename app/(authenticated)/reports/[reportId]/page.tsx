@@ -9,6 +9,7 @@ import ErrorModal from "@/components/utility/ErrorModal";
 import { LoadingOverlay } from "@/components/utility/LoadingOverlay";
 import { useSidebar, usePageHeader } from "@/components/utility/SidebarProvider";
 import PageDetailPanel from "@/components/detail/PageDetailPanel";
+import { ManualOtpPrompt } from "@/components/utility/ManualOtpPrompt";
 import { ReportHeader } from "@/components/index/ReportHeader";
 import { ReportStatusBanner } from "@/components/index/ReportStatusBanner";
 import { ReportPageGrid } from "@/components/index/ReportPageGrid";
@@ -202,6 +203,9 @@ function ReportPageInner() {
     content = (
       <div className="report">
         <ErrorModal error={runError} onClose={() => setRunError(null)} />
+        {/* A test whose sign-in profile uses a manual OTP pauses mid-run waiting
+            for the code; poll for that prompt while this run is in flight. */}
+        <ManualOtpPrompt runId={params.reportId} active={report.status === "running"} />
         {activePageId && (
           <PageDetailPanel
             report={report}

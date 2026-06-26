@@ -4,6 +4,7 @@ import { userProjectsFile } from "@/lib/constants";
 import { requireUserId, AuthError } from "@/lib/auth-helpers";
 import { readProjectsWithMigration } from "@/lib/site-test-migration";
 import { captureLoginState } from "@/lib/micro-test-runner";
+import { requestManualOtp, cancelOtpRequests } from "@/lib/otp-prompt";
 import type { ScriptCredentials } from "@/lib/types";
 
 /**
@@ -21,6 +22,8 @@ export async function POST(
     const { id, profileId } = await params;
     const body = await request.json().catch(() => ({}));
     const credentials = (body as { scriptCredentials?: ScriptCredentials }).scriptCredentials;
+    // A client-owned id the renderer polls to discover this run's OTP prompts.
+    const runId = (body as { runId?: string }).runId;
 
     const projects = await readProjectsWithMigration(userId);
     const project = projects.find((p) => p.id === id);
@@ -39,10 +42,38 @@ export async function POST(
     const normDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
 
     // Run the login against both environments — storage state is domain-scoped.
-    const [prod, dev] = await Promise.all([
-      captureLoginState({ loginScript: profile.loginScript, baseUrl: normProd, credentials }),
-      captureLoginState({ loginScript: profile.loginScript, baseUrl: normDev, credentials }),
-    ]);
+    let prod, dev;
+    if (credentials?.manualOtp) {
+      // Each environment's login triggers its *own* one-time code, and the two
+      // codes are indistinguishable to the user. So run them sequentially —
+      // only one prompt is ever in flight, so the code the user just received
+      // unambiguously belongs to the environment currently asking.
+      if (!runId) {
+        return NextResponse.json(
+          { error: "Manual OTP requires a runId to prompt for the code" },
+          { status: 400 },
+        );
+      }
+      try {
+        prod = await captureLoginState({
+          loginScript: profile.loginScript, baseUrl: normProd, credentials,
+          otpResolver: () => requestManualOtp({ runId, env: "Prod", label: profile.name }),
+        });
+        dev = await captureLoginState({
+          loginScript: profile.loginScript, baseUrl: normDev, credentials,
+          otpResolver: () => requestManualOtp({ runId, env: "Dev", label: profile.name }),
+        });
+      } finally {
+        // Tear down any prompt still parked (e.g. the login failed before
+        // reaching $OTP$, or one env errored) so the client stops polling.
+        cancelOtpRequests(runId);
+      }
+    } else {
+      [prod, dev] = await Promise.all([
+        captureLoginState({ loginScript: profile.loginScript, baseUrl: normProd, credentials }),
+        captureLoginState({ loginScript: profile.loginScript, baseUrl: normDev, credentials }),
+      ]);
+    }
 
     profile.storageState = { prod, dev };
     profile.tokensUpdatedAt = new Date().toISOString();

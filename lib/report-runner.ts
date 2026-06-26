@@ -9,6 +9,7 @@ import { setCaptureConcurrency } from "./capture-semaphore";
 import type { Project, SiteTest, Report, ReportPage, BreakpointResult, FlowEntry, TestComposition, ScriptCredentials, BrowserStorageState } from "./types";
 import { executeFlow, getScreenshotStepIds } from "./flow-runner";
 import { executeTestComposition, executeScriptTest, getCompositionScreenshotSteps, captureLoginState } from "./micro-test-runner";
+import { requestManualOtp, cancelOtpRequests } from "./otp-prompt";
 import { splitStepsForRunner } from "./test-steps";
 import { v4 as uuidv4 } from "uuid";
 
@@ -233,10 +234,29 @@ export async function runReport(
       const loginProd = project.prodUrl.match(/^https?:\/\//) ? project.prodUrl : `http://${project.prodUrl}`;
       const loginDev = project.devUrl.match(/^https?:\/\//) ? project.devUrl : `http://${project.devUrl}`;
       try {
-        const [prod, dev] = await Promise.all([
-          captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginProd, credentials: authCredentials }),
-          captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginDev, credentials: authCredentials }),
-        ]);
+        let prod, dev;
+        if (authCredentials.manualOtp) {
+          // The login pauses for a user-typed code. Each environment triggers
+          // its own code, so run them sequentially with one prompt in flight —
+          // the client (report page) polls runId=reportId to surface the dialog.
+          try {
+            prod = await captureLoginState({
+              loginScript: authProfile.loginScript, baseUrl: loginProd, credentials: authCredentials,
+              otpResolver: () => requestManualOtp({ runId: reportId, env: "Prod", label: authProfile.name }),
+            });
+            dev = await captureLoginState({
+              loginScript: authProfile.loginScript, baseUrl: loginDev, credentials: authCredentials,
+              otpResolver: () => requestManualOtp({ runId: reportId, env: "Dev", label: authProfile.name }),
+            });
+          } finally {
+            cancelOtpRequests(reportId);
+          }
+        } else {
+          [prod, dev] = await Promise.all([
+            captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginProd, credentials: authCredentials }),
+            captureLoginState({ loginScript: authProfile.loginScript, baseUrl: loginDev, credentials: authCredentials }),
+          ]);
+        }
         storageState = { prod, dev };
       } catch (err) {
         console.warn(
