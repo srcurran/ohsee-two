@@ -136,30 +136,7 @@ async function startNextServer(): Promise<number> {
   return port;
 }
 
-async function createMainWindow(): Promise<void> {
-  const port = await startNextServer();
-  appUrl = `http://127.0.0.1:${port}`;
-
-  registerNotifyHandlers({
-    getAppUrl: () => appUrl,
-    getMainWindow: () => mainWindow,
-  });
-
-  registerCodegenHandlers({
-    getMainWindow: () => mainWindow,
-    getAppRoot: () => app.getAppPath(),
-  });
-
-  registerVaultHandlers();
-
-  registerDialogHandlers({
-    getMainWindow: () => mainWindow,
-  });
-
-  registerMetaHandlers({
-    getMainWindow: () => mainWindow,
-  });
-
+async function createWindow(): Promise<void> {
   mainWindow = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -216,7 +193,40 @@ async function createMainWindow(): Promise<void> {
   });
 }
 
-app.whenReady().then(createMainWindow).catch((err) => {
+// One-time startup: boot the Next server and register IPC handlers, then open
+// the first window. The server and IPC handlers live for the whole app session
+// and must NOT be re-created per window — ipcMain.handle() throws on a second
+// registration for the same channel. Re-running this on `activate` is what left
+// the app unable to reopen its window after closing it: the throw aborted before
+// the window was built. Window (re)creation goes through createWindow() alone.
+async function init(): Promise<void> {
+  const port = await startNextServer();
+  appUrl = `http://127.0.0.1:${port}`;
+
+  registerNotifyHandlers({
+    getAppUrl: () => appUrl,
+    getMainWindow: () => mainWindow,
+  });
+
+  registerCodegenHandlers({
+    getMainWindow: () => mainWindow,
+    getAppRoot: () => app.getAppPath(),
+  });
+
+  registerVaultHandlers();
+
+  registerDialogHandlers({
+    getMainWindow: () => mainWindow,
+  });
+
+  registerMetaHandlers({
+    getMainWindow: () => mainWindow,
+  });
+
+  await createWindow();
+}
+
+app.whenReady().then(init).catch((err) => {
   console.error("[ohsee] Failed to start:", err);
   app.quit();
 });
@@ -226,7 +236,15 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+  // Dock-icon click (or app re-activation) with no open window: rebuild just the
+  // window, reusing the already-running server and IPC handlers. Guard on appUrl
+  // so an `activate` fired during cold start — before the server is ready — is
+  // ignored; init() opens the first window itself.
+  if (appUrl && BrowserWindow.getAllWindows().length === 0) {
+    createWindow().catch((err) =>
+      console.error("[ohsee] Failed to reopen window:", err),
+    );
+  }
 });
 
 app.on("before-quit", () => {
